@@ -3,9 +3,16 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { TextItem, FilterState } from '../types/dataset';
-import { THEMES, SUB_THEMES, TEXT_TYPES, LITERARY_DEVICES, getSubThemesForTheme } from '../config/constants';
+import { 
+  SUBJECT_THEMES, 
+  SUBJECT_SUBTHEMES, 
+  SUBJECT_TEXT_TYPES, 
+  SUBJECT_LITERARY_DEVICES,
+  getSubThemesForTheme,
+  SubjectCode
+} from '../config/constants';
 
-export function useDataset(initialData: TextItem[]) {
+export function useDataset(initialData: TextItem[], subject: SubjectCode) {
   const [data, setData] = useState<TextItem[]>(initialData);
   const [filters, setFilters] = useState<FilterState>({
     theme: null,
@@ -81,52 +88,62 @@ export function useDataset(initialData: TextItem[]) {
     }
   };
 
+  // Ders bazlı ön tanımlı kategoriler
+  const predefinedThemes = SUBJECT_THEMES[subject] || [];
+  const predefinedTextTypes = SUBJECT_TEXT_TYPES[subject] || [];
+  const predefinedLiteraryDevices = SUBJECT_LITERARY_DEVICES[subject] || [];
+
   // Benzersiz tema listesi (ön tanımlı + kullanıcı ekledikleri)
   const uniqueThemes = useMemo(() => {
-    const themes = new Set<string>([...THEMES]);
+    const themes = new Set<string>([...predefinedThemes]);
     data.forEach(item => {
       if (item.theme) themes.add(item.theme);
     });
     return Array.from(themes).sort();
-  }, [data]);
+  }, [data, predefinedThemes]);
 
   // Benzersiz alt tema listesi (ön tanımlı + kullanıcı ekledikleri)
   const uniqueSubThemes = useMemo(() => {
-    const subThemes = new Set<string>([...SUB_THEMES]);
+    const subThemes = new Set<string>();
+    // Tüm ön tanımlı alt temaları ekle
+    Object.values(SUBJECT_SUBTHEMES[subject] || {}).forEach(subThemeList => {
+      subThemeList.forEach(st => subThemes.add(st));
+    });
+    // Kullanıcı eklediklerini ekle
     data.forEach(item => {
       if (item.sub_theme) subThemes.add(item.sub_theme);
     });
     return Array.from(subThemes).sort();
-  }, [data]);
+  }, [data, subject]);
 
   // Filtre için geçerli alt temalar (seçili temaya göre)
   const availableSubThemes = useMemo(() => {
     if (!filters.theme || filters.theme === 'all') {
       return uniqueSubThemes;
     }
-    const predefined = getSubThemesForTheme(filters.theme);
+    const predefined = getSubThemesForTheme(filters.theme, subject);
     const predefinedSet = new Set(predefined);
     const userAdded = uniqueSubThemes.filter(st => !predefinedSet.has(st));
     return [...predefined, ...userAdded];
-  }, [filters.theme, uniqueSubThemes]);
+  }, [filters.theme, uniqueSubThemes, subject]);
 
   // Benzersiz metin türü listesi (ön tanımlı + kullanıcı ekledikleri)
   const uniqueTextTypes = useMemo(() => {
-    const types = new Set<string>([...TEXT_TYPES]);
+    const types = new Set<string>([...predefinedTextTypes]);
     data.forEach(item => {
       if (item.text_type) types.add(item.text_type);
     });
     return Array.from(types).sort();
-  }, [data]);
+  }, [data, predefinedTextTypes]);
 
   // Benzersiz söz sanatları listesi (ön tanımlı + kullanıcı ekledikleri)
   const uniqueLiteraryDevices = useMemo(() => {
-    const devices = new Set<string>([...LITERARY_DEVICES]);
+    const devices = new Set<string>([...predefinedLiteraryDevices]);
     data.forEach(item => {
       if (item.literary_device) devices.add(item.literary_device);
     });
     return Array.from(devices).sort();
-  }, [data]);
+  }, [data, predefinedLiteraryDevices]);
 
   return {
     data,

@@ -3,7 +3,7 @@
  */
 import { TextItem } from '../types/dataset';
 import { Combobox } from './Combobox';
-import { getSubThemesForTheme } from '../config/constants';
+import { getSubThemesForTheme, SubjectCode } from '../config/constants';
 
 interface DetailViewProps {
   item: TextItem | null;
@@ -13,6 +13,7 @@ interface DetailViewProps {
   uniqueSubThemes: string[];
   uniqueTextTypes: string[];
   uniqueLiteraryDevices: string[];
+  subject: SubjectCode;
 }
 
 export function DetailView({
@@ -22,7 +23,8 @@ export function DetailView({
   uniqueThemes,
   uniqueSubThemes,
   uniqueTextTypes,
-  uniqueLiteraryDevices
+  uniqueLiteraryDevices,
+  subject
 }: DetailViewProps) {
   if (!item) return null;
 
@@ -31,7 +33,7 @@ export function DetailView({
     
     // Tema değiştiğinde alt temayı sıfırla (eğer yeni tema için geçerli değilse)
     if (field === 'theme') {
-      const availableSubThemes = getSubThemesForTheme(value || '');
+      const availableSubThemes = getSubThemesForTheme(value || '', subject);
       if (item.sub_theme && !availableSubThemes.includes(item.sub_theme)) {
         updates.sub_theme = null;
       }
@@ -119,7 +121,7 @@ export function DetailView({
             <Combobox
               value={item.sub_theme}
               options={(() => {
-                const available = getSubThemesForTheme(item.theme || '');
+                const available = getSubThemesForTheme(item.theme || '', subject);
                 return available.length > 0 ? available : uniqueSubThemes;
               })()}
               onChange={(value) => handleFieldChange('sub_theme', value)}

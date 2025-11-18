@@ -7,12 +7,14 @@ import { DetailView } from '../components/DetailView';
 import { ExportButtons } from '../components/ExportButtons';
 import { useDataset } from '../hooks/useDataset';
 import { TextItem } from '../types/dataset';
+import { SubjectCode, SUBJECTS } from '../config/constants';
 
 interface HomePageProps {
   initialData: TextItem[];
+  subject: SubjectCode;
 }
 
-export function HomePage({ initialData }: HomePageProps) {
+export function HomePage({ initialData, subject }: HomePageProps) {
   const {
     filteredData,
     filters,
@@ -25,13 +27,13 @@ export function HomePage({ initialData }: HomePageProps) {
     availableSubThemes,
     uniqueTextTypes,
     uniqueLiteraryDevices
-  } = useDataset(initialData);
+  } = useDataset(initialData, subject);
 
   const maxPage = Math.max(...initialData.map(item => item.page), 1);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ marginTop: 0 }}>EduAnalyzer - Türkçe 8. Sınıf Veri Görüntüleyici</h1>
+      <h1 style={{ marginTop: 0 }}>EduAnalyzer - {SUBJECTS[subject]} 8. Sınıf Veri Görüntüleyici</h1>
       
       <ExportButtons data={filteredData} />
       
@@ -57,6 +59,7 @@ export function HomePage({ initialData }: HomePageProps) {
         uniqueSubThemes={uniqueSubThemes}
         uniqueTextTypes={uniqueTextTypes}
         uniqueLiteraryDevices={uniqueLiteraryDevices}
+        subject={subject}
       />
 
       <DetailView
@@ -67,6 +70,7 @@ export function HomePage({ initialData }: HomePageProps) {
         uniqueSubThemes={uniqueSubThemes}
         uniqueTextTypes={uniqueTextTypes}
         uniqueLiteraryDevices={uniqueLiteraryDevices}
+        subject={subject}
       />
     </div>
   );

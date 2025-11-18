@@ -3,7 +3,7 @@
  */
 import { TextItem } from '../types/dataset';
 import { Combobox } from './Combobox';
-import { getSubThemesForTheme } from '../config/constants';
+import { getSubThemesForTheme, SubjectCode } from '../config/constants';
 
 interface DataTableProps {
   data: TextItem[];
@@ -13,6 +13,7 @@ interface DataTableProps {
   uniqueSubThemes: string[];
   uniqueTextTypes: string[];
   uniqueLiteraryDevices: string[];
+  subject: SubjectCode;
 }
 
 export function DataTable({
@@ -22,7 +23,8 @@ export function DataTable({
   uniqueThemes,
   uniqueSubThemes,
   uniqueTextTypes,
-  uniqueLiteraryDevices
+  uniqueLiteraryDevices,
+  subject
 }: DataTableProps) {
   const previewLength = 100;
 
@@ -33,7 +35,7 @@ export function DataTable({
     if (field === 'theme') {
       const item = data.find(i => i.id === id);
       if (item) {
-        const availableSubThemes = getSubThemesForTheme(value || '');
+        const availableSubThemes = getSubThemesForTheme(value || '', subject);
         if (item.sub_theme && !availableSubThemes.includes(item.sub_theme)) {
           updates.sub_theme = null;
         }
@@ -108,7 +110,7 @@ export function DataTable({
                   <Combobox
                     value={item.sub_theme}
                     options={(() => {
-                      const available = getSubThemesForTheme(item.theme || '');
+                      const available = getSubThemesForTheme(item.theme || '', subject);
                       return available.length > 0 ? available : uniqueSubThemes;
                     })()}
                     onChange={(value) => handleFieldChange(item.id, 'sub_theme', value)}
