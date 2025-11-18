@@ -1,0 +1,58 @@
+# PDF Dosyaları
+*.pdf
+**/*.pdf
+
+# Python
+pdf_extractor/venv/
+pdf_extractor/__pycache__/
+pdf_extractor/**/__pycache__/
+pdf_extractor/**/*.pyc
+pdf_extractor/**/*.pyo
+pdf_extractor/**/*.pyd
+pdf_extractor/.Python
+pdf_extractor/*.so
+pdf_extractor/.pytest_cache/
+
+# İşlenmiş Veriler (JSON/CSV çıktıları)
+pdf_extractor/data/processed/*.json
+pdf_extractor/data/processed/*.csv
+# Ham PDF'ler de ignore ediliyor (yukarıda *.pdf var)
+
+# Node.js / Frontend
+viewer-app/node_modules/
+viewer-app/dist/
+viewer-app/.vite/
+viewer-app/public/*.json
+viewer-app/public/*.csv
+# Sadece vite.svg kalabilir, diğerleri ignore edilsin
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
