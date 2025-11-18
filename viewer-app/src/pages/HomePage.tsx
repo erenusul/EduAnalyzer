@@ -21,7 +21,10 @@ export function HomePage({ initialData }: HomePageProps) {
     setSelectedItem,
     updateItem,
     uniqueThemes,
-    uniqueTextTypes
+    uniqueSubThemes,
+    availableSubThemes,
+    uniqueTextTypes,
+    uniqueLiteraryDevices
   } = useDataset(initialData);
 
   const maxPage = Math.max(...initialData.map(item => item.page), 1);
@@ -36,7 +39,9 @@ export function HomePage({ initialData }: HomePageProps) {
         filters={filters}
         onFiltersChange={setFilters}
         uniqueThemes={uniqueThemes}
+        availableSubThemes={availableSubThemes}
         uniqueTextTypes={uniqueTextTypes}
+        uniqueLiteraryDevices={uniqueLiteraryDevices}
         maxPage={maxPage}
       />
 
@@ -49,7 +54,9 @@ export function HomePage({ initialData }: HomePageProps) {
         onItemClick={setSelectedItem}
         onItemUpdate={updateItem}
         uniqueThemes={uniqueThemes}
+        uniqueSubThemes={uniqueSubThemes}
         uniqueTextTypes={uniqueTextTypes}
+        uniqueLiteraryDevices={uniqueLiteraryDevices}
       />
 
       <DetailView
@@ -57,7 +64,9 @@ export function HomePage({ initialData }: HomePageProps) {
         onClose={() => setSelectedItem(null)}
         onUpdate={updateItem}
         uniqueThemes={uniqueThemes}
+        uniqueSubThemes={uniqueSubThemes}
         uniqueTextTypes={uniqueTextTypes}
+        uniqueLiteraryDevices={uniqueLiteraryDevices}
       />
     </div>
   );

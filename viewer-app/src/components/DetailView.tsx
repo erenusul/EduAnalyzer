@@ -2,13 +2,17 @@
  * Detay görünümü bileşeni
  */
 import { TextItem } from '../types/dataset';
+import { Combobox } from './Combobox';
+import { getSubThemesForTheme } from '../config/constants';
 
 interface DetailViewProps {
   item: TextItem | null;
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<TextItem>) => void;
   uniqueThemes: string[];
+  uniqueSubThemes: string[];
   uniqueTextTypes: string[];
+  uniqueLiteraryDevices: string[];
 }
 
 export function DetailView({
@@ -16,12 +20,24 @@ export function DetailView({
   onClose,
   onUpdate,
   uniqueThemes,
-  uniqueTextTypes
+  uniqueSubThemes,
+  uniqueTextTypes,
+  uniqueLiteraryDevices
 }: DetailViewProps) {
   if (!item) return null;
 
   const handleFieldChange = (field: keyof TextItem, value: string | null) => {
-    onUpdate(item.id, { [field]: value });
+    const updates: Partial<TextItem> = { [field]: value };
+    
+    // Tema değiştiğinde alt temayı sıfırla (eğer yeni tema için geçerli değilse)
+    if (field === 'theme') {
+      const availableSubThemes = getSubThemesForTheme(value || '');
+      if (item.sub_theme && !availableSubThemes.includes(item.sub_theme)) {
+        updates.sub_theme = null;
+      }
+    }
+    
+    onUpdate(item.id, updates);
   };
 
   return (
@@ -90,30 +106,46 @@ export function DetailView({
 
           <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Tema:</label>
-            <select
-              value={item.theme || ''}
-              onChange={(e) => handleFieldChange('theme', e.target.value || null)}
-              style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-            >
-              <option value="">Seçiniz...</option>
-              {uniqueThemes.map(theme => (
-                <option key={theme} value={theme}>{theme}</option>
-              ))}
-            </select>
+            <Combobox
+              value={item.theme}
+              options={uniqueThemes}
+              onChange={(value) => handleFieldChange('theme', value)}
+              placeholder="Tema seçiniz..."
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Alt Tema:</label>
+            <Combobox
+              value={item.sub_theme}
+              options={(() => {
+                const available = getSubThemesForTheme(item.theme || '');
+                return available.length > 0 ? available : uniqueSubThemes;
+              })()}
+              onChange={(value) => handleFieldChange('sub_theme', value)}
+              placeholder="Alt tema seçiniz..."
+              disabled={!item.theme}
+            />
           </div>
 
           <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Metin Türü:</label>
-            <select
-              value={item.text_type || ''}
-              onChange={(e) => handleFieldChange('text_type', e.target.value || null)}
-              style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-            >
-              <option value="">Seçiniz...</option>
-              {uniqueTextTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+            <Combobox
+              value={item.text_type}
+              options={uniqueTextTypes}
+              onChange={(value) => handleFieldChange('text_type', value)}
+              placeholder="Metin türü seçiniz..."
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Söz Sanatı:</label>
+            <Combobox
+              value={item.literary_device}
+              options={uniqueLiteraryDevices}
+              onChange={(value) => handleFieldChange('literary_device', value)}
+              placeholder="Söz sanatı seçiniz..."
+            />
           </div>
 
           <div>

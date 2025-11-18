@@ -14,7 +14,9 @@ class TextItem:
     clean_text: str
     title: Optional[str] = None
     theme: Optional[str] = None
+    sub_theme: Optional[str] = None
     text_type: Optional[str] = None
+    literary_device: Optional[str] = None
     notes: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -26,7 +28,9 @@ class TextItem:
             "clean_text": self.clean_text,
             "title": self.title,
             "theme": self.theme,
+            "sub_theme": self.sub_theme,
             "text_type": self.text_type,
+            "literary_device": self.literary_device,
             "notes": self.notes
         }
 

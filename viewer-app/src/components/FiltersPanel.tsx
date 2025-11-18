@@ -7,7 +7,9 @@ interface FiltersPanelProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   uniqueThemes: string[];
+  availableSubThemes: string[];
   uniqueTextTypes: string[];
+  uniqueLiteraryDevices: string[];
   maxPage: number;
 }
 
@@ -15,11 +17,20 @@ export function FiltersPanel({
   filters,
   onFiltersChange,
   uniqueThemes,
+  availableSubThemes,
   uniqueTextTypes,
+  uniqueLiteraryDevices,
   maxPage
 }: FiltersPanelProps) {
   const handleFilterChange = (key: keyof FilterState, value: any) => {
-    onFiltersChange({ ...filters, [key]: value });
+    const newFilters = { ...filters, [key]: value };
+    
+    // Tema değiştiğinde alt tema filtresini sıfırla
+    if (key === 'theme' && (value === null || value === 'all')) {
+      newFilters.subTheme = null;
+    }
+    
+    onFiltersChange(newFilters);
   };
 
   return (
@@ -49,6 +60,31 @@ export function FiltersPanel({
           </select>
         </div>
 
+        {/* Alt Tema filtresi */}
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Alt Tema:
+          </label>
+          <select
+            value={filters.subTheme || 'all'}
+            onChange={(e) => handleFilterChange('subTheme', e.target.value === 'all' ? null : e.target.value)}
+            disabled={!filters.theme || filters.theme === 'all'}
+            style={{ 
+              width: '100%', 
+              padding: '0.5rem', 
+              borderRadius: '4px', 
+              border: '1px solid #ccc',
+              backgroundColor: (!filters.theme || filters.theme === 'all') ? '#f5f5f5' : 'white',
+              cursor: (!filters.theme || filters.theme === 'all') ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <option value="all">Hepsi</option>
+            {availableSubThemes.map(subTheme => (
+              <option key={subTheme} value={subTheme}>{subTheme}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Metin türü filtresi */}
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
@@ -62,6 +98,23 @@ export function FiltersPanel({
             <option value="all">Hepsi</option>
             {uniqueTextTypes.map(type => (
               <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Söz Sanatı filtresi */}
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Söz Sanatı:
+          </label>
+          <select
+            value={filters.literaryDevice || 'all'}
+            onChange={(e) => handleFilterChange('literaryDevice', e.target.value === 'all' ? null : e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="all">Hepsi</option>
+            {uniqueLiteraryDevices.map(device => (
+              <option key={device} value={device}>{device}</option>
             ))}
           </select>
         </div>

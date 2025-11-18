@@ -2,13 +2,17 @@
  * Veri tablosu bileşeni
  */
 import { TextItem } from '../types/dataset';
+import { Combobox } from './Combobox';
+import { getSubThemesForTheme } from '../config/constants';
 
 interface DataTableProps {
   data: TextItem[];
   onItemClick: (item: TextItem) => void;
   onItemUpdate: (id: string, updates: Partial<TextItem>) => void;
   uniqueThemes: string[];
+  uniqueSubThemes: string[];
   uniqueTextTypes: string[];
+  uniqueLiteraryDevices: string[];
 }
 
 export function DataTable({
@@ -16,12 +20,27 @@ export function DataTable({
   onItemClick,
   onItemUpdate,
   uniqueThemes,
-  uniqueTextTypes
+  uniqueSubThemes,
+  uniqueTextTypes,
+  uniqueLiteraryDevices
 }: DataTableProps) {
   const previewLength = 100;
 
   const handleFieldChange = (id: string, field: keyof TextItem, value: string | null) => {
-    onItemUpdate(id, { [field]: value });
+    const updates: Partial<TextItem> = { [field]: value };
+    
+    // Tema değiştiğinde alt temayı sıfırla (eğer yeni tema için geçerli değilse)
+    if (field === 'theme') {
+      const item = data.find(i => i.id === id);
+      if (item) {
+        const availableSubThemes = getSubThemesForTheme(value || '');
+        if (item.sub_theme && !availableSubThemes.includes(item.sub_theme)) {
+          updates.sub_theme = null;
+        }
+      }
+    }
+    
+    onItemUpdate(id, updates);
   };
 
   return (
@@ -34,7 +53,9 @@ export function DataTable({
             <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Başlık</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Metin Önizleme</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Tema</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Alt Tema</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Metin Türü</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Söz Sanatı</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #ccc' }}>Notlar</th>
           </tr>
         </thead>
@@ -72,30 +93,52 @@ export function DataTable({
                   : item.clean_text}
               </td>
               <td style={{ padding: '0.75rem', border: '1px solid #ccc' }}>
-                <select
-                  value={item.theme || ''}
-                  onChange={(e) => handleFieldChange(item.id, 'theme', e.target.value || null)}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ width: '100%', padding: '0.25rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                >
-                  <option value="">Seçiniz...</option>
-                  {uniqueThemes.map(theme => (
-                    <option key={theme} value={theme}>{theme}</option>
-                  ))}
-                </select>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Combobox
+                    value={item.theme}
+                    options={uniqueThemes}
+                    onChange={(value) => handleFieldChange(item.id, 'theme', value)}
+                    placeholder="Tema seçiniz..."
+                    style={{ fontSize: '0.9rem' }}
+                  />
+                </div>
               </td>
               <td style={{ padding: '0.75rem', border: '1px solid #ccc' }}>
-                <select
-                  value={item.text_type || ''}
-                  onChange={(e) => handleFieldChange(item.id, 'text_type', e.target.value || null)}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ width: '100%', padding: '0.25rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                >
-                  <option value="">Seçiniz...</option>
-                  {uniqueTextTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Combobox
+                    value={item.sub_theme}
+                    options={(() => {
+                      const available = getSubThemesForTheme(item.theme || '');
+                      return available.length > 0 ? available : uniqueSubThemes;
+                    })()}
+                    onChange={(value) => handleFieldChange(item.id, 'sub_theme', value)}
+                    placeholder="Alt tema seçiniz..."
+                    disabled={!item.theme}
+                    style={{ fontSize: '0.9rem' }}
+                  />
+                </div>
+              </td>
+              <td style={{ padding: '0.75rem', border: '1px solid #ccc' }}>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Combobox
+                    value={item.text_type}
+                    options={uniqueTextTypes}
+                    onChange={(value) => handleFieldChange(item.id, 'text_type', value)}
+                    placeholder="Metin türü seçiniz..."
+                    style={{ fontSize: '0.9rem' }}
+                  />
+                </div>
+              </td>
+              <td style={{ padding: '0.75rem', border: '1px solid #ccc' }}>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Combobox
+                    value={item.literary_device}
+                    options={uniqueLiteraryDevices}
+                    onChange={(value) => handleFieldChange(item.id, 'literary_device', value)}
+                    placeholder="Söz sanatı seçiniz..."
+                    style={{ fontSize: '0.9rem' }}
+                  />
+                </div>
               </td>
               <td style={{ padding: '0.75rem', border: '1px solid #ccc' }}>
                 <input

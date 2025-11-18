@@ -43,7 +43,7 @@ def export_to_csv(text_items: List[TextItem], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # CSV başlıkları
-    fieldnames = ['id', 'page', 'raw_text', 'clean_text', 'title', 'theme', 'text_type', 'notes']
+    fieldnames = ['id', 'page', 'raw_text', 'clean_text', 'title', 'theme', 'sub_theme', 'text_type', 'literary_device', 'notes']
     
     with open(output_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

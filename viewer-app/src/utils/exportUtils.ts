@@ -29,7 +29,7 @@ export function downloadCSV(data: TextItem[], filename: string = 'turkce8_datase
   }
 
   // CSV başlıkları
-  const headers = ['id', 'page', 'raw_text', 'clean_text', 'title', 'theme', 'text_type', 'notes'];
+  const headers = ['id', 'page', 'raw_text', 'clean_text', 'title', 'theme', 'sub_theme', 'text_type', 'literary_device', 'notes'];
   
   // CSV satırlarını oluştur
   const rows = data.map(item => {
@@ -40,7 +40,9 @@ export function downloadCSV(data: TextItem[], filename: string = 'turkce8_datase
       escapeCSV(item.clean_text),
       escapeCSV(item.title || ''),
       escapeCSV(item.theme || ''),
+      escapeCSV(item.sub_theme || ''),
       escapeCSV(item.text_type || ''),
+      escapeCSV(item.literary_device || ''),
       escapeCSV(item.notes || '')
     ];
   });
