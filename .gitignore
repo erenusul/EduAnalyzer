@@ -47,6 +47,15 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# ML Model Checkpoints (çok büyük dosyalar)
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pb
+ml-service/models/checkpoints/
+ml-service/logs/
+
 # OS Files
 .DS_Store
 .DS_Store?
