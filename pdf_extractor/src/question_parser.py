@@ -65,8 +65,8 @@ def extract_topic_from_filename(filename: str) -> str:
     elif topic.startswith("CIKMIS-"):
         # "CIKMIS-" ve "-SORULARI-VE-CEVAPLARI" kısımlarını temizle
         topic = topic.replace("CIKMIS-", "").replace("-SORULARI-VE-CEVAPLARI-1", "").replace("-SORULARI-VE-CEVAPLARI-2", "").replace("-SORULARI-VE-COZUMLERI", "")
-        # Tireleri boşlukla değiştir
-        topic = topic.replace("-", " ")
+    # Tireleri boşlukla değiştir
+    topic = topic.replace("-", " ")
     
     # Tireleri boşlukla değiştir (genel durum)
     topic = topic.replace("-", " ").replace("_", " ")

@@ -145,7 +145,7 @@ class Trainer:
             return weights.to(DEVICE)
         except Exception as e:
             print(f"Warning: Could not compute class weights: {e}", flush=True)
-            return None
+        return None
 
     def train_epoch(self) -> float:
         """

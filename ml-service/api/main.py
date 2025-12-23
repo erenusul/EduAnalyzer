@@ -42,15 +42,11 @@ async def lifespan(app: FastAPI):
             subject_path = CHECKPOINTS_DIR / SUBJECT_MODEL_NAME
             topic_path = CHECKPOINTS_DIR / TOPIC_MODEL_NAME
             
-            # Load topic model (subject is always "turkce" for now)
-            if topic_path.exists():
-                try:
-                    classifier.load_model(CHECKPOINTS_DIR, "topic")
-                    logger.info("Topic model loaded successfully")
-                    # Share classifier instance with predict route
-                    predict.set_classifier(classifier)
-                except Exception as e:
-                    logger.warning(f"Could not load topic model: {e}. Will load on first request.")
+            if subject_path.exists() and topic_path.exists():
+                classifier.load_model(CHECKPOINTS_DIR, "combined")
+                logger.info("Models loaded successfully")
+                # Share classifier instance with predict route
+                predict.set_classifier(classifier)
             else:
                 logger.warning(
                     f"Model checkpoints not found. "
@@ -143,4 +139,3 @@ if __name__ == "__main__":
     from ml_service.config import API_HOST, API_PORT
     
     uvicorn.run(app, host=API_HOST, port=API_PORT)
-

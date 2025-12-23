@@ -239,8 +239,34 @@ class QuestionClassifier:
             # Get number of labels from checkpoint
             labels = checkpoint.get("labels", list(SUBJECTS.keys()))
             num_labels = len(labels)
+            checkpoint_state = checkpoint["model_state_dict"]
+            
+            # Check if checkpoint has new architecture (fc1, layer_norm1, etc.)
+            has_new_architecture = any("fc1" in key or "layer_norm1" in key for key in checkpoint_state.keys())
+            
+            # Create model
             self.subject_model = BERTurkClassifier(num_labels=num_labels)
-            self.subject_model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            
+            if not has_new_architecture:
+                # Old checkpoint - filter out incompatible classifier layer
+                # Keep BERT layers and other compatible parts
+                filtered_state = {}
+                for key, value in checkpoint_state.items():
+                    # Skip classifier if it exists (will use random init from new architecture)
+                    if "classifier" in key:
+                        continue
+                    filtered_state[key] = value
+                
+                # Load compatible parts (BERT layers)
+                model_state = self.subject_model.state_dict()
+                for key in filtered_state:
+                    if key in model_state and model_state[key].shape == filtered_state[key].shape:
+                        model_state[key] = filtered_state[key]
+                self.subject_model.load_state_dict(model_state, strict=False)
+            else:
+                # New checkpoint - load with strict=False to handle any minor mismatches
+                self.subject_model.load_state_dict(checkpoint_state, strict=False)
+            
             self.subject_model.to(self.device)
             self.subject_model.eval()
             self.subject_labels = labels
