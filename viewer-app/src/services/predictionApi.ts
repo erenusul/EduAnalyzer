@@ -74,6 +74,71 @@ export async function checkApiHealth(): Promise<{ status: string; model_loaded: 
   }
 }
 
+export interface QuestionAnalysisResult {
+  question_id: string;
+  question_text: string;
+  subject: PredictionItem[];
+  topic: PredictionItem[];
+  has_visual: boolean;
+}
+
+export interface PDFAnalysisResponse {
+  total_questions: number;
+  analyzed_questions: number;
+  results: QuestionAnalysisResult[];
+  warning?: string;
+}
+
+/**
+ * Upload PDF and analyze all questions
+ */
+export async function analyzePDF(
+  file: File,
+  useOCR: boolean = false,
+  topKSubject: number = 1,
+  topKTopic: number = 3
+): Promise<PDFAnalysisResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('use_ocr', useOCR.toString());
+    formData.append('top_k_subject', topKSubject.toString());
+    formData.append('top_k_topic', topKTopic.toString());
+
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    // Longer timeout for OCR processing: 15 minutes for OCR, 10 minutes without OCR
+    const timeoutDuration = useOCR ? 900000 : 600000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+
+    const response = await fetch(`${API_BASE_URL}/api/analyze-pdf`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail || `PDF analysis failed with status ${response.status}`
+      );
+    }
+
+    const data: PDFAnalysisResponse = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('PDF analizi zaman aşımına uğradı. Lütfen OCR\'ı kapatarak tekrar deneyin veya daha küçük bir PDF kullanın.');
+      }
+      throw error;
+    }
+    throw new Error('Unknown error occurred during PDF analysis');
+  }
+}
+
 
 
 

@@ -154,6 +154,9 @@ class BERTurkClassifier(nn.Module):
         
         result = {"logits": logits}
         
+        # Note: Loss computation is now handled by Trainer class
+        # to support Focal Loss and Label Smoothing
+        # Keeping this for backward compatibility but it won't be used
         if labels is not None:
             loss_fn = nn.CrossEntropyLoss()
             loss = loss_fn(logits, labels)

@@ -17,6 +17,7 @@ from ml_service.config import (
     SUBJECTS,
     SUBJECT_TOPICS,
     TOPIC_TO_SUBJECT,
+    TRAINING_CONFIG,
 )
 from ml_service.data.preprocessor import TextPreprocessor
 
@@ -186,6 +187,7 @@ def create_subject_dataset(
     subjects: List[str],
     tokenizer: AutoTokenizer,
     max_length: int = MAX_SEQUENCE_LENGTH,
+    apply_augmentation: bool = None,
 ) -> QuestionDataset:
     """
     Create dataset for subject classification
@@ -195,10 +197,29 @@ def create_subject_dataset(
         subjects: List of subject labels
         tokenizer: BERTurk tokenizer
         max_length: Maximum sequence length
+        apply_augmentation: Whether to apply data augmentation (None = use config)
         
     Returns:
         QuestionDataset configured for subject classification
     """
+    # Apply augmentation if enabled
+    if apply_augmentation is None:
+        apply_augmentation = TRAINING_CONFIG.get("augmentation_enabled", False)
+    
+    if apply_augmentation:
+        from ml_service.data.augmentation import augment_dataset
+        augmentation_ratio = TRAINING_CONFIG.get("augmentation_ratio", 0.3)
+        seed = TRAINING_CONFIG.get("seed", 42)
+        
+        print(f"Applying data augmentation (ratio={augmentation_ratio})...", flush=True)
+        texts, subjects = augment_dataset(
+            texts,
+            subjects,
+            augmentation_ratio=augmentation_ratio,
+            seed=seed,
+        )
+        print(f"Augmented dataset size: {len(texts)} samples", flush=True)
+    
     return QuestionDataset(texts, subjects, tokenizer, max_length)
 
 
@@ -207,6 +228,7 @@ def create_topic_dataset(
     topics: List[str],
     tokenizer: AutoTokenizer,
     max_length: int = MAX_SEQUENCE_LENGTH,
+    apply_augmentation: bool = None,
 ) -> QuestionDataset:
     """
     Create dataset for topic classification
@@ -216,9 +238,28 @@ def create_topic_dataset(
         topics: List of topic labels
         tokenizer: BERTurk tokenizer
         max_length: Maximum sequence length
+        apply_augmentation: Whether to apply data augmentation (None = use config)
         
     Returns:
         QuestionDataset configured for topic classification
     """
+    # Apply augmentation if enabled
+    if apply_augmentation is None:
+        apply_augmentation = TRAINING_CONFIG.get("augmentation_enabled", False)
+    
+    if apply_augmentation:
+        from ml_service.data.augmentation import augment_dataset
+        augmentation_ratio = TRAINING_CONFIG.get("augmentation_ratio", 0.3)
+        seed = TRAINING_CONFIG.get("seed", 42)
+        
+        print(f"Applying data augmentation (ratio={augmentation_ratio})...", flush=True)
+        texts, topics = augment_dataset(
+            texts,
+            topics,
+            augmentation_ratio=augmentation_ratio,
+            seed=seed,
+        )
+        print(f"Augmented dataset size: {len(texts)} samples", flush=True)
+    
     return QuestionDataset(texts, topics, tokenizer, max_length)
 

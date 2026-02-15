@@ -37,6 +37,14 @@ TRAINING_CONFIG = {
     "seed": 42,
     "early_stopping_patience": 5,  # Increased patience for better convergence
     "early_stopping_min_delta": 0.0001,  # Smaller delta for more sensitive stopping
+    # Advanced loss function settings
+    "use_focal_loss": True,  # Enable Focal Loss for imbalanced datasets
+    "focal_alpha": None,  # Alpha weighting (None = use class weights, or provide list)
+    "focal_gamma": 2.0,  # Focal Loss focusing parameter (higher = focus more on hard examples)
+    "label_smoothing": 0.1,  # Label smoothing factor (0.0 = no smoothing, 0.1 = typical)
+    # Data augmentation settings
+    "augmentation_enabled": True,  # Enable data augmentation during training
+    "augmentation_ratio": 0.3,  # Percentage of training data to augment (0.0-1.0)
 }
 
 # Subject codes and names

@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from ml_service.api.routes import predict
+from ml_service.api.routes import predict, pdf_upload
 from ml_service.api.schemas import HealthResponse
 from ml_service.config import (
     CHECKPOINTS_DIR,
@@ -83,6 +83,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(predict.router, prefix="/api", tags=["prediction"])
+app.include_router(pdf_upload.router, prefix="/api", tags=["pdf-analysis"])
 
 
 @app.get("/", response_model=HealthResponse)

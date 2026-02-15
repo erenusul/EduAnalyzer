@@ -1,2 +1,5 @@
 PyMuPDF>=1.23.0
+easyocr>=1.7.0  # Optional: For OCR text extraction from images
+Pillow>=10.0.0  # Required for image processing
+numpy>=1.24.0  # Required for EasyOCR
 

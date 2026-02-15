@@ -31,6 +31,10 @@ spec = importlib.util.spec_from_file_location("classifier", ml_service_path / "m
 classifier_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(classifier_module)
 
+spec = importlib.util.spec_from_file_location("losses", ml_service_path / "models" / "losses.py")
+losses_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(losses_module)
+
 # Use imported modules
 TRAINING_CONFIG = config.TRAINING_CONFIG
 CHECKPOINTS_DIR = config.CHECKPOINTS_DIR
@@ -45,6 +49,8 @@ load_question_dataset = dataset_module.load_question_dataset
 create_subject_dataset = dataset_module.create_subject_dataset
 create_topic_dataset = dataset_module.create_topic_dataset
 BERTurkClassifier = classifier_module.BERTurkClassifier
+FocalLoss = losses_module.FocalLoss
+LabelSmoothingCrossEntropy = losses_module.LabelSmoothingCrossEntropy
 
 
 class Trainer:
@@ -79,6 +85,9 @@ class Trainer:
         # Class weights for imbalanced dataset
         self.class_weights = self._compute_class_weights()
         
+        # Initialize loss function based on config
+        self.loss_fn = self._create_loss_function()
+        
         # Optimizer
         self.optimizer = torch.optim.AdamW(
             self.model.parameters(),
@@ -108,6 +117,53 @@ class Trainer:
         # Early stopping
         self.best_val_loss = float("inf")
         self.patience_counter = 0
+    
+    def _create_loss_function(self):
+        """
+        Create loss function based on configuration
+        
+        Returns:
+            Loss function instance
+        """
+        use_focal_loss = self.config.get("use_focal_loss", False)
+        focal_alpha = self.config.get("focal_alpha", None)
+        focal_gamma = self.config.get("focal_gamma", 2.0)
+        label_smoothing = self.config.get("label_smoothing", 0.0)
+        
+        if use_focal_loss:
+            # Use Focal Loss
+            alpha_tensor = None
+            if focal_alpha is not None and self.class_weights is not None:
+                # Use class weights as alpha if provided
+                alpha_tensor = self.class_weights
+            elif focal_alpha is not None:
+                # Use provided alpha values
+                alpha_tensor = torch.tensor(focal_alpha, dtype=torch.float32).to(DEVICE)
+            
+            loss_fn = FocalLoss(
+                alpha=alpha_tensor,
+                gamma=focal_gamma,
+                reduction='mean',
+                label_smoothing=label_smoothing,
+            )
+            print(f"Using Focal Loss (gamma={focal_gamma}, label_smoothing={label_smoothing})", flush=True)
+        elif label_smoothing > 0.0:
+            # Use Label Smoothing Cross Entropy
+            loss_fn = LabelSmoothingCrossEntropy(
+                smoothing=label_smoothing,
+                reduction='mean',
+            )
+            print(f"Using Label Smoothing Cross Entropy (smoothing={label_smoothing})", flush=True)
+        else:
+            # Use standard Cross Entropy Loss
+            if self.class_weights is not None:
+                loss_fn = nn.CrossEntropyLoss(weight=self.class_weights, reduction='mean')
+                print("Using Weighted Cross Entropy Loss", flush=True)
+            else:
+                loss_fn = nn.CrossEntropyLoss(reduction='mean')
+                print("Using Standard Cross Entropy Loss", flush=True)
+        
+        return loss_fn
     
     def _compute_class_weights(self) -> Optional[torch.Tensor]:
         """
@@ -166,20 +222,16 @@ class Trainer:
             attention_mask = batch["attention_mask"].to(DEVICE)
             labels = batch["labels"].to(DEVICE)
             
-            # Forward pass
+            # Forward pass (don't compute loss in model, we'll use custom loss)
             outputs = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                labels=labels,
+                labels=None,  # Don't compute loss in model
             )
-            loss = outputs["loss"]
+            logits = outputs["logits"]
             
-            # Apply class weights if available
-            if self.class_weights is not None:
-                # Get logits and compute weighted loss manually
-                logits = outputs["logits"]
-                loss_fn = nn.CrossEntropyLoss(weight=self.class_weights, reduction='mean')
-                loss = loss_fn(logits, labels)
+            # Compute loss using configured loss function
+            loss = self.loss_fn(logits, labels)
             
             # Scale loss for gradient accumulation
             loss = loss / accumulation_steps
@@ -226,10 +278,12 @@ class Trainer:
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    labels=labels,
+                    labels=None,  # Don't compute loss in model
                 )
-                loss = outputs["loss"]
                 logits = outputs["logits"]
+                
+                # Compute loss for evaluation
+                loss = self.loss_fn(logits, labels)
                 
                 total_loss += loss.item()
                 

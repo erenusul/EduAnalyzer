@@ -19,6 +19,9 @@ class Question:
     exam_info: Optional[str] = None
     question_number: Optional[int] = None
     source_pdf: str = ""
+    has_visual: bool = False
+    visual_type: Optional[str] = None
+    visual_description: Optional[str] = None
     
     def to_dict(self) -> dict:
         """Dict'e dönüştür"""
@@ -280,14 +283,30 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                 question_text = ' '.join(current_question_text).strip()
                 question_text = clean_question_text(question_text)
                 if len(question_text) > 10:  # Geçerli soru kontrolü
+                    # Görsel tespiti yap
+                    # Try relative import first (when used as package)
+                    try:
+                        from .visual_detector import VisualDetector
+                    except ImportError:
+                        # Fallback to absolute import (when used standalone)
+                        from visual_detector import VisualDetector
+                    detector = VisualDetector()
+                    visual_info = detector.detect_visual_content(question_text)
+                    
+                    # Görsel açıklaması ekle
+                    enhanced_text = detector.add_visual_description(question_text, visual_info)
+                    
                     question = Question(
                         question_id=f"{pdf_name}_q{current_question_num}",
-                        question_text=question_text,
+                        question_text=enhanced_text,
                         options=current_options.copy(),
                         topic=topic,
                         exam_info=current_exam,
                         question_number=current_question_num,
-                        source_pdf=pdf_name
+                        source_pdf=pdf_name,
+                        has_visual=visual_info["has_visual"],
+                        visual_type=visual_info.get("primary_type"),
+                        visual_description=visual_info.get("primary_type")
                     )
                     questions.append(question)
             
@@ -384,12 +403,13 @@ def clean_question_text(text: str) -> str:
     return text.strip()
 
 
-def extract_questions_from_pdf(pdf_path: Path) -> List[Question]:
+def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Question]:
     """
     PDF dosyasından tüm soruları çıkarır.
     
     Args:
         pdf_path: PDF dosyası yolu
+        use_ocr: Whether to extract text from images using OCR
         
     Returns:
         Question listesi
@@ -400,15 +420,38 @@ def extract_questions_from_pdf(pdf_path: Path) -> List[Question]:
     # Konu bilgisini dosya adından çıkar
     topic = extract_topic_from_filename(pdf_path.name)
     
+    # OCR extractor (if enabled)
+    ocr_extractor = None
+    page_visuals = {}
+    if use_ocr:
+        try:
+            # Try relative import first (when used as package)
+            try:
+                from .ocr_extractor import OCRExtractor
+                from .ocr_extractor import extract_visuals_from_pdf
+            except ImportError:
+                # Fallback to absolute import (when used standalone)
+                from ocr_extractor import OCRExtractor
+                from ocr_extractor import extract_visuals_from_pdf
+            
+            ocr_extractor = OCRExtractor(use_ocr=True)
+            # Extract visuals from all pages
+            page_visuals = extract_visuals_from_pdf(pdf_path, use_ocr=True)
+        except Exception as e:
+            print(f"⚠️  OCR initialization failed: {e}")
+            use_ocr = False
+    
     # Metin içinden de konu bilgisini kontrol et
     doc = fitz.open(pdf_path)
     all_text = ""
+    page_texts = {}  # Store text per page for visual matching
     
     try:
         # Tüm sayfaları birleştir
         for page_num in range(len(doc)):
             page = doc[page_num]
             page_text = page.get_text()
+            page_texts[page_num] = page_text
             all_text += page_text + "\n\n"
             
             # İlk sayfadan konu bilgisini çıkar
@@ -420,19 +463,48 @@ def extract_questions_from_pdf(pdf_path: Path) -> List[Question]:
         # Soruları parse et
         questions = parse_questions_from_text(all_text, topic, pdf_path.name)
         
+        # Enhance questions with visual content if OCR is enabled
+        if use_ocr and ocr_extractor and page_visuals:
+            # Map questions to pages (approximate based on question distribution)
+            questions_per_page = len(questions) / len(doc) if len(doc) > 0 else 0
+            
+            enhanced_questions = []
+            for i, question in enumerate(questions):
+                # Estimate which page this question is on
+                estimated_page = int(i / questions_per_page) if questions_per_page > 0 else 0
+                estimated_page = min(estimated_page, len(doc) - 1)
+                
+                # Get visuals for this page
+                visuals = page_visuals.get(estimated_page, [])
+                
+                if visuals and ocr_extractor.is_visual_question(question.question_text, visuals):
+                    # Enhance question with OCR text
+                    enhanced_text = ocr_extractor.enhance_question_with_visual_text(
+                        question.question_text,
+                        visuals
+                    )
+                    question.question_text = enhanced_text
+                    question.has_visual = True
+                    question.visual_description = "OCR extracted text"
+                
+                enhanced_questions.append(question)
+            
+            questions = enhanced_questions
+        
     finally:
         doc.close()
     
     return questions
 
 
-def process_all_pdf_questions(pdf_dir: Path, include_subdirs: bool = True) -> List[Question]:
+def process_all_pdf_questions(pdf_dir: Path, include_subdirs: bool = True, use_ocr: bool = False) -> List[Question]:
     """
     Belirtilen dizindeki tüm PDF'lerden soruları çıkarır.
     
     Args:
         pdf_dir: PDF dosyalarının bulunduğu dizin
         include_subdirs: Alt dizinleri de tarayıp taramayacağı (varsayılan: True)
+        use_ocr: Whether to extract text from images using OCR
         
     Returns:
         Tüm soruların listesi
@@ -446,6 +518,9 @@ def process_all_pdf_questions(pdf_dir: Path, include_subdirs: bool = True) -> Li
     pdf_files.extend(pdf_dir.glob("8.-sinif-*.pdf"))
     pdf_files.extend(pdf_dir.glob("8.-Sinif-*.pdf"))
     
+    # Tüm PDF'leri bul (genel pattern - yeni klasörler için)
+    pdf_files.extend(pdf_dir.glob("*.pdf"))
+    
     # Alt dizinleri de tara (Turkce_Sorular_Devam gibi)
     if include_subdirs:
         for subdir in pdf_dir.iterdir():
@@ -453,13 +528,17 @@ def process_all_pdf_questions(pdf_dir: Path, include_subdirs: bool = True) -> Li
                 pdf_files.extend(subdir.glob("CIKMIS-*.pdf"))
                 pdf_files.extend(subdir.glob("8.-sinif-*.pdf"))
                 pdf_files.extend(subdir.glob("8.-Sinif-*.pdf"))
+                pdf_files.extend(subdir.glob("*.pdf"))  # Tüm PDF'ler
+    
+    # Duplicate'leri kaldır
+    pdf_files = list(set(pdf_files))
     
     print(f"📚 {len(pdf_files)} PDF dosyası bulundu")
     
     for pdf_path in pdf_files:
         print(f"\n📖 İşleniyor: {pdf_path.name}")
         try:
-            questions = extract_questions_from_pdf(pdf_path)
+            questions = extract_questions_from_pdf(pdf_path, use_ocr=use_ocr)
             print(f"✓ {len(questions)} soru çıkarıldı")
             all_questions.extend(questions)
         except Exception as e:

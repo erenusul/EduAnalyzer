@@ -154,6 +154,9 @@ def create_question_dataset(merge_existing: bool = True):
     # PDF dizini (proje kök dizini)
     pdf_dir = PROJECT_ROOT
     
+    # Yeni PDF klasörünü de ekle
+    new_pdf_dir = PROJECT_ROOT / "15.02.2026_son_veriler"
+    
     # Dataset çıktı yolu
     output_path = PROCESSED_DIR / "question_dataset.json"
     
@@ -171,7 +174,21 @@ def create_question_dataset(merge_existing: bool = True):
     
     # Tüm soruları çıkar (alt dizinler dahil)
     print("\n📖 PDF'lerden sorular çıkarılıyor...")
-    new_questions = process_all_pdf_questions(pdf_dir, include_subdirs=True)
+    # OCR kullanımı için environment variable kontrol et
+    import os
+    use_ocr = os.getenv("USE_OCR", "false").lower() == "true"
+    if use_ocr:
+        print("🔍 OCR modu aktif - görsellerden metin çıkarılacak...")
+    
+    # Ana dizinden soruları çıkar
+    new_questions = process_all_pdf_questions(pdf_dir, include_subdirs=True, use_ocr=use_ocr)
+    
+    # Yeni PDF klasöründen de soruları çıkar
+    if new_pdf_dir.exists():
+        print(f"\n📚 Yeni PDF klasörü taranıyor: {new_pdf_dir.name}")
+        new_pdf_questions = process_all_pdf_questions(new_pdf_dir, include_subdirs=False, use_ocr=use_ocr)
+        print(f"✓ Yeni klasörden {len(new_pdf_questions)} soru çıkarıldı")
+        new_questions.extend(new_pdf_questions)
     
     print(f"\n📊 {len(new_questions)} soru çıkarıldı")
     
@@ -241,6 +258,11 @@ def create_question_dataset(merge_existing: bool = True):
     
     # Dict formatına çevir (kaydetmek için)
     all_questions = [q.to_dict() for q in all_questions]
+    
+    # Görsel içeren soruları tespit et ve açıklama ekle
+    print("\n🔍 Görsel içeren sorular tespit ediliyor...")
+    from .visual_detector import detect_and_enhance_questions
+    all_questions = detect_and_enhance_questions(all_questions)
     
     # Konulara göre grupla
     topics = {}
