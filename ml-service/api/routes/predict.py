@@ -105,6 +105,9 @@ async def predict(request: PredictionRequest) -> PredictionResponse:
     
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.error(f"ValueError during prediction: {e}", exc_info=True)
+        raise HTTPException(status_code=503, detail=f"Model not ready: {str(e)}")
     except Exception as e:
         logger.error(f"Error during prediction: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

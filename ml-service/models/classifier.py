@@ -445,6 +445,10 @@ class QuestionClassifier:
         # In the future, when we have data for other subjects, we can use subject_model
         subject_predictions = [("turkce", 1.0)]
         
+        # Check if topic model is loaded
+        if self.topic_model is None:
+            raise ValueError("Topic model not loaded. Please load the model before making predictions.")
+        
         # Use Turkish subject for topic prediction
         topic_predictions = self.predict_topic(text, subject="turkce", top_k=top_k_topic)
         
