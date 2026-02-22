@@ -1,12 +1,18 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --eduanalyzer-primary: #0d6efd;
+  --eduanalyzer-primary-dark: #0a58ca;
+  --eduanalyzer-primary-light: #e7f1ff;
+  --eduanalyzer-sidebar-bg: #1e293b;
+  --eduanalyzer-sidebar-text: #94a3b8;
+  --eduanalyzer-sidebar-active: #3b82f6;
+  --eduanalyzer-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --eduanalyzer-card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light;
-  color: rgba(0, 0, 0, 0.87);
-  background-color: #ffffff;
-
+  color: #1e293b;
+  background-color: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -23,3 +29,46 @@ body {
   width: 100%;
 }
 
+/* Form controls - daha temiz görünüm */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--eduanalyzer-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* Card hover - dashboard kartları */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--eduanalyzer-card-shadow-hover);
+}
+
+/* File upload alanı - sürükle bırak görünümü */
+.file-upload-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.dragover {
+  border-color: var(--eduanalyzer-primary);
+  background: var(--eduanalyzer-primary-light);
+}
+
+.file-upload-zone.has-file {
+  border-style: solid;
+  border-color: #22c55e;
+  background: #f0fdf4;
+}/* Sidebar hover */
+.sidebar-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}

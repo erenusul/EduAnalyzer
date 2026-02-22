@@ -226,6 +226,147 @@ def extract_topic_from_text(text: str) -> Optional[str]:
     return None
 
 
+# Soru olarak ALINMAYACAK satır kalıpları (ünite, sınıf, test başlıkları vb.)
+EXCLUDED_QUESTION_PATTERNS = [
+    r'^\d*\.?\s*ünite\b',           # "5. ünite", "ünite"
+    r'^\d*\.?\s*sınıf\b',           # "8. sınıf", "sınıf"
+    r'^\d*\.?\s*unit\b',             # "5. unit"
+    r'^test\s*\d*',                  # "test06", "test 6"
+    r'^test\d+',                     # "test06" (bitişik)
+    r'^\d+\.?\s*$',                  # Sadece numara
+    r'^[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\s*/\s*Çıkmış',  # "Yazım Kuralları / Çıkmış"
+    r'^\d+\s*-\s*$',                 # "5 - " (boş)
+    r'^sayfa\s*\d*',                 # "Sayfa 1"
+    r'^bölüm\s*\d*',                 # "Bölüm 1"
+    r'^konu\s*:',                    # "Konu:"
+    r'^türkçe\s*\d*',                # "Türkçe 8"
+    r'indirilebilir\s+test',         # "indirilebilir testler"
+]
+
+# Geçerli soru metninde bulunması gereken kalıplar (en az biri)
+QUESTION_INDICATOR_PATTERNS = [
+    r'\bhangisi\b',                  # "aşağıdakilerden hangisi"
+    r'\bhangi\b',                    # "hangi ikisi", "hangi"
+    r'\bhangileri\b',
+    r'\bnedir\b',                    # "anlamı nedir"
+    r'\bneden\b',
+    r'\bnasıl\b',
+    r'\bkaç\b',                      # "kaç tane"
+    r'\bnerede\b',
+    r'\bne zaman\b',
+    r'\bkim\b',
+    r'\bnelerdir\b',
+    r'\başağıdakilerden\b',
+    r'\byukarıdakilerden\b',
+    r'\bdoğru\b',                    # "doğru olan"
+    r'\byanlış\b',
+    r'\baltı çizili\b',              # "altı çizili sözle"
+    r'\bparçada\b',
+    r'\bcümlede\b',
+    r'\bmetinde\b',
+    r'\bverilen\b',
+    r'\banlatılmak istenen\b',        # Örnek sorudaki gibi
+    r'\bsorulduğuna\b',
+    r'\bbelirtilen\b',
+    r'\bzıt anlamlı\b',               # "hangi ikisi zıt anlamlıdır"
+    r'\beş anlamlı\b',
+    r'\bdeyim\b',                     # "deyimlerden hangisi"
+    r'\batasözü\b',
+    r'\bnumaralandırılmış\b',          # "numaralandırılmış deyimlerden"
+    r'\bseçenek\b',
+    r'\bcevap\b',
+]
+
+# Kelime çifti veya soru olmayan metin kalıpları (verimli - verimsiz, ağlamak - ağlamamak)
+NON_QUESTION_PATTERNS = [
+    r'^\s*\S+\s*[-–]\s*\S+\s*$',     # "verimli - verimsiz" (tek kelime - tek kelime)
+    r'^\s*\w+\s+[-–]\s+\w+\s*$',     # "ağlamak - ağlamamak" (kelime - kelime)
+]
+
+
+def _is_excluded_question_line(text: str) -> bool:
+    """
+    Bu metin soru başlangıcı olarak kabul edilmemeli mi?
+    Örn: "5. ünite", "8. sınıf", "test06"
+    """
+    t = text.strip().lower()
+    for pattern in EXCLUDED_QUESTION_PATTERNS:
+        if re.search(pattern, t, re.IGNORECASE):
+            return True
+    return False
+
+
+def _is_word_pair_or_non_question(text: str) -> bool:
+    """
+    Kelime çifti mi? (verimli - verimsiz, ağlamak - ağlamamak)
+    Bu tür metinler soru DEĞİLDİR.
+    """
+    t = text.strip()
+    for pattern in NON_QUESTION_PATTERNS:
+        if re.search(pattern, t, re.IGNORECASE):
+            return True
+    return False
+
+
+def _is_list_item_not_question(text: str) -> bool:
+    """
+    Liste maddesi mi? (1) İçi açılmak, 2) İçi dışına çıkmak gibi)
+    Kısa ifadeler ve soru göstergesi içermeyen metinler liste maddesi olabilir.
+    """
+    t = text.strip()
+    if len(t) > 60:
+        return False
+    if any(re.search(p, t, re.IGNORECASE) for p in QUESTION_INDICATOR_PATTERNS):
+        return False
+    if re.search(r'\?|hangisi|aşağıdakilerden|hangi\s+cümle', t, re.IGNORECASE):
+        return False
+    return True
+
+
+def _strip_metadata_from_question(text: str) -> str:
+    """
+    Soru metninin başındaki metadata'yı temizle.
+    Örn: "ÜNİTE SÖZCÜK DÜZEYİNDE ANLAM ► ANLAM BİLGİSİ TEST 06 1) İçi açılmak..."
+    -> "İçi açılmak..." (metadata kaldırılır)
+    """
+    result = text
+    # Baştaki metadata bloklarını kaldır (ÜNİTE...►...TEST 06 vb.)
+    result = re.sub(r'^.*?ÜNİTE\s+[^►]*►\s*', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'^.*?ANLAM\s+BİLGİSİ\s+TEST\s*\d+\s*', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'^.*?SÖZCÜK\s+DÜZEYİNDE\s+ANLAM\s*', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'^.*?TEST\s*\d+\s+(?=\d+\))', '', result, flags=re.IGNORECASE)
+    # "N) " ile başlayan kısımdan sonrasını al (numara zaten soru numarası, metni koruyoruz)
+    num_match = re.match(r'^\d+\)\s*(.+)', result)
+    if num_match:
+        result = num_match.group(1)
+    return re.sub(r'\s+', ' ', result).strip()
+
+
+def _is_valid_question(question_text: str, options: List[str]) -> bool:
+    """
+    Gerçek bir sınav sorusu kalıbında mı?
+    - En az 2 seçenek (A, B, C, D) olmalı
+    - Soru metni yeterince uzun
+    - Kelime çifti (verimli - verimsiz) DEĞİL
+    - Soru göstergesi VEYA 3+ seçenek ile yeterli uzunluk
+    """
+    if len(options) < 2:
+        return False
+    text = question_text.strip()
+    if len(text) < 20:
+        return False
+    if _is_word_pair_or_non_question(text):
+        return False
+    text_lower = text.lower()
+    for pattern in QUESTION_INDICATOR_PATTERNS:
+        if re.search(pattern, text_lower):
+            return True
+    # 3+ seçenek ve 40+ karakter: muhtemelen geçerli soru (farklı ifade kullanıyor olabilir)
+    if len(options) >= 3 and len(text) >= 40:
+        return True
+    return False
+
+
 def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Question]:
     """
     Metinden soruları parse eder.
@@ -246,8 +387,10 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
     # Sınav bilgisi pattern'i: "LGS-2020", "TEOG", vb.
     exam_pattern = re.compile(r'(LGS-\d{4}|TEOG|201\d[-–]\w+\s*TEOG|201\d[-–]\w+\s*Mazeret\s*TEOG)')
     
-    # Soru numarası pattern'i: "1-", "2-", "10-", vb.
-    question_num_pattern = re.compile(r'^(\d+)[-\.]\s*(.+)$')
+    # Soru numarası: "1)" veya "1." - AMA "2. ağlamak - ağlamamak" gibi liste maddeleri SORU DEĞİL
+    # Liste maddesi = "N. kelime - kelime" (kelime çifti) -> soru başlangıcı sayma
+    question_num_paren = re.compile(r'^(\d+)\)\s*(.+)$')   # "2) metin" - her zaman soru
+    question_num_dot = re.compile(r'^(\d+)\.\s*(.+)$')    # "2. metin" - sadece kelime çifti DEĞİLSE soru
     
     # Seçenek pattern'i: "A)", "B)", "C)", "D)" ile başlayan satırlar
     option_pattern = re.compile(r'^([ABCD])\)\s*(.+)$')
@@ -276,26 +419,41 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             continue
         
         # Soru numarası kontrolü
-        q_match = question_num_pattern.match(line)
+        q_match = question_num_paren.match(line)  # "2) metin"
+        if not q_match:
+            q_match = question_num_dot.match(line)  # "2. metin"
         if q_match:
-            # Önceki soruyu kaydet
+            following_text = q_match.group(2).strip()
+            # "5. ünite", "8. sınıf", "test06" gibi saçma satırları atla
+            if _is_excluded_question_line(following_text):
+                i += 1
+                continue
+            # Liste maddesi mi? (2. ağlamak - ağlamamak, 2) İçi dışına çıkmak vb.)
+            # Sadece zaten bir soru içindeysek mevcut soruya ekle; yoksa yeni soru başlat
+            if _is_word_pair_or_non_question(following_text):
+                if in_question and not current_options:
+                    current_question_text.append(line)
+                i += 1
+                continue
+            if _is_list_item_not_question(following_text) and in_question and not current_options:
+                current_question_text.append(line)
+                i += 1
+                continue
+
+            # Önceki soruyu kaydet (sadece geçerli soru kalıbındaysa)
             if current_question_num is not None and current_question_text:
                 question_text = ' '.join(current_question_text).strip()
                 question_text = clean_question_text(question_text)
-                if len(question_text) > 10:  # Geçerli soru kontrolü
+                if _is_valid_question(question_text, current_options):
                     # Görsel tespiti yap
-                    # Try relative import first (when used as package)
                     try:
                         from .visual_detector import VisualDetector
                     except ImportError:
-                        # Fallback to absolute import (when used standalone)
                         from visual_detector import VisualDetector
                     detector = VisualDetector()
                     visual_info = detector.detect_visual_content(question_text)
-                    
-                    # Görsel açıklaması ekle
                     enhanced_text = detector.add_visual_description(question_text, visual_info)
-                    
+
                     question = Question(
                         question_id=f"{pdf_name}_q{current_question_num}",
                         question_text=enhanced_text,
@@ -309,10 +467,10 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                         visual_description=visual_info.get("primary_type")
                     )
                     questions.append(question)
-            
+
             # Yeni soru başlat
             current_question_num = int(q_match.group(1))
-            current_question_text = [q_match.group(2)]
+            current_question_text = [following_text]
             current_options = []
             in_question = True
             i += 1
@@ -352,11 +510,11 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
         
         i += 1
     
-    # Son soruyu kaydet
+    # Son soruyu kaydet (sadece geçerli soru kalıbındaysa)
     if current_question_num is not None and current_question_text:
         question_text = ' '.join(current_question_text).strip()
         question_text = clean_question_text(question_text)
-        if len(question_text) > 10:
+        if _is_valid_question(question_text, current_options):
             question = Question(
                 question_id=f"{pdf_name}_q{current_question_num}",
                 question_text=question_text,
@@ -367,40 +525,84 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                 source_pdf=pdf_name
             )
             questions.append(question)
-    
+
     return questions
 
 
 def clean_question_text(text: str) -> str:
     """
     Soru metninden gereksiz bilgileri temizler.
-    
-    Args:
-        text: Ham soru metni
-        
-    Returns:
-        Temizlenmiş soru metni
+    ÜNİTE, TEST 06, ANLAM BİLGİSİ gibi metadata'yı kaldırır.
     """
+    # Önce metadata temizliği (ÜNİTE SÖZCÜK DÜZEYİNDE ANLAM ► ANLAM BİLGİSİ TEST 06 vb.)
+    text = _strip_metadata_from_question(text)
+
     # Gereksiz başlık bilgilerini kaldır
     patterns_to_remove = [
         r'^\d+\.\s*Sayfa\s*',
         r'\b\d+\.\s*Sayfa\b',
         r'\bSayfa\b',
-        r'[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+/\s*Çıkmış\s*Sorular\s*[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+/\s*Çıkmış\s*Sorular',  # Tekrarlanan başlıklar
+        r'[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+/\s*Çıkmış\s*Sorular\s*[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+/\s*Çıkmış\s*Sorular',
         r'[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+/\s*Çıkmış\s*Sorular',
         r'www\.yeninesilturkce\.com',
         r'TÜRKÇE\s*TÜRKÇE',
         r'^\s*TÜRKÇE\s*$',
-        r'LGS\s*\(\.\.\.\)',  # LGS (...) gibi pattern'ler
+        r'LGS\s*\(\.\.\.\)',
+        r'ÜNİTE\s+[^►]+►\s*',
+        r'ANLAM\s+BİLGİSİ\s+TEST\s*\d+\s*',
+        r'SÖZCÜK\s+DÜZEYİNDE\s+ANLAM\s*',
     ]
-    
+
     for pattern in patterns_to_remove:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.MULTILINE)
-    
+
     # Fazla boşlukları temizle
     text = re.sub(r'\s+', ' ', text)
-    
+
     return text.strip()
+
+
+def _extract_page_text_column_order(page: "fitz.Page") -> str:
+    """
+    Sayfa metnini doğal okuma sırasında çıkarır: sol sütun yukarıdan aşağı,
+    sonra sağ sütun yukarıdan aşağı (iki sütunlu PDF'ler için).
+    Kelime bazlı sıralama ile sütun karışması önlenir.
+    """
+    try:
+        width = page.rect.width
+        width2 = width / 2
+        words = page.get_text("words", sort=False)
+        if not words:
+            return page.get_text()
+
+        # (x0, y0, x1, y1, text, block_no, line_no, word_no)
+        def sort_key(w):
+            x0, y0 = w[0], w[1]
+            col = 0 if x0 < width2 else 1
+            return (col, y0, x0)
+
+        sorted_words = sorted(words, key=sort_key)
+        lines = []
+        current_line = []
+        last_y = None
+        y_threshold = 8  # Satır değişimi eşiği (pt)
+
+        for w in sorted_words:
+            if len(w) < 5:
+                continue
+            x0, y0, text = w[0], w[1], w[4]
+            if last_y is not None and abs(y0 - last_y) > y_threshold:
+                if current_line:
+                    lines.append(" ".join(current_line))
+                    current_line = []
+            current_line.append(text)
+            last_y = y0
+
+        if current_line:
+            lines.append(" ".join(current_line))
+        return "\n".join(lines)
+    except Exception:
+        return page.get_text()
 
 
 def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Question]:
@@ -448,9 +650,10 @@ def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Qu
     
     try:
         # Tüm sayfaları birleştir
+        # İki sütunlu PDF'lerde metin sırası: sol sütun yukarıdan aşağı, sonra sağ sütun yukarıdan aşağı.
         for page_num in range(len(doc)):
             page = doc[page_num]
-            page_text = page.get_text()
+            page_text = _extract_page_text_column_order(page)
             page_texts[page_num] = page_text
             all_text += page_text + "\n\n"
             
@@ -490,10 +693,15 @@ def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Qu
                 enhanced_questions.append(question)
             
             questions = enhanced_questions
-        
+
     finally:
         doc.close()
-    
+
+    # Soruları 1, 2, 3, 4... şeklinde sıralı numaralandır (PDF'deki atlamaları düzelt)
+    for idx, q in enumerate(questions, start=1):
+        q.question_id = f"{pdf_path.name}_q{idx}"
+        q.question_number = idx
+
     return questions
 
 

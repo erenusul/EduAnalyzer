@@ -6,7 +6,9 @@ MEB 8. Sınıf Türkçe ders kitabından metin çıkarma, temizleme ve görünt�
 
 ```
 EduAnalyzer/
-├── pdf_extractor/          # Backend - PDF işleme modülü
+├── backend/                # .NET 8 Web API - Ana backend (auth, CRUD, ML proxy)
+├── ml-service/             # Python FastAPI - ML tahmin servisi
+├── pdf_extractor/          # PDF işleme modülü
 │   ├── src/
 │   │   ├── models.py      # Veri modelleri
 │   │   ├── parser.py       # PDF okuma
@@ -97,6 +99,7 @@ Her metin birimi şu alanları içerir:
 ## Geliştirme
 
 Detaylı bilgi için her modülün kendi README dosyasına bakın:
+- [backend/README.md](backend/README.md) - .NET API, auth, veritabanı
 - [pdf_extractor/README.md](pdf_extractor/README.md)
 - [viewer-app/README.md](viewer-app/README.md)
 

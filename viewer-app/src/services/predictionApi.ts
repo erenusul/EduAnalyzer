@@ -2,18 +2,16 @@
  * API client for question prediction service
  */
 
-// Use proxy in development, or explicit URL if provided
+import type {
+  PredictionItem,
+  PredictionResponse,
+  QuestionAnalysisResult,
+  PDFAnalysisResponse,
+} from '../types/prediction';
+
+export type { PredictionItem, PredictionResponse, QuestionAnalysisResult, PDFAnalysisResponse };
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:8000');
-
-export interface PredictionItem {
-  label: string;
-  confidence: number;
-}
-
-export interface PredictionResponse {
-  subject: PredictionItem[];
-  topic: PredictionItem[];
-}
 
 export interface PredictionRequest {
   question_text: string;
@@ -72,21 +70,6 @@ export async function checkApiHealth(): Promise<{ status: string; model_loaded: 
     }
     throw new Error('Unknown error occurred during health check');
   }
-}
-
-export interface QuestionAnalysisResult {
-  question_id: string;
-  question_text: string;
-  subject: PredictionItem[];
-  topic: PredictionItem[];
-  has_visual: boolean;
-}
-
-export interface PDFAnalysisResponse {
-  total_questions: number;
-  analyzed_questions: number;
-  results: QuestionAnalysisResult[];
-  warning?: string;
 }
 
 /**
