@@ -30,6 +30,15 @@ viewer-app/public/*.json
 viewer-app/public/*.csv
 # Sadece vite.svg kalabilir, diğerleri ignore edilsin
 
+# .NET / Build
+bin/
+obj/
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+appsettings.Development.json
+
 # IDE / Editor
 .vscode/
 .idea/
