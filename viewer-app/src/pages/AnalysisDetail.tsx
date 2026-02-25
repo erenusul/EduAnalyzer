@@ -2,11 +2,12 @@
  * Analiz detay sayfası - tüm sorular ve öğretmen düzeltme
  */
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, Form, Modal } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
+import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import type { PDFAnalysisResponse, QuestionAnalysisResult } from '../types/prediction';
 
 function getCurrentWeekLabel(): string {
@@ -50,7 +51,7 @@ export function AnalysisDetail() {
   const results = analysis.results as PDFAnalysisResponse;
   const items = results?.results ?? [];
 
-  const handleQuestionUpdate = (questionIndex: number, subjectCode: string, topicLabel: string) => {
+  const handleQuestionUpdate = async (questionIndex: number, subjectCode: string, topicLabel: string) => {
     const newResults: QuestionAnalysisResult[] = items.map((item, i) => {
       if (i !== questionIndex) return item;
       return {
@@ -59,7 +60,7 @@ export function AnalysisDetail() {
         topic: [{ label: topicLabel, confidence: 1 }],
       };
     });
-    updateAnalysis(analysis.id, {
+    await updateAnalysis(analysis.id, {
       results: {
         ...results,
         results: newResults,
@@ -69,21 +70,33 @@ export function AnalysisDetail() {
 
   const exam = getExamByAnalysisId(analysis.id);
 
-  const handleCreateExam = () => {
-    const newExam = addExam({
+  const handleCreateExam = async () => {
+    await addExam({
       analysisId: analysis.id,
       title: analysis.title,
       weekLabel,
       date: analysis.date.split('T')[0] ?? new Date().toISOString().split('T')[0],
       status: 'draft',
     });
-    updateAnalysis(analysis.id, { examId: newExam.id });
     setShowExamModal(false);
   };
 
-  const handleMarkExamReady = () => {
-    if (exam) updateExam(exam.id, { status: 'ready' });
+  const handleMarkExamReady = async () => {
+    if (exam) await updateExam(exam.id, { status: 'ready' });
   };
+
+  const answerKeyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleAnswerKeyChange = useCallback(
+    (answerKey: string[]) => {
+      if (!exam) return;
+      if (answerKeyDebounceRef.current) clearTimeout(answerKeyDebounceRef.current);
+      answerKeyDebounceRef.current = setTimeout(() => {
+        updateExam(exam.id, { answerKey });
+        answerKeyDebounceRef.current = null;
+      }, 500);
+    },
+    [exam, updateExam]
+  );
 
   return (
     <div>
@@ -165,6 +178,25 @@ export function AnalysisDetail() {
           </p>
         </Card.Body>
       </Card>
+
+      {exam && (
+        <Card className="border-0 shadow-sm mb-3">
+          <Card.Header className="bg-white border-bottom py-3">
+            <h6 className="fw-semibold mb-0">
+              <i className="bi bi-key me-2" />
+              Cevap Anahtarı ({items.length} soru)
+            </h6>
+          </Card.Header>
+          <Card.Body className="p-4">
+            <AnswerKeyEditor
+              questionCount={items.length}
+              value={exam.answerKey ?? []}
+              onChange={handleAnswerKeyChange}
+              disabled={exam.status === 'ready'}
+            />
+          </Card.Body>
+        </Card>
+      )}
 
       <div className="d-flex flex-column gap-3">
         {items.map((result, index) => (

@@ -16,6 +16,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/backend': {
+        target: 'http://localhost:5131',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/backend/, ''),
+      },
     },
   },
 })

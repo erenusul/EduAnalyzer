@@ -37,10 +37,19 @@ export function LoginPage() {
     }
   };
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
     setError(null);
-    loginDemo();
-    navigate('/dashboard', { replace: true });
+    setLoading(true);
+    try {
+      const success = await loginDemo();
+      if (success) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        setError('Demo girişi başarısız. Backend çalışıyor mu?');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

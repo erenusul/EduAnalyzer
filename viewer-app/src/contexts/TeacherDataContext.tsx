@@ -1,5 +1,5 @@
 /**
- * Öğretmen paneli mock veri yönetimi
+ * Öğretmen paneli veri yönetimi - Backend API entegrasyonu
  */
 
 import {
@@ -10,56 +10,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useAuth } from './AuthContext';
 import type { Student, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
-
-const STORAGE_KEYS = {
-  students: 'eduanalyzer_students',
-  classes: 'eduanalyzer_classes',
-  analyses: 'eduanalyzer_analyses',
-  exams: 'eduanalyzer_exams',
-  examResults: 'eduanalyzer_exam_results',
-} as const;
-
-function loadFromStorage<T>(key: string, defaultValue: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : defaultValue;
-  } catch {
-    return defaultValue;
-  }
-}
-
-function saveToStorage<T>(key: string, value: T): void {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-const DEMO_STUDENTS: Student[] = [
-  { id: 's1', studentNo: '1001', firstName: 'Ahmet', lastName: 'Yılmaz', classId: 'c1', createdAt: new Date().toISOString() },
-  { id: 's2', studentNo: '1002', firstName: 'Ayşe', lastName: 'Kaya', classId: 'c1', createdAt: new Date().toISOString() },
-  { id: 's3', studentNo: '1003', firstName: 'Mehmet', lastName: 'Demir', classId: 'c1', createdAt: new Date().toISOString() },
-  { id: 's4', studentNo: '1004', firstName: 'Zeynep', lastName: 'Çelik', classId: 'c2', createdAt: new Date().toISOString() },
-  { id: 's5', studentNo: '1005', firstName: 'Emre', lastName: 'Öztürk', classId: 'c2', createdAt: new Date().toISOString() },
-  { id: 's6', studentNo: '1006', firstName: 'Elif', lastName: 'Arslan', classId: null, createdAt: new Date().toISOString() },
-];
-
-const DEMO_CLASSES: Class[] = [
-  { id: 'c1', name: '8-A', grade: '8', academicYear: '2024-2025', studentIds: ['s1', 's2', 's3'], createdAt: new Date().toISOString() },
-  { id: 'c2', name: '8-B', grade: '8', academicYear: '2024-2025', studentIds: ['s4', 's5'], createdAt: new Date().toISOString() },
-];
-
-const DEMO_EXAMS: Exam[] = [
-  { id: 'ex1', analysisId: 'demo-analysis-1', title: 'Haftalık Deneme 1', weekLabel: '2025-W08', date: '2025-02-17', status: 'ready', createdAt: new Date().toISOString() },
-  { id: 'ex2', analysisId: 'demo-analysis-2', title: 'Haftalık Deneme 2', weekLabel: '2025-W07', date: '2025-02-10', status: 'ready', createdAt: new Date().toISOString() },
-];
-
-const DEMO_EXAM_RESULTS: ExamResult[] = [
-  { id: 'er1', studentId: 's1', examId: 'ex1', correctCount: 18, wrongCount: 2, wrongTopics: [{ topic: 'Fiilimsiler', count: 2 }], createdAt: new Date().toISOString() },
-  { id: 'er2', studentId: 's2', examId: 'ex1', correctCount: 16, wrongCount: 4, wrongTopics: [{ topic: 'Fiilimsiler', count: 2 }, { topic: 'Öge', count: 2 }], createdAt: new Date().toISOString() },
-  { id: 'er3', studentId: 's3', examId: 'ex1', correctCount: 19, wrongCount: 1, wrongTopics: [{ topic: 'Cümle Türleri', count: 1 }], createdAt: new Date().toISOString() },
-  { id: 'er4', studentId: 's4', examId: 'ex1', correctCount: 15, wrongCount: 5, wrongTopics: [{ topic: 'Fiilimsiler', count: 3 }, { topic: 'Öge', count: 2 }], createdAt: new Date().toISOString() },
-  { id: 'er5', studentId: 's1', examId: 'ex2', correctCount: 17, wrongCount: 3, wrongTopics: [{ topic: 'Öge', count: 2 }, { topic: 'Fiilimsiler', count: 1 }], createdAt: new Date().toISOString() },
-  { id: 'er6', studentId: 's2', examId: 'ex2', correctCount: 18, wrongCount: 2, wrongTopics: [{ topic: 'Fiilimsiler', count: 2 }], createdAt: new Date().toISOString() },
-];
+import {
+  studentsApi,
+  classesApi,
+  analysesApi,
+  examsApi,
+  mappers,
+} from '../services/backendApi';
 
 interface TeacherDataContextValue {
   students: Student[];
@@ -67,174 +26,168 @@ interface TeacherDataContextValue {
   analyses: AnalysisRecord[];
   exams: Exam[];
   examResults: ExamResult[];
-  addStudent: (student: Omit<Student, 'id' | 'createdAt'>) => Student;
-  updateStudent: (id: string, data: Partial<Student>) => void;
-  deleteStudent: (id: string) => void;
-  addClass: (cls: Omit<Class, 'id' | 'createdAt' | 'studentIds'>) => Class;
-  updateClass: (id: string, data: Partial<Class>) => void;
-  deleteClass: (id: string) => void;
-  assignStudentToClass: (studentId: string, classId: string | null) => void;
-  addAnalysis: (record: Omit<AnalysisRecord, 'id' | 'createdAt'>) => AnalysisRecord;
-  updateAnalysis: (id: string, updates: Partial<Pick<AnalysisRecord, 'title' | 'results' | 'examId'>>) => void;
-  deleteAnalysis: (id: string) => void;
-  addExam: (exam: Omit<Exam, 'id' | 'createdAt'>) => Exam;
-  updateExam: (id: string, updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status'>>) => void;
+  loading: boolean;
+  error: string | null;
+  clearError: () => void;
+  refresh: () => Promise<void>;
+  addStudent: (student: Omit<Student, 'id' | 'createdAt'>) => Promise<Student>;
+  updateStudent: (id: string, data: Partial<Student>) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
+  addClass: (cls: Omit<Class, 'id' | 'createdAt' | 'studentIds'>) => Promise<Class>;
+  updateClass: (id: string, data: Partial<Class>) => Promise<void>;
+  deleteClass: (id: string) => Promise<void>;
+  assignStudentToClass: (studentId: string, classId: string | null) => Promise<void>;
+  analyzePdf: (file: File, useOcr?: boolean) => Promise<AnalysisRecord>;
+  addAnalysis: (record: Omit<AnalysisRecord, 'id' | 'createdAt'>) => Promise<AnalysisRecord>;
+  updateAnalysis: (id: string, updates: Partial<Pick<AnalysisRecord, 'title' | 'results' | 'examId'>>) => Promise<void>;
+  deleteAnalysis: (id: string) => Promise<void>;
+  addExam: (exam: Omit<Exam, 'id' | 'createdAt'>) => Promise<Exam>;
+  updateExam: (id: string, updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status' | 'answerKey'>>) => Promise<void>;
   getExamByAnalysisId: (analysisId: string) => Exam | undefined;
   getResultsByExam: (examId: string) => ExamResult[];
   getResultsByStudent: (studentId: string) => ExamResult[];
-  addExamResult: (result: Omit<ExamResult, 'id' | 'createdAt'>) => ExamResult;
-  updateExamResult: (id: string, updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>) => void;
+  addExamResult: (result: Omit<ExamResult, 'id' | 'createdAt'>) => Promise<ExamResult>;
+  updateExamResult: (id: string, updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>) => Promise<void>;
   getStudentsByClass: (classId: string) => Student[];
-  getClassById: (id: string) => Class | undefined;
-  getStudentById: (id: string) => Student | undefined;
+  getClassById: (classId: string) => Class | undefined;
+  getStudentById: (studentId: string) => Student | undefined;
 }
 
 const TeacherDataContext = createContext<TeacherDataContextValue | null>(null);
 
-function generateId(): string {
-  return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
 export function TeacherDataProvider({ children }: { children: ReactNode }) {
-  const [students, setStudents] = useState<Student[]>(() =>
-    loadFromStorage(STORAGE_KEYS.students, DEMO_STUDENTS)
-  );
-  const [classes, setClasses] = useState<Class[]>(() =>
-    loadFromStorage(STORAGE_KEYS.classes, DEMO_CLASSES)
-  );
-  const [analyses, setAnalyses] = useState<AnalysisRecord[]>(() =>
-    loadFromStorage(STORAGE_KEYS.analyses, [])
-  );
-  const [exams, setExams] = useState<Exam[]>(() =>
-    loadFromStorage(STORAGE_KEYS.exams, DEMO_EXAMS)
-  );
-  const [examResults, setExamResults] = useState<ExamResult[]>(() =>
-    loadFromStorage(STORAGE_KEYS.examResults, DEMO_EXAM_RESULTS)
-  );
+  const { isAuthenticated } = useAuth();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [examResults, setExamResults] = useState<ExamResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  const refresh = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [studentsRes, classesRes, analysesRes, examsRes, resultsRes] = await Promise.all([
+        studentsApi.getAll(),
+        classesApi.getAll(),
+        analysesApi.getAll(),
+        examsApi.getAll(),
+        examsApi.getAllResults(),
+      ]);
+
+      const studentList = studentsRes.map(mappers.toStudent);
+      setStudents(studentList);
+
+      const classList = classesRes.map((c) => {
+        const studentIds = studentList.filter((s) => s.classId === c.id).map((s) => s.id);
+        return mappers.toClass(c, studentIds);
+      });
+      setClasses(classList);
+
+      setAnalyses(analysesRes.map(mappers.toAnalysis));
+      setExams(examsRes.map(mappers.toExam));
+      setExamResults(resultsRes.map(mappers.toExamResult));
+    } catch (err) {
+      const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: string }).message) : 'Veriler yüklenemedi.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.students, students);
-  }, [students]);
+    refresh();
+  }, [refresh]);
 
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.classes, classes);
-  }, [classes]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.analyses, analyses);
-  }, [analyses]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.exams, exams);
-  }, [exams]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.examResults, examResults);
-  }, [examResults]);
-
-  const addStudent = useCallback((data: Omit<Student, 'id' | 'createdAt'>) => {
-    const student: Student = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setStudents((prev) => [...prev, student]);
+  const addStudent = useCallback(async (data: Omit<Student, 'id' | 'createdAt'>) => {
+    const res = await studentsApi.create(data);
+    const student = mappers.toStudent(res);
+    await refresh();
     return student;
-  }, []);
+  }, [refresh]);
 
-  const updateStudent = useCallback((id: string, data: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...data } : s))
-    );
-  }, []);
+  const updateStudent = useCallback(async (id: string, data: Partial<Student>) => {
+    await studentsApi.update(id, data);
+    await refresh();
+  }, [refresh]);
 
-  const deleteStudent = useCallback((id: string) => {
-    setStudents((prev) => prev.filter((s) => s.id !== id));
-    setClasses((prev) =>
-      prev.map((c) => ({
-        ...c,
-        studentIds: c.studentIds.filter((sid) => sid !== id),
-      }))
-    );
-  }, []);
+  const deleteStudent = useCallback(async (id: string) => {
+    await studentsApi.delete(id);
+    await refresh();
+  }, [refresh]);
 
-  const addClass = useCallback((data: Omit<Class, 'id' | 'createdAt' | 'studentIds'>) => {
-    const cls: Class = {
-      ...data,
-      id: generateId(),
-      studentIds: [],
-      createdAt: new Date().toISOString(),
-    };
-    setClasses((prev) => [...prev, cls]);
+  const addClass = useCallback(async (data: Omit<Class, 'id' | 'createdAt' | 'studentIds'>) => {
+    const res = await classesApi.create(data);
+    const cls = mappers.toClass(res, []);
+    await refresh();
     return cls;
-  }, []);
+  }, [refresh]);
 
-  const updateClass = useCallback((id: string, data: Partial<Class>) => {
-    setClasses((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...data } : c))
-    );
-  }, []);
+  const updateClass = useCallback(async (id: string, data: Partial<Pick<Class, 'name' | 'grade' | 'academicYear'>>) => {
+    await classesApi.update(id, data);
+    await refresh();
+  }, [refresh]);
 
-  const deleteClass = useCallback((id: string) => {
-    setClasses((prev) => prev.filter((c) => c.id !== id));
-    setStudents((prev) =>
-      prev.map((s) => (s.classId === id ? { ...s, classId: null } : s))
-    );
-  }, []);
+  const deleteClass = useCallback(async (id: string) => {
+    await classesApi.delete(id);
+    await refresh();
+  }, [refresh]);
 
-  const assignStudentToClass = useCallback((studentId: string, classId: string | null) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, classId } : s))
-    );
-    setClasses((prev) =>
-      prev.map((c) => {
-        const hasStudent = c.studentIds.includes(studentId);
-        if (c.id === classId && !hasStudent) {
-          return { ...c, studentIds: [...c.studentIds, studentId] };
-        }
-        if (c.id !== classId && hasStudent) {
-          return { ...c, studentIds: c.studentIds.filter((sid) => sid !== studentId) };
-        }
-        return c;
-      })
-    );
-  }, []);
+  const assignStudentToClass = useCallback(async (studentId: string, classId: string | null) => {
+    await studentsApi.assignClass(studentId, classId);
+    await refresh();
+  }, [refresh]);
 
-  const addAnalysis = useCallback((data: Omit<AnalysisRecord, 'id' | 'createdAt'>) => {
-    const record: AnalysisRecord = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setAnalyses((prev) => [record, ...prev]);
-    return record;
-  }, []);
+  const analyzePdf = useCallback(async (file: File, useOcr = false) => {
+    const res = await analysesApi.analyzePdf(file, useOcr);
+    const analysis = mappers.toAnalysis(res);
+    await refresh();
+    return analysis;
+  }, [refresh]);
 
-  const updateAnalysis = useCallback((id: string, updates: Partial<Pick<AnalysisRecord, 'title' | 'results'>>) => {
-    setAnalyses((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
-    );
-  }, []);
+  const addAnalysis = useCallback(async (data: Omit<AnalysisRecord, 'id' | 'createdAt'>) => {
+    if (data.type === 'single') {
+      const res = await analysesApi.createSingle({ title: data.title, results: data.results });
+      await refresh();
+      return mappers.toAnalysis(res);
+    }
+    throw new Error('PDF analizi için analyzePdf kullanın.');
+  }, [refresh]);
 
-  const deleteAnalysis = useCallback((id: string) => {
-    setAnalyses((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+  const updateAnalysis = useCallback(async (id: string, updates: Partial<Pick<AnalysisRecord, 'title' | 'results' | 'examId'>>) => {
+    if (updates.results !== undefined) {
+      await analysesApi.updateResults(id, updates.results);
+    }
+    await refresh();
+  }, [refresh]);
 
-  const addExam = useCallback((data: Omit<Exam, 'id' | 'createdAt'>) => {
-    const exam: Exam = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setExams((prev) => [...prev, exam]);
+  const deleteAnalysis = useCallback(async (id: string) => {
+    await analysesApi.delete(id);
+    await refresh();
+  }, [refresh]);
+
+  const addExam = useCallback(async (data: Omit<Exam, 'id' | 'createdAt'>) => {
+    const date = data.date.includes('T') ? data.date.split('T')[0] ?? data.date : data.date;
+    const res = await analysesApi.createExam(data.analysisId, data.weekLabel, date);
+    const exam = mappers.toExam(res);
+    await refresh();
     return exam;
-  }, []);
+  }, [refresh]);
 
-  const updateExam = useCallback((id: string, updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status'>>) => {
-    setExams((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
-    );
-  }, []);
+  const updateExam = useCallback(async (id: string, updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status' | 'answerKey'>>) => {
+    if (updates.status === 'ready') {
+      await analysesApi.markExamReady(id);
+    }
+    if (updates.answerKey !== undefined) {
+      await examsApi.updateAnswerKey(id, updates.answerKey);
+    }
+    await refresh();
+  }, [refresh]);
 
   const getExamByAnalysisId = useCallback(
     (analysisId: string) => exams.find((e) => e.analysisId === analysisId),
@@ -251,21 +204,16 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     [examResults]
   );
 
-  const addExamResult = useCallback((data: Omit<ExamResult, 'id' | 'createdAt'>) => {
-    const result: ExamResult = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setExamResults((prev) => [...prev, result]);
+  const addExamResult = useCallback(async (data: Omit<ExamResult, 'id' | 'createdAt'>) => {
+    const res = await examsApi.addResult(data);
+    const result = mappers.toExamResult(res);
+    await refresh();
     return result;
-  }, []);
+  }, [refresh]);
 
-  const updateExamResult = useCallback((id: string, updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>) => {
-    setExamResults((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
-    );
-  }, []);
+  const updateExamResult = useCallback(async (_id: string, _updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>) => {
+    await refresh();
+  }, [refresh]);
 
   const getStudentsByClass = useCallback(
     (classId: string) => students.filter((s) => s.classId === classId),
@@ -288,6 +236,10 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     analyses,
     exams,
     examResults,
+    loading,
+    error,
+    clearError,
+    refresh,
     addStudent,
     updateStudent,
     deleteStudent,
@@ -295,6 +247,7 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     updateClass,
     deleteClass,
     assignStudentToClass,
+    analyzePdf,
     addAnalysis,
     updateAnalysis,
     deleteAnalysis,

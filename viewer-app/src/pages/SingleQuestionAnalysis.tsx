@@ -35,7 +35,7 @@ export function SingleQuestionAnalysis() {
         top_k_topic: 3,
       });
       setPredictions(result);
-      addAnalysis({
+      await addAnalysis({
         type: 'single',
         title: questionText.trim().slice(0, 50) + (questionText.length > 50 ? '...' : ''),
         date: new Date().toISOString(),

@@ -103,10 +103,13 @@ export async function analyzePDF(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.detail || `PDF analysis failed with status ${response.status}`
-      );
+      const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const message =
+        (typeof errorData?.detail === 'string' && errorData.detail) ||
+        (typeof errorData?.message === 'string' && errorData.message) ||
+        (typeof errorData?.title === 'string' && errorData.title) ||
+        `PDF analizi başarısız (HTTP ${response.status})`;
+      throw new Error(message);
     }
 
     const data: PDFAnalysisResponse = await response.json();

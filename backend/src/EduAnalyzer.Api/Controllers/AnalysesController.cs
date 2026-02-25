@@ -47,6 +47,15 @@ public class AnalysesController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpPost("single")]
+    public async Task<ActionResult<AnalysisRecordDto>> CreateSingle([FromBody] CreateSingleAnalysisRequest request, CancellationToken ct)
+    {
+        var teacher = await _teacherRepo.GetByUserIdAsync(UserId, ct);
+        if (teacher == null) return Forbid();
+        var dto = await _service.CreateFromSingleAsync(teacher.Id, request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+    }
+
     [HttpPost("pdf")]
     [RequestSizeLimit(50 * 1024 * 1024)]
     public async Task<ActionResult<AnalysisRecordDto>> AnalyzePdf(
@@ -68,6 +77,16 @@ public class AnalysesController : ControllerBase
         var mlResult = await _mlClient.AnalyzePdfAsync(stream, file.FileName, useOcr, topKSubject, topKTopic, ct);
         var dto = await _service.CreateFromPdfAsync(teacher.Id, file.FileName, file.FileName, mlResult, ct);
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var teacher = await _teacherRepo.GetByUserIdAsync(UserId, ct);
+        if (teacher == null) return Forbid();
+        var ok = await _service.DeleteAsync(id, teacher.Id, ct);
+        if (!ok) return NotFound();
+        return NoContent();
     }
 
     [HttpPut("{id:guid}/results")]

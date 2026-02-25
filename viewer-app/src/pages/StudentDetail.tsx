@@ -126,9 +126,9 @@ export function StudentDetail() {
                 <Form.Label className="small text-muted">Sınıf</Form.Label>
                 <Form.Select
                   value={student.classId ?? ''}
-                  onChange={(e) =>
-                    assignStudentToClass(student.id, e.target.value || null)
-                  }
+                  onChange={(e) => {
+                    void assignStudentToClass(student.id, e.target.value || null);
+                  }}
                 >
                   <option value="">Sınıf atanmamış</option>
                   {classes.map((c) => (
@@ -143,9 +143,9 @@ export function StudentDetail() {
                 <Form.Control
                   type="email"
                   value={student.email ?? ''}
-                  onChange={(e) =>
-                    updateStudent(student.id, { email: e.target.value || undefined })
-                  }
+                  onChange={(e) => {
+                    void updateStudent(student.id, { email: e.target.value || undefined });
+                  }}
                   placeholder="ornek@email.com"
                 />
               </Form.Group>
@@ -153,9 +153,9 @@ export function StudentDetail() {
                 <Form.Label className="small text-muted">Telefon</Form.Label>
                 <Form.Control
                   value={student.phone ?? ''}
-                  onChange={(e) =>
-                    updateStudent(student.id, { phone: e.target.value || undefined })
-                  }
+                  onChange={(e) => {
+                    void updateStudent(student.id, { phone: e.target.value || undefined });
+                  }}
                   placeholder="05XX XXX XX XX"
                 />
               </Form.Group>
@@ -165,9 +165,9 @@ export function StudentDetail() {
                   as="textarea"
                   rows={3}
                   value={student.notes ?? ''}
-                  onChange={(e) =>
-                    updateStudent(student.id, { notes: e.target.value || undefined })
-                  }
+                  onChange={(e) => {
+                    void updateStudent(student.id, { notes: e.target.value || undefined });
+                  }}
                   placeholder="Öğrenci hakkında notlar..."
                 />
               </Form.Group>

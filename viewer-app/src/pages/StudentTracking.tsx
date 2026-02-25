@@ -38,10 +38,10 @@ export function StudentTracking() {
     return result.sort((a, b) => a.lastName.localeCompare(b.lastName));
   }, [students, search, classFilter]);
 
-  const handleAddStudent = (e: React.FormEvent) => {
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.firstName.trim() || !newStudent.lastName.trim() || !newStudent.studentNo.trim()) return;
-    addStudent({
+    await addStudent({
       ...newStudent,
       classId: newStudent.classId || null,
     });
@@ -49,9 +49,9 @@ export function StudentTracking() {
     setShowAddModal(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (confirm(`"${name}" öğrencisini silmek istediğinize emin misiniz?`)) {
-      deleteStudent(id);
+      await deleteStudent(id);
     }
   };
 

@@ -44,6 +44,7 @@ export interface Exam {
   weekLabel: string;
   date: string;
   status: 'draft' | 'ready';
+  answerKey?: string[];
   createdAt: string;
 }
 

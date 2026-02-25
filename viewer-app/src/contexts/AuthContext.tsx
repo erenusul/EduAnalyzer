@@ -1,5 +1,5 @@
 /**
- * Mock öğretmen girişi için Auth Context
+ * Auth Context - Backend API ile giriş
  */
 
 import {
@@ -10,50 +10,56 @@ import {
   type ReactNode,
 } from 'react';
 import type { AuthContextValue, User } from '../types/auth';
+import { authApi } from '../services/backendApi';
 
 const STORAGE_KEY = 'eduanalyzer_teacher_session';
-const DEMO_USER: User = {
-  id: 'demo-1',
-  email: 'ogretmen@demo.com',
-  displayName: 'Demo Öğretmen',
-};
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+interface StoredSession {
+  accessToken: string;
+  user: User;
+}
 
-function loadStoredUser(): User | null {
+function loadStoredSession(): StoredSession | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
-    return JSON.parse(stored) as User;
+    return JSON.parse(stored) as StoredSession;
   } catch {
     return null;
   }
 }
 
+const AuthContext = createContext<AuthContextValue | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(loadStoredUser);
+  const [session, setSession] = useState<StoredSession | null>(loadStoredSession);
+  const user = session?.user ?? null;
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    if (email === 'ogretmen@demo.com' && password === 'demo123') {
-      const loggedUser: User = {
-        ...DEMO_USER,
-        email,
-        displayName: email.split('@')[0],
+    try {
+      const res = await authApi.login(email, password);
+      const sessionData: StoredSession = {
+        accessToken: res.accessToken,
+        user: {
+          id: res.user.id,
+          email: res.user.email,
+          displayName: res.user.displayName,
+        },
       };
-      setUser(loggedUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loggedUser));
+      setSession(sessionData);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }, []);
 
-  const loginDemo = useCallback(() => {
-    setUser(DEMO_USER);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEMO_USER));
-  }, []);
+  const loginDemo = useCallback(async () => {
+    return login('ogretmen@demo.com', 'demo123');
+  }, [login]);
 
   const logout = useCallback(() => {
-    setUser(null);
+    setSession(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -70,8 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }

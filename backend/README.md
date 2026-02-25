@@ -65,6 +65,8 @@ dotnet build
 | `GET /api/students/{id}/results` | Öğrenci sınav sonuçları |
 | `GET /api/classes` | Sınıf listesi |
 | `GET /api/exams` | Sınav listesi |
+| `PUT /api/exams/{id}/answer-key` | Cevap anahtarını kaydet |
+| `POST /api/exams/{id}/results/scan` | Optik tarama sonucu gönder, karşılaştır, kaydet |
 | `POST /api/exams/results` | Sınav sonucu ekle (optik/manuel) |
 | `GET /api/analyses` | Analiz geçmişi |
 | `POST /api/analyses/pdf` | PDF yükle → ML analizi → kayıt |
@@ -91,7 +93,11 @@ dotnet build
 
 ## Veritabanı
 
-SQLite kullanılır (`eduanalyzer.db`). Production için PostgreSQL'e geçmek için:
+SQLite kullanılır (`eduanalyzer.db`). İlk çalıştırmada otomatik oluşturulur.
+
+**Şema güncellemesi:** Yeni sütunlar eklendiyse (örn. `AnswerKeyJson`), mevcut `eduanalyzer.db` dosyasını silip uygulamayı yeniden başlatın. Veritabanı yeniden oluşturulacaktır.
+
+Production için PostgreSQL'e geçmek için:
 - `Npgsql.EntityFrameworkCore.PostgreSQL` paketi ekleyin
 - `UseSqlite` → `UseNpgsql` değiştirin
 - Connection string güncelleyin

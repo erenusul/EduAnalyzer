@@ -4,7 +4,6 @@
 
 import { useState, useRef, type FormEvent, type ChangeEvent, type DragEvent } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
-import { analyzePDF } from '../services/predictionApi';
 import type { PDFAnalysisResponse } from '../types/prediction';
 import { Link } from 'react-router-dom';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
@@ -14,7 +13,7 @@ import type { QuestionAnalysisResult } from '../types/prediction';
 const FIVE_MB = 5 * 1024 * 1024;
 
 export function PdfExamAnalysis() {
-  const { addAnalysis, updateAnalysis, getExamByAnalysisId } = useTeacherData();
+  const { analyzePdf, updateAnalysis, getExamByAnalysisId } = useTeacherData();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lastAnalysisId, setLastAnalysisId] = useState<string | null>(null);
   const [useOCR, setUseOCR] = useState(false);
@@ -85,17 +84,9 @@ export function PdfExamAnalysis() {
     );
 
     try {
-      const result = await analyzePDF(selectedFile, useOCR, 1, 3);
+      const record = await analyzePdf(selectedFile, useOCR);
+      const result = record.results as PDFAnalysisResponse;
       setPdfResults(result);
-      const record = addAnalysis({
-        type: 'pdf',
-        title: selectedFile.name,
-        date: new Date().toISOString(),
-        fileName: selectedFile.name,
-        totalQuestions: result.total_questions,
-        analyzedQuestions: result.analyzed_questions,
-        results: result,
-      });
       setLastAnalysisId(record.id);
     } catch (err) {
       setError(

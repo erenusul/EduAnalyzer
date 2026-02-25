@@ -9,6 +9,7 @@ public interface IAnalysisService
 {
     Task<AnalysisRecordDto?> GetByIdAsync(Guid id, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<AnalysisRecordDto>> GetByTeacherAsync(Guid teacherId, CancellationToken ct = default);
+    Task<AnalysisRecordDto> CreateFromSingleAsync(Guid teacherId, CreateSingleAnalysisRequest request, CancellationToken ct = default);
     Task<AnalysisRecordDto> CreateFromPdfAsync(
         Guid teacherId,
         string title,
@@ -16,6 +17,7 @@ public interface IAnalysisService
         PdfAnalysisResponseDto mlResult,
         CancellationToken ct = default);
     Task<AnalysisRecordDto?> UpdateResultsAsync(Guid id, Guid teacherId, object results, CancellationToken ct = default);
+    Task<bool> DeleteAsync(Guid id, Guid teacherId, CancellationToken ct = default);
     Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, CancellationToken ct = default);
     Task<ExamDto?> MarkExamReadyAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
 }
@@ -44,6 +46,25 @@ public class AnalysisService : IAnalysisService
     {
         var list = await _analysisRepo.GetByTeacherIdAsync(teacherId, ct);
         return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<AnalysisRecordDto> CreateFromSingleAsync(Guid teacherId, CreateSingleAnalysisRequest request, CancellationToken ct = default)
+    {
+        var resultsJson = JsonSerializer.Serialize(request.Results);
+        var entity = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            Type = AnalysisType.Single,
+            Title = request.Title,
+            Date = DateTime.UtcNow,
+            TotalQuestions = 1,
+            AnalyzedQuestions = 1,
+            ResultsJson = resultsJson,
+            CreatedAt = DateTime.UtcNow
+        };
+        var added = await _analysisRepo.AddAsync(entity, ct);
+        return MapToDto(added);
     }
 
     public async Task<AnalysisRecordDto> CreateFromPdfAsync(
@@ -84,6 +105,14 @@ public class AnalysisService : IAnalysisService
         a.ResultsJson = JsonSerializer.Serialize(results);
         await _analysisRepo.UpdateAsync(a, ct);
         return MapToDto(a);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, Guid teacherId, CancellationToken ct = default)
+    {
+        var a = await _analysisRepo.GetByIdAsync(id, ct);
+        if (a == null || a.TeacherId != teacherId) return false;
+        await _analysisRepo.DeleteAsync(id, ct);
+        return true;
     }
 
     public async Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, CancellationToken ct = default)
@@ -134,13 +163,20 @@ public class AnalysisService : IAnalysisService
         );
     }
 
-    private static ExamDto MapToDto(Exam e) => new(
-        e.Id,
-        e.AnalysisId,
-        e.Title,
-        e.WeekLabel,
-        e.Date,
-        e.Status.ToString().ToLowerInvariant(),
-        e.CreatedAt
-    );
+    private static ExamDto MapToDto(Exam e)
+    {
+        var answerKey = string.IsNullOrEmpty(e.AnswerKeyJson)
+            ? null
+            : JsonSerializer.Deserialize<List<string>>(e.AnswerKeyJson) as IReadOnlyList<string>;
+        return new ExamDto(
+            e.Id,
+            e.AnalysisId,
+            e.Title,
+            e.WeekLabel,
+            e.Date,
+            e.Status.ToString().ToLowerInvariant(),
+            answerKey,
+            e.CreatedAt
+        );
+    }
 }

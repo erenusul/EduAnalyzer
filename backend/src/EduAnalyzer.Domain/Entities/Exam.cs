@@ -12,6 +12,10 @@ public class Exam
     public string WeekLabel { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public ExamStatus Status { get; set; }
+    /// <summary>
+    /// Cevap anahtarı JSON - soru sırasına göre doğru cevaplar: ["A","B","C","D",...]
+    /// </summary>
+    public string? AnswerKeyJson { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

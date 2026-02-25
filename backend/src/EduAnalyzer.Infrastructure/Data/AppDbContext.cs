@@ -86,6 +86,7 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Title).HasMaxLength(500);
             e.Property(x => x.WeekLabel).HasMaxLength(20);
+            e.Property(x => x.AnswerKeyJson).HasMaxLength(2000);
             e.HasOne(x => x.Analysis).WithOne(a => a.Exam).HasForeignKey<Exam>(x => x.AnalysisId);
             e.HasOne(x => x.Teacher).WithMany().HasForeignKey(x => x.TeacherId);
         });

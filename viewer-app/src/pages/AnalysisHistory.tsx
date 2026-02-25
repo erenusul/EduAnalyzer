@@ -14,20 +14,19 @@ function PdfResultsPreview({ results }: { results: PDFAnalysisResponse }) {
   if (!items || !Array.isArray(items)) return null;
   return (
     <div className="analysis-results-preview">
-      {items.slice(0, 3).map((r, i) => (
-        <Card key={i} className="mb-3">
+      {items.map((r, i) => (
+        <Card key={r.question_id ?? i} className="mb-3">
           <Card.Body>
-            <h6 className="small">Soru {i + 1}</h6>
+            <h6 className="small fw-semibold">Soru {i + 1}</h6>
             <p className="small text-muted mb-2">
-              {r.question_text.substring(0, 150)}...
+              {r.question_text.length > 150
+                ? `${r.question_text.substring(0, 150)}...`
+                : r.question_text}
             </p>
             <PredictionResults subject={r.subject} topic={r.topic} />
           </Card.Body>
         </Card>
       ))}
-      {items.length > 3 && (
-        <p className="text-muted small">+{items.length - 3} soru daha</p>
-      )}
     </div>
   );
 }
@@ -40,9 +39,9 @@ export function AnalysisHistory() {
     ? analyses.find((a) => a.id === selectedId)
     : null;
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = async (id: string, title: string) => {
     if (confirm(`"${title}" analizini silmek istediğinize emin misiniz?`)) {
-      deleteAnalysis(id);
+      await deleteAnalysis(id);
       setSelectedId(null);
     }
   };
@@ -160,7 +159,12 @@ export function AnalysisHistory() {
         <Modal.Header closeButton>
           <Modal.Title>{selectedAnalysis?.title}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body
+          className="overflow-auto"
+          style={{
+            maxHeight: '70vh',
+          }}
+        >
           {selectedAnalysis ? (
             <div>
               <p className="text-muted small mb-3">

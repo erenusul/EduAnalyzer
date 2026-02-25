@@ -7,7 +7,20 @@ public record ExamDto(
     string WeekLabel,
     DateTime Date,
     string Status,
+    IReadOnlyList<string>? AnswerKey,
     DateTime CreatedAt
+);
+
+public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswers);
+
+public record WrongQuestionDto(int QuestionIndex, string StudentAnswer, string Topic);
+
+public record ScanExamResponse(
+    int CorrectCount,
+    int WrongCount,
+    int TotalCount,
+    IReadOnlyList<WrongQuestionDto> WrongQuestions,
+    IReadOnlyList<WrongTopicDto> WrongTopics
 );
 
 public record ExamResultDto(

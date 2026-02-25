@@ -32,11 +32,33 @@ public class ExamsController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpGet("results")]
+    public async Task<ActionResult<IReadOnlyList<ExamResultDto>>> GetAllResults(CancellationToken ct)
+    {
+        var list = await _service.GetResultsByTeacherAsync(TeacherId, ct);
+        return Ok(list);
+    }
+
     [HttpGet("{id:guid}/results")]
     public async Task<ActionResult<IReadOnlyList<ExamResultDto>>> GetResults(Guid id, CancellationToken ct)
     {
         var list = await _service.GetResultsByExamAsync(id, TeacherId, ct);
         return Ok(list);
+    }
+
+    [HttpPut("{id:guid}/answer-key")]
+    public async Task<ActionResult<ExamDto>> UpdateAnswerKey(Guid id, [FromBody] IReadOnlyList<string> answerKey, CancellationToken ct)
+    {
+        var dto = await _service.UpdateAnswerKeyAsync(id, TeacherId, answerKey, ct);
+        if (dto == null) return NotFound();
+        return Ok(dto);
+    }
+
+    [HttpPost("{id:guid}/results/scan")]
+    public async Task<ActionResult<ScanExamResponse>> ScanResult(Guid id, [FromBody] ScanExamRequest request, CancellationToken ct)
+    {
+        var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
+        return Ok(response);
     }
 
     [HttpPost("results")]

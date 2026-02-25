@@ -30,6 +30,8 @@ public record AnalysisRecordDto(
     DateTime CreatedAt
 );
 
+public record CreateSingleAnalysisRequest(string Title, object Results);
+
 public record CreateAnalysisRequest(
     string Type,
     string Title,

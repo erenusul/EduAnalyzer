@@ -30,6 +30,14 @@ public class ExamResultRepository : IExamResultRepository
             .Where(r => r.ExamId == examId)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<ExamResult>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default) =>
+        await _context.ExamResults
+            .Include(r => r.Student)
+            .Include(r => r.Exam)
+            .Where(r => r.Exam.TeacherId == teacherId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<ExamResult> AddAsync(ExamResult entity, CancellationToken ct = default)
     {
         _context.ExamResults.Add(entity);

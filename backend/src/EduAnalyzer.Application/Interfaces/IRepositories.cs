@@ -44,6 +44,7 @@ public interface IExamResultRepository
     Task<ExamResult?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResult>> GetByStudentIdAsync(Guid studentId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResult>> GetByExamIdAsync(Guid examId, CancellationToken ct = default);
+    Task<IReadOnlyList<ExamResult>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default);
     Task<ExamResult> AddAsync(ExamResult entity, CancellationToken ct = default);
     Task UpdateAsync(ExamResult entity, CancellationToken ct = default);
 }

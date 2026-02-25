@@ -131,7 +131,10 @@ async def file_not_found_handler(request, exc):
 async def general_exception_handler(request, exc):
     """Handle general exceptions"""
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    raise HTTPException(status_code=500, detail="Internal server error")
+    import os
+    # Development'ta gerçek hata mesajını döndür (debug için)
+    detail = str(exc) if os.getenv("ENVIRONMENT", "development") == "development" else "Internal server error"
+    raise HTTPException(status_code=500, detail=detail)
 
 
 if __name__ == "__main__":

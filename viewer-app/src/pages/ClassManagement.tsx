@@ -13,17 +13,17 @@ export function ClassManagement() {
   const [newClass, setNewClass] = useState({ name: '', grade: '8', academicYear: '2024-2025' });
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
 
-  const handleAddClass = (e: React.FormEvent) => {
+  const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClass.name.trim()) return;
-    addClass(newClass);
+    await addClass(newClass);
     setNewClass({ name: '', grade: '8', academicYear: '2024-2025' });
     setShowAddModal(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (confirm(`"${name}" sınıfını silmek istediğinize emin misiniz? Öğrenciler sınıfsız kalacaktır.`)) {
-      deleteClass(id);
+      await deleteClass(id);
       setExpandedClassId(null);
     }
   };
