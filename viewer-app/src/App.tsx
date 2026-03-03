@@ -12,6 +12,7 @@ import { SingleQuestionAnalysis } from './pages/SingleQuestionAnalysis';
 import { ClassManagement } from './pages/ClassManagement';
 import { AnalysisHistory } from './pages/AnalysisHistory';
 import { AnalysisDetail } from './pages/AnalysisDetail';
+import { CreatedExams } from './pages/CreatedExams';
 import { ClassAnalysis } from './pages/ClassAnalysis';
 import { Reports } from './pages/Reports';
 import './App.css';
@@ -45,6 +46,7 @@ function App() {
               <Route path="siniflar" element={<ClassManagement />} />
               <Route path="analiz-gecmisi" element={<AnalysisHistory />} />
               <Route path="analiz-gecmisi/:id" element={<AnalysisDetail />} />
+              <Route path="olusturulan-sinavlar" element={<CreatedExams />} />
               <Route path="sinif-analizi" element={<ClassAnalysis />} />
               <Route path="raporlar" element={<Reports />} />
             </Route>

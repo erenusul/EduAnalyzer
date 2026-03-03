@@ -2,13 +2,15 @@
  * Analiz detay sayfası - tüm sorular ve öğretmen düzeltme
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Badge, Form, Modal } from 'react-bootstrap';
+import { Card, Button, Badge, Form } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
 import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import type { PDFAnalysisResponse, QuestionAnalysisResult } from '../types/prediction';
+
+const MAX_SELECTED_QUESTIONS = 20;
 
 function getCurrentWeekLabel(): string {
   const now = new Date();
@@ -21,10 +23,115 @@ export function AnalysisDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { analyses, updateAnalysis, addExam, updateExam, getExamByAnalysisId } = useTeacherData();
-  const [showExamModal, setShowExamModal] = useState(false);
   const [weekLabel, setWeekLabel] = useState(getCurrentWeekLabel());
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [answerKey, setAnswerKey] = useState<string[]>([]);
+  const [savingExam, setSavingExam] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const analysis = id ? analyses.find((a) => a.id === id) : null;
+  const results = analysis?.results as PDFAnalysisResponse | undefined;
+  const items = results?.results ?? [];
+  const exam = analysis ? getExamByAnalysisId(analysis.id) : undefined;
+
+  const toggleQuestionSelection = useCallback((index: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else if (next.size < MAX_SELECTED_QUESTIONS) {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((total: number) => {
+    const maxCount = Math.min(total, MAX_SELECTED_QUESTIONS);
+    setSelectedIndices(new Set(Array.from({ length: maxCount }, (_, i) => i)));
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIndices(new Set());
+    setAnswerKey([]);
+  }, []);
+
+  const handlePrepareExam = useCallback(async () => {
+    if (!analysis || selectedIndices.size !== MAX_SELECTED_QUESTIONS) return;
+    const filled = answerKey.filter((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+    if (filled.length !== MAX_SELECTED_QUESTIONS) return;
+    setSavingExam(true);
+    try {
+      await addExam(
+        {
+          analysisId: analysis.id,
+          title: analysis.title,
+          weekLabel,
+          date: analysis.date.split('T')[0] ?? new Date().toISOString().split('T')[0],
+          status: 'ready',
+        },
+        Array.from(selectedIndices).sort((a, b) => a - b),
+        answerKey
+      );
+      setSelectedIndices(new Set());
+      setAnswerKey([]);
+    } finally {
+      setSavingExam(false);
+    }
+  }, [analysis, selectedIndices, weekLabel, answerKey, addExam]);
+
+  const isAnswerKeyComplete =
+    answerKey.length === MAX_SELECTED_QUESTIONS &&
+    answerKey.every((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+
+  useEffect(() => {
+    if (selectedIndices.size !== MAX_SELECTED_QUESTIONS) setAnswerKey([]);
+  }, [selectedIndices.size]);
+
+  useEffect(() => {
+    return () => {
+      if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+    };
+  }, []);
+
+  const answerKeyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAnswerKeyRef = useRef<string[] | null>(null);
+
+  const handleAnswerKeyChange = useCallback(
+    (newAnswerKey: string[]) => {
+      if (!exam) return;
+      pendingAnswerKeyRef.current = newAnswerKey;
+      if (answerKeyDebounceRef.current) clearTimeout(answerKeyDebounceRef.current);
+      answerKeyDebounceRef.current = setTimeout(() => {
+        updateExam(exam.id, { answerKey: newAnswerKey });
+        answerKeyDebounceRef.current = null;
+      }, 500);
+    },
+    [exam, updateExam]
+  );
+
+  const handleSaveClick = useCallback(async () => {
+    setSaveStatus('saving');
+    try {
+      if (exam) {
+        if (answerKeyDebounceRef.current) {
+          clearTimeout(answerKeyDebounceRef.current);
+          answerKeyDebounceRef.current = null;
+        }
+        const toSave = pendingAnswerKeyRef.current ?? exam.answerKey ?? [];
+        await updateExam(exam.id, { answerKey: toSave });
+      }
+      setSaveStatus('saved');
+      if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+      saveFeedbackTimeoutRef.current = setTimeout(() => {
+        setSaveStatus('idle');
+        saveFeedbackTimeoutRef.current = null;
+      }, 2500);
+    } catch {
+      setSaveStatus('idle');
+    }
+  }, [exam, updateExam]);
 
   if (!analysis) {
     return (
@@ -48,55 +155,46 @@ export function AnalysisDetail() {
     );
   }
 
-  const results = analysis.results as PDFAnalysisResponse;
-  const items = results?.results ?? [];
-
-  const handleQuestionUpdate = async (questionIndex: number, subjectCode: string, topicLabel: string) => {
+  const handleQuestionUpdate = async (
+    questionIndex: number,
+    subjectCode: string,
+    topicLabel: string,
+    secondTopicLabel?: string
+  ) => {
+    const topicItems = [
+      { label: topicLabel, confidence: 1 },
+      ...(secondTopicLabel ? [{ label: secondTopicLabel, confidence: 1 }] : []),
+    ];
     const newResults: QuestionAnalysisResult[] = items.map((item, i) => {
       if (i !== questionIndex) return item;
       return {
         ...item,
         subject: [{ label: subjectCode, confidence: 1 }],
-        topic: [{ label: topicLabel, confidence: 1 }],
+        topic: topicItems,
       };
     });
-    await updateAnalysis(analysis.id, {
-      results: {
-        ...results,
-        results: newResults,
-      },
-    });
-  };
-
-  const exam = getExamByAnalysisId(analysis.id);
-
-  const handleCreateExam = async () => {
-    await addExam({
-      analysisId: analysis.id,
-      title: analysis.title,
-      weekLabel,
-      date: analysis.date.split('T')[0] ?? new Date().toISOString().split('T')[0],
-      status: 'draft',
-    });
-    setShowExamModal(false);
+    setSaveStatus('saving');
+    try {
+      await updateAnalysis(analysis.id, {
+        results: {
+          ...results,
+          results: newResults,
+        },
+      });
+      setSaveStatus('saved');
+      if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+      saveFeedbackTimeoutRef.current = setTimeout(() => {
+        setSaveStatus('idle');
+        saveFeedbackTimeoutRef.current = null;
+      }, 2500);
+    } catch {
+      setSaveStatus('idle');
+    }
   };
 
   const handleMarkExamReady = async () => {
     if (exam) await updateExam(exam.id, { status: 'ready' });
   };
-
-  const answerKeyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleAnswerKeyChange = useCallback(
-    (answerKey: string[]) => {
-      if (!exam) return;
-      if (answerKeyDebounceRef.current) clearTimeout(answerKeyDebounceRef.current);
-      answerKeyDebounceRef.current = setTimeout(() => {
-        updateExam(exam.id, { answerKey });
-        answerKeyDebounceRef.current = null;
-      }, 500);
-    },
-    [exam, updateExam]
-  );
 
   return (
     <div>
@@ -117,6 +215,25 @@ export function AnalysisDetail() {
           </p>
         </div>
         <div className="d-flex align-items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSaveClick}
+            disabled={saveStatus === 'saving'}
+            aria-label="Değişiklikleri kaydet"
+          >
+            {saveStatus === 'saving' ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden />
+                Kaydediliyor...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-save me-1" />
+                Kaydet
+              </>
+            )}
+          </Button>
           {exam ? (
             <>
               <Badge bg={exam.status === 'ready' ? 'success' : 'warning'} className="align-self-center">
@@ -131,10 +248,28 @@ export function AnalysisDetail() {
             </>
           ) : (
             <>
-              <Button variant="primary" size="sm" onClick={() => setShowExamModal(true)}>
-                <i className="bi bi-plus-circle me-1" />
-                Sınav Oluştur
-              </Button>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => handleSelectAll(items.length)}
+                  aria-label="Tümünü seç (en fazla 20)"
+                >
+                  Tümünü Seç
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  disabled={selectedIndices.size === 0}
+                  aria-label="Seçimi temizle"
+                >
+                  Seçimi Temizle
+                </Button>
+                <span className="text-muted small">
+                  {selectedIndices.size} / {MAX_SELECTED_QUESTIONS} soru seçildi
+                </span>
+              </div>
               <Badge bg="info" className="align-self-center">
                 PDF
               </Badge>
@@ -143,39 +278,76 @@ export function AnalysisDetail() {
         </div>
       </div>
 
-      <Modal show={showExamModal} onHide={() => setShowExamModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Sınav Oluştur</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group>
-            <Form.Label>Hafta Etiketi</Form.Label>
-            <Form.Control
-              value={weekLabel}
-              onChange={(e) => setWeekLabel(e.target.value)}
-              placeholder="2025-W08"
-              aria-label="Hafta etiketi"
+      {!exam && selectedIndices.size === MAX_SELECTED_QUESTIONS && (
+        <Card className="border-0 shadow-sm mb-3">
+          <Card.Header className="bg-white border-bottom py-3">
+            <h6 className="fw-semibold mb-0">
+              <i className="bi bi-key me-2" />
+              Cevap Anahtarı ({MAX_SELECTED_QUESTIONS} soru)
+            </h6>
+          </Card.Header>
+          <Card.Body className="p-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Hafta Etiketi</Form.Label>
+              <Form.Control
+                value={weekLabel}
+                onChange={(e) => setWeekLabel(e.target.value)}
+                placeholder="2025-W08"
+                aria-label="Hafta etiketi"
+                style={{ maxWidth: 200 }}
+              />
+            </Form.Group>
+            <AnswerKeyEditor
+              questionCount={MAX_SELECTED_QUESTIONS}
+              value={answerKey}
+              onChange={setAnswerKey}
+              disabled={savingExam}
             />
-            <Form.Text className="text-muted">Örn: 2025-W08 veya 8-14 Şubat 2025</Form.Text>
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowExamModal(false)}>
-            İptal
-          </Button>
-          <Button variant="primary" onClick={handleCreateExam}>
-            Oluştur
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            <Button
+              variant="success"
+              size="lg"
+              className="mt-3"
+              onClick={handlePrepareExam}
+              disabled={!isAnswerKeyComplete || savingExam}
+            >
+              {savingExam ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                  Kaydediliyor...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check-circle me-2" />
+                  Sınavı Hazırla
+                </>
+              )}
+            </Button>
+            <p className="text-muted small mt-2 mb-0">
+              Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına kaydedilir ve öğrenci mobil uygulamasında kullanılabilir.
+            </p>
+          </Card.Body>
+        </Card>
+      )}
 
       <Card className="border-0 shadow-sm mb-3">
-        <Card.Body className="py-3">
+        <Card.Body className="py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
           <p className="text-muted small mb-0">
             <i className="bi bi-info-circle me-1" />
             LLM yanlış tahmin verdiğinde ders veya konu etiketini düzenleyebilirsiniz. Değişiklikler
             otomatik kaydedilir.
           </p>
+          {saveStatus === 'saving' && (
+            <span className="badge bg-secondary">
+              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden />
+              Kaydediliyor...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="badge bg-success">
+              <i className="bi bi-check-circle me-1" />
+              Kaydedildi
+            </span>
+          )}
         </Card.Body>
       </Card>
 
@@ -184,12 +356,13 @@ export function AnalysisDetail() {
           <Card.Header className="bg-white border-bottom py-3">
             <h6 className="fw-semibold mb-0">
               <i className="bi bi-key me-2" />
-              Cevap Anahtarı ({items.length} soru)
+              Cevap Anahtarı (
+              {Array.isArray(exam.selectedResults) ? exam.selectedResults.length : items.length} soru)
             </h6>
           </Card.Header>
           <Card.Body className="p-4">
             <AnswerKeyEditor
-              questionCount={items.length}
+              questionCount={Array.isArray(exam.selectedResults) ? exam.selectedResults.length : items.length}
               value={exam.answerKey ?? []}
               onChange={handleAnswerKeyChange}
               disabled={exam.status === 'ready'}
@@ -202,7 +375,19 @@ export function AnalysisDetail() {
         {items.map((result, index) => (
           <Card key={result.question_id ?? index} className="border-0 shadow-sm">
             <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-              <h6 className="fw-semibold mb-0">Soru {index + 1}</h6>
+              <div className="d-flex align-items-center gap-2">
+                {!exam && (
+                  <Form.Check
+                    type="checkbox"
+                    id={`detail-q-${index}`}
+                    checked={selectedIndices.has(index)}
+                    onChange={() => toggleQuestionSelection(index)}
+                    disabled={selectedIndices.size >= MAX_SELECTED_QUESTIONS && !selectedIndices.has(index)}
+                    aria-label={`Soru ${index + 1} seç`}
+                  />
+                )}
+                <h6 className="fw-semibold mb-0">Soru {index + 1}</h6>
+              </div>
               {result.has_visual && (
                 <Badge bg="warning" text="dark">
                   <i className="bi bi-image me-1" />
@@ -217,7 +402,9 @@ export function AnalysisDetail() {
               <EditablePredictionResults
                 subject={result.subject}
                 topic={result.topic}
-                onUpdate={(subjectCode, topicLabel) => handleQuestionUpdate(index, subjectCode, topicLabel)}
+                onUpdate={(subjectCode, topicLabel, secondTopicLabel) =>
+                  handleQuestionUpdate(index, subjectCode, topicLabel, secondTopicLabel)
+                }
               />
             </Card.Body>
           </Card>

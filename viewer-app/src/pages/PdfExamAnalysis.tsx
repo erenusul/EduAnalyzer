@@ -2,18 +2,28 @@
  * PDF'den sınav analizi sayfası
  */
 
-import { useState, useRef, type FormEvent, type ChangeEvent, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type FormEvent, type ChangeEvent, type DragEvent } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import type { PDFAnalysisResponse } from '../types/prediction';
 import { Link } from 'react-router-dom';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
+import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import type { QuestionAnalysisResult } from '../types/prediction';
 
 const FIVE_MB = 5 * 1024 * 1024;
 
+const MAX_SELECTED_QUESTIONS = 20;
+
+function getCurrentWeekLabel(): string {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
+}
+
 export function PdfExamAnalysis() {
-  const { analyzePdf, updateAnalysis, getExamByAnalysisId } = useTeacherData();
+  const { analyzePdf, updateAnalysis, getExamByAnalysisId, addExam, analyses } = useTeacherData();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lastAnalysisId, setLastAnalysisId] = useState<string | null>(null);
   const [useOCR, setUseOCR] = useState(false);
@@ -22,7 +32,77 @@ export function PdfExamAnalysis() {
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [pdfResults, setPdfResults] = useState<PDFAnalysisResponse | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{ pages: { page: number; text: string; len: number }[]; total_chars: number } | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [weekLabel, setWeekLabel] = useState(getCurrentWeekLabel());
+  const [answerKey, setAnswerKey] = useState<string[]>([]);
+  const [savingExam, setSavingExam] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleQuestionSelection = useCallback((index: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else if (next.size < MAX_SELECTED_QUESTIONS) {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (!pdfResults) return;
+    const maxCount = Math.min(pdfResults.results.length, MAX_SELECTED_QUESTIONS);
+    setSelectedIndices(new Set(Array.from({ length: maxCount }, (_, i) => i)));
+  }, [pdfResults]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIndices(new Set());
+    setAnswerKey([]);
+  }, []);
+
+  const handlePrepareExam = useCallback(async () => {
+    if (!lastAnalysisId || selectedIndices.size !== MAX_SELECTED_QUESTIONS) return;
+    const filled = answerKey.filter((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+    if (filled.length !== MAX_SELECTED_QUESTIONS) return;
+    const analysis = analyses.find((a) => a.id === lastAnalysisId);
+    if (!analysis) return;
+    setSavingExam(true);
+    try {
+      await addExam(
+        {
+          analysisId: lastAnalysisId,
+          title: analysis.title,
+          weekLabel,
+          date: analysis.date.split('T')[0] ?? new Date().toISOString().split('T')[0],
+          status: 'ready',
+        },
+        Array.from(selectedIndices).sort((a, b) => a - b),
+        answerKey
+      );
+      setSelectedIndices(new Set());
+      setAnswerKey([]);
+    } finally {
+      setSavingExam(false);
+    }
+  }, [lastAnalysisId, selectedIndices, weekLabel, answerKey, analyses, addExam]);
+
+  const isAnswerKeyComplete =
+    answerKey.length === MAX_SELECTED_QUESTIONS &&
+    answerKey.every((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+
+  useEffect(() => {
+    if (selectedIndices.size !== MAX_SELECTED_QUESTIONS) setAnswerKey([]);
+  }, [selectedIndices.size]);
+
+  useEffect(() => {
+    return () => {
+      if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+    };
+  }, []);
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,6 +114,7 @@ export function PdfExamAnalysis() {
       setSelectedFile(file);
       setError(null);
       setPdfResults(null);
+      setSelectedIndices(new Set());
     }
   };
 
@@ -89,9 +170,12 @@ export function PdfExamAnalysis() {
       setPdfResults(result);
       setLastAnalysisId(record.id);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'PDF analizi sırasında bir hata oluştu.'
-      );
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ?? 'PDF analizi sırasında bir hata oluştu.';
+      setError(msg);
+      setDebugInfo(null);
     } finally {
       setLoading(false);
       setProgressMessage(null);
@@ -102,7 +186,29 @@ export function PdfExamAnalysis() {
     setSelectedFile(null);
     setError(null);
     setPdfResults(null);
+    setDebugInfo(null);
+    setSelectedIndices(new Set());
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDiagnose = async () => {
+    if (!selectedFile) return;
+    setDebugInfo(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const base = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${base}/api/pdf-debug`, {
+        method: 'POST',
+        body: formData,
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error('Tanılama başarısız');
+      const data = text ? JSON.parse(text) : {};
+      setDebugInfo(data);
+    } catch (e) {
+      setError((e as Error).message + ' - ML servisi çalışıyor mu?');
+    }
   };
 
   const handleZoneClick = () => fileInputRef.current?.click();
@@ -186,6 +292,30 @@ export function PdfExamAnalysis() {
               <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4">
                 <i className="bi bi-exclamation-circle me-2" />
                 {error}
+                {selectedFile && (
+                  <div className="mt-3">
+                    <Button variant="outline-danger" size="sm" onClick={handleDiagnose} disabled={loading}>
+                      <i className="bi bi-bug me-1" />
+                      PDF Tanıla (çıkarılan metni gör)
+                    </Button>
+                  </div>
+                )}
+              </Alert>
+            )}
+            {debugInfo && (
+              <Alert variant="secondary" className="mb-4">
+                <h6 className="mb-2">
+                  <i className="bi bi-file-text me-1" />
+                  PDF Tanılama: Toplam {debugInfo.total_chars} karakter
+                </h6>
+                {debugInfo.pages?.map((p) => (
+                  <details key={p.page} className="mb-2">
+                    <summary>Sayfa {p.page} ({p.len} karakter)</summary>
+                    <pre className="small bg-dark text-light p-2 rounded mt-1 mb-0" style={{ maxHeight: 150, overflow: 'auto' }}>
+                      {p.text || '(boş)'}
+                    </pre>
+                  </details>
+                ))}
               </Alert>
             )}
 
@@ -254,13 +384,46 @@ export function PdfExamAnalysis() {
           </Card>
 
           <Card className="border-0 shadow-sm mb-3">
-            <Card.Body className="py-3">
-              <p className="text-muted small mb-0">
-                <i className="bi bi-pencil-square me-1" />
-                LLM yanlış tahmin verdiğinde ders veya konu etiketini düzenleyebilirsiniz. Değişiklikler
-                otomatik kaydedilir.
-              </p>
-              <div className="d-flex flex-wrap gap-2 mt-2">
+            <Card.Body className="py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <p className="text-muted small mb-0">
+                  <i className="bi bi-pencil-square me-1" />
+                  LLM yanlış tahmin verdiğinde ders veya konu etiketini düzenleyebilirsiniz. Değişiklikler
+                  otomatik kaydedilir.
+                </p>
+                {saveStatus === 'saving' && (
+                  <span className="badge bg-secondary">
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden />
+                    Kaydediliyor...
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="badge bg-success">
+                    <i className="bi bi-check-circle me-1" />
+                    Kaydedildi
+                  </span>
+                )}
+              </div>
+              {lastAnalysisId && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setSaveStatus('saved');
+                    if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+                    saveFeedbackTimeoutRef.current = setTimeout(() => {
+                      setSaveStatus('idle');
+                      saveFeedbackTimeoutRef.current = null;
+                    }, 2500);
+                  }}
+                  disabled={saveStatus === 'saving'}
+                  aria-label="Değişiklikleri kaydet"
+                >
+                  <i className="bi bi-save me-1" />
+                  Kaydet
+                </Button>
+              )}
+              <div className="d-flex flex-wrap gap-2 align-items-center">
                 {lastAnalysisId && (
                   <Link
                     to={`/dashboard/analiz-gecmisi/${lastAnalysisId}`}
@@ -271,23 +434,101 @@ export function PdfExamAnalysis() {
                   </Link>
                 )}
                 {lastAnalysisId && !getExamByAnalysisId(lastAnalysisId) && (
-                  <Link
-                    to={`/dashboard/analiz-gecmisi/${lastAnalysisId}`}
-                    className="btn btn-sm btn-primary"
-                  >
-                    <i className="bi bi-plus-circle me-1" />
-                    Sınav Oluştur
-                  </Link>
+                  <>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={handleSelectAll}
+                      aria-label="Tümünü seç (en fazla 20)"
+                    >
+                      Tümünü Seç
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={handleClearSelection}
+                      disabled={selectedIndices.size === 0}
+                      aria-label="Seçimi temizle"
+                    >
+                      Seçimi Temizle
+                    </Button>
+                    <span className="text-muted small">
+                      {selectedIndices.size} / {MAX_SELECTED_QUESTIONS} soru seçildi
+                    </span>
+                  </>
                 )}
               </div>
             </Card.Body>
           </Card>
 
+          {selectedIndices.size === MAX_SELECTED_QUESTIONS && !getExamByAnalysisId(lastAnalysisId!) && (
+            <Card className="border-0 shadow-sm mb-3">
+              <Card.Header className="bg-white border-bottom py-3">
+                <h6 className="fw-semibold mb-0">
+                  <i className="bi bi-key me-2" />
+                  Cevap Anahtarı ({MAX_SELECTED_QUESTIONS} soru)
+                </h6>
+              </Card.Header>
+              <Card.Body className="p-4">
+                <Form.Group className="mb-3">
+                  <Form.Label>Hafta Etiketi</Form.Label>
+                  <Form.Control
+                    value={weekLabel}
+                    onChange={(e) => setWeekLabel(e.target.value)}
+                    placeholder="2025-W08"
+                    aria-label="Hafta etiketi"
+                    style={{ maxWidth: 200 }}
+                  />
+                </Form.Group>
+                <AnswerKeyEditor
+                  questionCount={MAX_SELECTED_QUESTIONS}
+                  value={answerKey}
+                  onChange={setAnswerKey}
+                  disabled={savingExam}
+                />
+                <Button
+                  variant="success"
+                  size="lg"
+                  className="mt-3"
+                  onClick={handlePrepareExam}
+                  disabled={!isAnswerKeyComplete || savingExam}
+                >
+                  {savingExam ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-circle me-2" />
+                      Sınavı Hazırla
+                    </>
+                  )}
+                </Button>
+                <p className="text-muted small mt-2 mb-0">
+                  Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına kaydedilir ve öğrenci mobil uygulamasında kullanılabilir.
+                </p>
+              </Card.Body>
+            </Card>
+          )}
+
           <div className="d-flex flex-column gap-3">
             {pdfResults.results.map((result, index) => (
               <Card key={result.question_id ?? index} className="border-0 shadow-sm">
                 <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-                  <h6 className="fw-semibold mb-0">Soru {index + 1}</h6>
+                  <div className="d-flex align-items-center gap-2">
+                    {lastAnalysisId && !getExamByAnalysisId(lastAnalysisId) && (
+                      <Form.Check
+                        type="checkbox"
+                        id={`pdf-q-${index}`}
+                        checked={selectedIndices.has(index)}
+                        onChange={() => toggleQuestionSelection(index)}
+                        disabled={selectedIndices.size >= MAX_SELECTED_QUESTIONS && !selectedIndices.has(index)}
+                        aria-label={`Soru ${index + 1} seç`}
+                      />
+                    )}
+                    <h6 className="fw-semibold mb-0">Soru {index + 1}</h6>
+                  </div>
                   {result.has_visual && (
                     <span className="badge bg-warning text-dark">
                       <i className="bi bi-image me-1" />
@@ -296,30 +537,48 @@ export function PdfExamAnalysis() {
                   )}
                 </Card.Header>
                 <Card.Body className="p-4">
-                  <p className="text-muted small mb-4 lh-base text-break" style={{ whiteSpace: 'pre-wrap' }}>
-                    {result.question_text}
+                  <p
+                    className="text-body-secondary small mb-4 lh-base text-break"
+                    style={{ whiteSpace: 'pre-wrap', minHeight: '2em' }}
+                  >
+                    {result.question_text || '(Soru metni yüklenemedi)'}
                   </p>
                   <EditablePredictionResults
                     subject={result.subject}
                     topic={result.topic}
-                    onUpdate={(subjectCode, topicLabel) => {
+                    onUpdate={async (subjectCode, topicLabel, secondTopicLabel) => {
                       if (!lastAnalysisId) return;
+                      const topicItems = [
+                        { label: topicLabel, confidence: 1 },
+                        ...(secondTopicLabel ? [{ label: secondTopicLabel, confidence: 1 }] : []),
+                      ];
                       const newResults: QuestionAnalysisResult[] = pdfResults.results.map(
                         (item, i) => {
                           if (i !== index) return item;
                           return {
                             ...item,
                             subject: [{ label: subjectCode, confidence: 1 }],
-                            topic: [{ label: topicLabel, confidence: 1 }],
+                            topic: topicItems,
                           };
                         }
                       );
-                      updateAnalysis(lastAnalysisId, {
-                        results: { ...pdfResults, results: newResults },
-                      });
-                      setPdfResults((prev) =>
-                        prev ? { ...prev, results: newResults } : null
-                      );
+                      setSaveStatus('saving');
+                      try {
+                        await updateAnalysis(lastAnalysisId, {
+                          results: { ...pdfResults, results: newResults },
+                        });
+                        setPdfResults((prev) =>
+                          prev ? { ...prev, results: newResults } : null
+                        );
+                        setSaveStatus('saved');
+                        if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+                        saveFeedbackTimeoutRef.current = setTimeout(() => {
+                          setSaveStatus('idle');
+                          saveFeedbackTimeoutRef.current = null;
+                        }, 2500);
+                      } catch {
+                        setSaveStatus('idle');
+                      }
                     }}
                   />
                 </Card.Body>

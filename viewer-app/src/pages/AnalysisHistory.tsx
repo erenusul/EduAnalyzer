@@ -77,10 +77,13 @@ export function AnalysisHistory() {
                   </td>
                 </tr>
               ) : (
-                analyses.map((a) => (
+                analyses.map((a) => {
+                  const exam = getExamByAnalysisId(a.id);
+                  const displayDate = exam ? exam.createdAt : a.date;
+                  return (
                   <tr key={a.id}>
                     <td className="small">
-                      {new Date(a.date).toLocaleDateString('tr-TR', {
+                      {new Date(displayDate).toLocaleDateString('tr-TR', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
@@ -118,13 +121,22 @@ export function AnalysisHistory() {
                     </td>
                     <td className="text-end">
                       {a.type === 'pdf' && (
-                        <Link
-                          to={`/dashboard/analiz-gecmisi/${a.id}`}
-                          className="btn btn-sm btn-primary me-1"
-                        >
-                          <i className="bi bi-list-check me-1" />
-                          Soru Analizleri
-                        </Link>
+                        <>
+                          <Link
+                            to={`/dashboard/analiz-gecmisi/${a.id}`}
+                            className="btn btn-sm btn-primary me-1"
+                          >
+                            <i className="bi bi-list-check me-1" />
+                            Soru Analizleri
+                          </Link>
+                          <Link
+                            to={`/dashboard/analiz-gecmisi/${a.id}`}
+                            className="btn btn-sm btn-outline-secondary me-1"
+                            title="Düzenle"
+                          >
+                            <i className="bi bi-pencil" aria-label="Düzenle" />
+                          </Link>
+                        </>
                       )}
                       <Button
                         variant="outline-primary"
@@ -143,7 +155,8 @@ export function AnalysisHistory() {
                       </Button>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </Table>
