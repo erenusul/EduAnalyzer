@@ -19,6 +19,7 @@ import {
   examsApi,
   mappers,
 } from '../services/backendApi';
+import { analyzePDF } from '../services/predictionApi';
 
 interface TeacherDataContextValue {
   students: Student[];
@@ -41,7 +42,7 @@ interface TeacherDataContextValue {
   addAnalysis: (record: Omit<AnalysisRecord, 'id' | 'createdAt'>) => Promise<AnalysisRecord>;
   updateAnalysis: (id: string, updates: Partial<Pick<AnalysisRecord, 'title' | 'results' | 'examId'>>) => Promise<void>;
   deleteAnalysis: (id: string) => Promise<void>;
-  addExam: (exam: Omit<Exam, 'id' | 'createdAt'>) => Promise<Exam>;
+  addExam: (exam: Omit<Exam, 'id' | 'createdAt'>, selectedIndices?: number[], answerKey?: string[]) => Promise<Exam>;
   updateExam: (id: string, updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status' | 'answerKey'>>) => Promise<void>;
   getExamByAnalysisId: (analysisId: string) => Exam | undefined;
   getResultsByExam: (examId: string) => ExamResult[];
@@ -56,7 +57,7 @@ interface TeacherDataContextValue {
 const TeacherDataContext = createContext<TeacherDataContextValue | null>(null);
 
 export function TeacherDataProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
@@ -93,6 +94,11 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
       setExams(examsRes.map(mappers.toExam));
       setExamResults(resultsRes.map(mappers.toExamResult));
     } catch (err) {
+      const status = err && typeof err === 'object' && 'status' in err ? (err as { status?: number }).status : 0;
+      if (status === 401 || status === 403) {
+        logout();
+        return;
+      }
       const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: string }).message) : 'Veriler yüklenemedi.';
       setError(msg);
     } finally {
@@ -144,10 +150,23 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const analyzePdf = useCallback(async (file: File, useOcr = false) => {
-    const res = await analysesApi.analyzePdf(file, useOcr);
-    const analysis = mappers.toAnalysis(res);
-    await refresh();
-    return analysis;
+    try {
+      const res = await analysesApi.analyzePdf(file, useOcr);
+      const analysis = mappers.toAnalysis(res);
+      await refresh();
+      return analysis;
+    } catch (err) {
+      // Backend üzerinden ML çağrısı başarısızsa, ML'e doğrudan git (backend proxy sorunu bypass)
+      try {
+        const mlResult = await analyzePDF(file, useOcr);
+        const res = await analysesApi.createFromPdfResult(file.name, mlResult);
+        const analysis = mappers.toAnalysis(res);
+        await refresh();
+        return analysis;
+      } catch (fallbackErr) {
+        throw err; // Orijinal hatayı fırlat
+      }
+    }
   }, [refresh]);
 
   const addAnalysis = useCallback(async (data: Omit<AnalysisRecord, 'id' | 'createdAt'>) => {
@@ -171,9 +190,9 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
-  const addExam = useCallback(async (data: Omit<Exam, 'id' | 'createdAt'>) => {
+  const addExam = useCallback(async (data: Omit<Exam, 'id' | 'createdAt'>, selectedIndices?: number[], answerKey?: string[]) => {
     const date = data.date.includes('T') ? data.date.split('T')[0] ?? data.date : data.date;
-    const res = await analysesApi.createExam(data.analysisId, data.weekLabel, date);
+    const res = await analysesApi.createExam(data.analysisId, data.weekLabel, date, selectedIndices, answerKey);
     const exam = mappers.toExam(res);
     await refresh();
     return exam;

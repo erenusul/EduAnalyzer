@@ -55,6 +55,7 @@ export interface BackendExam {
   date: string;
   status: string;
   answerKey?: string[] | null;
+  selectedResults?: unknown[] | null;
   createdAt: string;
 }
 
@@ -97,22 +98,53 @@ function toClass(d: BackendClass, studentIds: string[]): Class {
   };
 }
 
+function normalizePredictionItem(p: unknown): { label: string; confidence: number } {
+  if (!p || typeof p !== 'object') return { label: '', confidence: 0 };
+  const x = p as Record<string, unknown>;
+  return {
+    label: String(x.Label ?? x.label ?? ''),
+    confidence: Number(x.Confidence ?? x.confidence ?? 0),
+  };
+}
+
 function normalizeResults(results: unknown): unknown {
   if (!results || typeof results !== 'object') return results;
   const r = results as Record<string, unknown>;
   const arr = r.results ?? r.Results;
   if (!Array.isArray(arr)) return results;
+  let total =
+    (r.TotalQuestions as number) ??
+    r.totalQuestions ??
+    r.total_questions ??
+    0;
+  let analyzed =
+    (r.AnalyzedQuestions as number) ??
+    r.analyzedQuestions ??
+    r.analyzed_questions ??
+    0;
+  if (total === 0 && analyzed === 0 && arr.length > 0) {
+    total = arr.length;
+    analyzed = arr.length;
+  }
   return {
-    total_questions: r.totalQuestions ?? r.total_questions ?? 0,
-    analyzed_questions: r.analyzedQuestions ?? r.analyzed_questions ?? 0,
-    results: arr.map((item: Record<string, unknown>) => ({
-      question_id: item.questionId ?? item.question_id,
-      question_text: item.questionText ?? item.question_text,
-      subject: item.subject ?? [],
-      topic: item.topic ?? [],
-      has_visual: item.hasVisual ?? item.has_visual ?? false,
-    })),
-    warning: r.warning,
+    total_questions: total,
+    analyzed_questions: analyzed,
+    results: arr.map((item: Record<string, unknown>) => {
+      const rawSubject = item.Subject ?? item.subject ?? [];
+      const rawTopic = item.Topic ?? item.topic ?? [];
+      const subjectArr = Array.isArray(rawSubject) ? rawSubject : [];
+      const topicArr = Array.isArray(rawTopic) ? rawTopic : [];
+      return {
+        question_id: item.QuestionId ?? item.questionId ?? item.question_id ?? '',
+        question_text:
+          item.QuestionText ?? item.questionText ?? item.question_text ?? '',
+        subject: subjectArr.map(normalizePredictionItem),
+        topic: topicArr.map(normalizePredictionItem),
+        has_visual:
+          item.HasVisual ?? item.hasVisual ?? item.has_visual ?? false,
+      };
+    }),
+    warning: r.warning ?? r.Warning,
   };
 }
 
@@ -140,6 +172,7 @@ function toExam(d: BackendExam): Exam {
     date: d.date.split('T')[0] ?? d.date,
     status: d.status as 'draft' | 'ready',
     answerKey: d.answerKey ?? undefined,
+    selectedResults: d.selectedResults ?? undefined,
     createdAt: d.createdAt,
   };
 }
@@ -214,11 +247,25 @@ export const analysesApi = {
       `/api/analyses/pdf?useOcr=${useOcr ?? false}&topKSubject=1&topKTopic=3`,
       file
     ),
+  createFromPdfResult: (fileName: string, mlResult: { total_questions: number; analyzed_questions: number; results: unknown[]; warning?: string }) =>
+    apiPost<BackendAnalysis>('/api/analyses/pdf-result', {
+      title: fileName,
+      fileName,
+      totalQuestions: mlResult.total_questions,
+      analyzedQuestions: mlResult.analyzed_questions,
+      results: mlResult.results,
+      warning: mlResult.warning,
+    }),
   updateResults: (id: string, results: unknown) =>
     apiPut<BackendAnalysis>(`/api/analyses/${id}/results`, results),
   delete: (id: string) => apiDelete(`/api/analyses/${id}`),
-  createExam: (id: string, weekLabel: string, date: string) =>
-    apiPost<BackendExam>(`/api/analyses/${id}/exam`, { weekLabel, date: date + 'T00:00:00Z' }),
+  createExam: (id: string, weekLabel: string, date: string, selectedIndices?: number[], answerKey?: string[]) =>
+    apiPost<BackendExam>(`/api/analyses/${id}/exam`, {
+      weekLabel,
+      date: date + 'T00:00:00Z',
+      ...(selectedIndices != null && selectedIndices.length > 0 && { selectedIndices }),
+      ...(answerKey != null && answerKey.length > 0 && { answerKey }),
+    }),
   markExamReady: (examId: string) =>
     apiPost<BackendExam>(`/api/analyses/exam/${examId}/ready`),
 };

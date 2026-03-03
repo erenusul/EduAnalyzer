@@ -8,6 +8,7 @@ public record ExamDto(
     DateTime Date,
     string Status,
     IReadOnlyList<string>? AnswerKey,
+    IReadOnlyList<QuestionAnalysisResultDto>? SelectedResults,
     DateTime CreatedAt
 );
 

@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from ml_service.api.schemas import PredictionRequest, PredictionResponse, PredictionItem
 from ml_service.config import CHECKPOINTS_DIR, SUBJECT_MODEL_NAME, TOPIC_MODEL_NAME
+from ml_service.data.preprocessor import TextPreprocessor
 from ml_service.models.classifier import QuestionClassifier
 from ml_service.utils.logger import logger
 
@@ -85,7 +86,7 @@ async def predict(request: PredictionRequest) -> PredictionResponse:
         
         # Make prediction
         predictions = classifier.predict(
-            request.question_text,
+            TextPreprocessor.extract_question_text_only(request.question_text),
             top_k_subject=request.top_k_subject,
             top_k_topic=request.top_k_topic,
         )

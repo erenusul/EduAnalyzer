@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from collections import Counter
 
 # Add ml-service directory to path for imports
 ml_service_path = Path(__file__).parent.parent
@@ -14,7 +15,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.metrics import accuracy_score, classification_report, f1_score
-from torch.utils.data import DataLoader, random_split
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Subset
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 # Import from ml_service module
@@ -51,6 +53,84 @@ create_topic_dataset = dataset_module.create_topic_dataset
 BERTurkClassifier = classifier_module.BERTurkClassifier
 FocalLoss = losses_module.FocalLoss
 LabelSmoothingCrossEntropy = losses_module.LabelSmoothingCrossEntropy
+
+
+def _stratified_split_indices(
+    labels: List[str],
+    train_ratio: float,
+    val_ratio: float,
+    test_ratio: float,
+    seed: int,
+) -> Tuple[List[int], List[int], List[int]]:
+    """
+    Split indices with stratification when possible; fallback to ordered split.
+
+    Args:
+        labels: Label list for stratification
+        train_ratio: Train split ratio
+        val_ratio: Validation split ratio
+        test_ratio: Test split ratio
+        seed: Random seed
+
+    Returns:
+        (train_indices, val_indices, test_indices)
+    """
+    total = len(labels)
+    if total == 0:
+        return [], [], []
+
+    all_indices = list(range(total))
+    unique_labels = set(labels)
+
+    if len(unique_labels) <= 1:
+        # Not enough classes for meaningful stratification
+        train_cut = int(total * train_ratio)
+        val_cut = train_cut + int(total * val_ratio)
+        if total > 0 and train_cut == 0:
+            train_cut = 1
+        if total > 1 and val_cut <= train_cut:
+            val_cut = min(train_cut + 1, total)
+        return all_indices[:train_cut], all_indices[train_cut:val_cut], all_indices[val_cut:]
+
+    label_counts = Counter(labels)
+    if any(count < 2 for count in label_counts.values()):
+        # Stratification can fail when a class has only one sample
+        train_cut = int(total * train_ratio)
+        val_cut = train_cut + int(total * val_ratio)
+        if total > 0 and train_cut == 0:
+            train_cut = 1
+        if total > 1 and val_cut <= train_cut:
+            val_cut = min(train_cut + 1, total)
+        all_indices_shuffled = all_indices.copy()
+        generator = torch.Generator().manual_seed(seed)
+        all_indices_shuffled = torch.randperm(total, generator=generator).tolist()
+        return all_indices_shuffled[:train_cut], all_indices_shuffled[train_cut:val_cut], all_indices_shuffled[val_cut:]
+
+    train_indices, temp_indices, train_labels, temp_labels = train_test_split(
+        all_indices,
+        labels,
+        test_size=(1.0 - train_ratio),
+        random_state=seed,
+        stratify=labels,
+    )
+
+    temp_ratio = val_ratio + test_ratio
+    if temp_ratio <= 0:
+        return train_indices, temp_indices, []
+
+    if len(temp_indices) <= 1:
+        return train_indices, temp_indices, []
+
+    adjusted_val_ratio = val_ratio / temp_ratio
+    val_indices, test_indices, _, _ = train_test_split(
+        temp_indices,
+        temp_labels,
+        test_size=(1.0 - adjusted_val_ratio),
+        random_state=seed,
+        stratify=temp_labels,
+    )
+
+    return train_indices, val_indices, test_indices
 
 
 class Trainer:
@@ -264,6 +344,9 @@ class Trainer:
         Returns:
             Tuple of (loss, accuracy, classification_report_dict)
         """
+        if len(loader) == 0:
+            return float("inf"), 0.0, 0.0, {}
+
         self.model.eval()
         total_loss = 0
         all_predictions = []
@@ -436,16 +519,16 @@ def train_subject_classifier(
     dataset = create_subject_dataset(texts, subjects, tokenizer)
     print(f"Dataset created: {len(dataset)} samples", flush=True)
     
-    # Split dataset
-    train_size = int(TRAINING_CONFIG["train_split"] * len(dataset))
-    val_size = int(TRAINING_CONFIG["val_split"] * len(dataset))
-    test_size = len(dataset) - train_size - val_size
-    
-    train_dataset, val_dataset, test_dataset = random_split(
-        dataset,
-        [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(TRAINING_CONFIG["seed"]),
+    train_indices, val_indices, test_indices = _stratified_split_indices(
+        dataset.labels,
+        TRAINING_CONFIG["train_split"],
+        TRAINING_CONFIG["val_split"],
+        TRAINING_CONFIG["test_split"],
+        TRAINING_CONFIG["seed"],
     )
+    train_dataset = Subset(dataset, train_indices)
+    val_dataset = Subset(dataset, val_indices)
+    test_dataset = Subset(dataset, test_indices)
     
     # Create data loaders
     train_loader = DataLoader(
@@ -500,16 +583,16 @@ def train_topic_classifier(
     dataset = create_topic_dataset(texts, topics, tokenizer)
     print(f"Dataset created: {len(dataset)} samples", flush=True)
     
-    # Split dataset
-    train_size = int(TRAINING_CONFIG["train_split"] * len(dataset))
-    val_size = int(TRAINING_CONFIG["val_split"] * len(dataset))
-    test_size = len(dataset) - train_size - val_size
-    
-    train_dataset, val_dataset, test_dataset = random_split(
-        dataset,
-        [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(TRAINING_CONFIG["seed"]),
+    train_indices, val_indices, test_indices = _stratified_split_indices(
+        dataset.labels,
+        TRAINING_CONFIG["train_split"],
+        TRAINING_CONFIG["val_split"],
+        TRAINING_CONFIG["test_split"],
+        TRAINING_CONFIG["seed"],
     )
+    train_dataset = Subset(dataset, train_indices)
+    val_dataset = Subset(dataset, val_indices)
+    test_dataset = Subset(dataset, test_indices)
     
     # Create data loaders
     train_loader = DataLoader(

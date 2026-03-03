@@ -40,3 +40,12 @@ public record CreateAnalysisRequest(
     int AnalyzedQuestions,
     object Results
 );
+
+public record CreatePdfResultRequest(
+    string Title,
+    string? FileName,
+    int TotalQuestions,
+    int AnalyzedQuestions,
+    object? Results,
+    string? Warning
+);

@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
-# Project root directory
-PROJECT_ROOT = Path(__file__).parent.parent
-ML_SERVICE_ROOT = Path(__file__).parent
+# Project root directory (EduAnalyzer) - absolute path for reliable imports
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ML_SERVICE_ROOT = Path(__file__).resolve().parent
 
 # Data paths
 DATA_DIR = PROJECT_ROOT / "pdf_extractor" / "data" / "processed"

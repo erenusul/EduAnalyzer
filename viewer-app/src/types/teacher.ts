@@ -45,6 +45,7 @@ export interface Exam {
   date: string;
   status: 'draft' | 'ready';
   answerKey?: string[];
+  selectedResults?: unknown[];
   createdAt: string;
 }
 

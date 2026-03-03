@@ -22,6 +22,15 @@ export interface PredictionRequest {
 /**
  * Predict subject and topic for a question
  */
+function parseJsonSafe<T>(text: string): T {
+  if (!text.trim()) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined as T;
+  }
+}
+
 export async function predictQuestion(
   request: PredictionRequest
 ): Promise<PredictionResponse> {
@@ -34,14 +43,16 @@ export async function predictQuestion(
       body: JSON.stringify(request),
     });
 
+    const text = await response.text();
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = parseJsonSafe<{ detail?: string }>(text) ?? {};
       throw new Error(
         errorData.detail || `API request failed with status ${response.status}`
       );
     }
 
-    const data: PredictionResponse = await response.json();
+    const data = parseJsonSafe<PredictionResponse>(text);
+    if (!data) throw new Error('Geçersiz API yanıtı');
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -57,12 +68,14 @@ export async function predictQuestion(
 export async function checkApiHealth(): Promise<{ status: string; model_loaded: boolean }> {
   try {
     const response = await fetch(`${API_BASE_URL}/health`);
-    
+    const text = await response.text();
+
     if (!response.ok) {
       throw new Error(`Health check failed with status ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = parseJsonSafe<{ status: string; model_loaded: boolean }>(text);
+    if (!data) throw new Error('Geçersiz health yanıtı');
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -102,8 +115,9 @@ export async function analyzePDF(
 
     clearTimeout(timeoutId);
 
+    const text = await response.text();
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const errorData = parseJsonSafe<Record<string, unknown>>(text) ?? {};
       const message =
         (typeof errorData?.detail === 'string' && errorData.detail) ||
         (typeof errorData?.message === 'string' && errorData.message) ||
@@ -112,7 +126,8 @@ export async function analyzePDF(
       throw new Error(message);
     }
 
-    const data: PDFAnalysisResponse = await response.json();
+    const data = parseJsonSafe<PDFAnalysisResponse>(text);
+    if (!data) throw new Error('PDF analizi geçersiz yanıt döndü');
     return data;
   } catch (error) {
     if (error instanceof Error) {

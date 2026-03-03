@@ -52,10 +52,7 @@ def normalize_topic_name(topic: str) -> str:
         "cumlenin ogeleri": "Öge",
         "Öge": "Öge",
         "oge": "Öge",
-        # Az örnekli konuları birleştir
-        "Cümlede Vurgu": "Cümlede Anlam",  # 3 soru → Cümlede Anlam'a ekle
-        "Geçiş ve Bağlantı İfadeleri": "Cümlede Anlam",  # 3 soru → Cümlede Anlam'a ekle
-        "Sözcükler Arası Anlam İlişkileri": "Sözcükte Anlam",  # 3 soru → Sözcükte Anlam'a ekle
+        # Geçiş ve Bağlantı İfadeleri: ayrı konu olarak kalmaya devam etsin
     }
     
     # Mapping'de varsa kullan

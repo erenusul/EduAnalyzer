@@ -48,17 +48,30 @@ export async function apiRequest<T>(
   if (!response.ok) {
     let message = `HTTP ${response.status}`;
     try {
-      const body = await response.json() as { message?: string; detail?: string };
-      message = body.message ?? body.detail ?? message;
-    } catch {
       const text = await response.text();
-      if (text) message = text;
+      if (text) {
+        try {
+          const body = JSON.parse(text) as { message?: string; detail?: string };
+          message = body.message ?? body.detail ?? message;
+        } catch {
+          message = text;
+        }
+      }
+    } catch {
+      /* body okunamadı, varsayılan message kullan */
+    }
+    if (response.status === 401) {
+      message = 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
+    }
+    if (response.status === 403) {
+      message = 'Oturum geçersiz. Lütfen tekrar giriş yapın.';
     }
     throw { message, status: response.status } as ApiError;
   }
 
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -106,13 +119,21 @@ export async function apiUpload<T>(
   if (!response.ok) {
     let message = `HTTP ${response.status}`;
     try {
-      const body = await response.json() as { message?: string };
-      message = body.message ?? message;
+      const text = await response.text();
+      if (text) {
+        try {
+          const body = JSON.parse(text) as { message?: string };
+          message = body.message ?? message;
+        } catch {
+          message = text;
+        }
+      }
     } catch {
-      //
+      /* body okunamadı */
     }
     throw { message, status: response.status } as ApiError;
   }
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }

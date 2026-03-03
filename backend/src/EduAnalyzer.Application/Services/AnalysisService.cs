@@ -18,7 +18,7 @@ public interface IAnalysisService
         CancellationToken ct = default);
     Task<AnalysisRecordDto?> UpdateResultsAsync(Guid id, Guid teacherId, object results, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, Guid teacherId, CancellationToken ct = default);
-    Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, CancellationToken ct = default);
+    Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, int[]? selectedIndices = null, IReadOnlyList<string>? answerKey = null, CancellationToken ct = default);
     Task<ExamDto?> MarkExamReadyAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
 }
 
@@ -115,12 +115,42 @@ public class AnalysisService : IAnalysisService
         return true;
     }
 
-    public async Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, CancellationToken ct = default)
+    public async Task<ExamDto?> CreateExamFromAnalysisAsync(Guid analysisId, Guid teacherId, string weekLabel, DateTime date, int[]? selectedIndices = null, IReadOnlyList<string>? answerKey = null, CancellationToken ct = default)
     {
         var a = await _analysisRepo.GetByIdAsync(analysisId, ct);
         if (a == null || a.TeacherId != teacherId) return null;
         var existing = await _examRepo.GetByAnalysisIdAsync(analysisId, ct);
         if (existing != null) return MapToDto(existing);
+
+        string? selectedResultsJson = null;
+        if (selectedIndices is { Length: > 0 })
+        {
+            var pdfResponse = JsonSerializer.Deserialize<PdfAnalysisResponseDto>(a.ResultsJson);
+            var allResults = pdfResponse?.Results ?? new List<QuestionAnalysisResultDto>();
+            var selected = selectedIndices
+                .Where(i => i >= 0 && i < allResults.Count)
+                .Select(i => allResults[i])
+                .ToList();
+            if (selected.Count > 0)
+                selectedResultsJson = JsonSerializer.Serialize(selected);
+        }
+
+        var status = ExamStatus.Draft;
+        string? answerKeyJson = null;
+        if (answerKey is { Count: 20 })
+        {
+            var valid = new[] { "A", "B", "C", "D", "E" };
+            var normalized = answerKey
+                .Select(x => (x?.Trim().ToUpperInvariant() ?? "").FirstOrDefault().ToString())
+                .Select(x => valid.Contains(x) ? x : "")
+                .ToList();
+            if (normalized.Count == 20)
+            {
+                answerKeyJson = JsonSerializer.Serialize(normalized);
+                status = ExamStatus.Ready;
+            }
+        }
+
         var exam = new Exam
         {
             Id = Guid.NewGuid(),
@@ -129,7 +159,9 @@ public class AnalysisService : IAnalysisService
             Title = a.Title,
             WeekLabel = weekLabel,
             Date = date,
-            Status = ExamStatus.Draft,
+            Status = status,
+            SelectedResultsJson = selectedResultsJson,
+            AnswerKeyJson = answerKeyJson,
             CreatedAt = DateTime.UtcNow
         };
         var added = await _examRepo.AddAsync(exam, ct);
@@ -168,6 +200,9 @@ public class AnalysisService : IAnalysisService
         var answerKey = string.IsNullOrEmpty(e.AnswerKeyJson)
             ? null
             : JsonSerializer.Deserialize<List<string>>(e.AnswerKeyJson) as IReadOnlyList<string>;
+        var selectedResults = string.IsNullOrEmpty(e.SelectedResultsJson)
+            ? null
+            : JsonSerializer.Deserialize<List<QuestionAnalysisResultDto>>(e.SelectedResultsJson) as IReadOnlyList<QuestionAnalysisResultDto>;
         return new ExamDto(
             e.Id,
             e.AnalysisId,
@@ -176,6 +211,7 @@ public class AnalysisService : IAnalysisService
             e.Date,
             e.Status.ToString().ToLowerInvariant(),
             answerKey,
+            selectedResults,
             e.CreatedAt
         );
     }

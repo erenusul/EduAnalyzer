@@ -2,6 +2,7 @@
 PyTorch Dataset classes for question classification
 """
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -14,12 +15,61 @@ from ml_service.config import (
     QUESTION_TRAINING_DATASET_PATH,
     BERT_MODEL_NAME,
     MAX_SEQUENCE_LENGTH,
+    ALL_TOPICS,
     SUBJECTS,
     SUBJECT_TOPICS,
     TOPIC_TO_SUBJECT,
     TRAINING_CONFIG,
 )
 from ml_service.data.preprocessor import TextPreprocessor
+
+
+def _normalize_topic(topic: str) -> str:
+    topic = (topic or "").strip().lower()
+    replacements = {
+        "ı": "i",
+        "ğ": "g",
+        "ü": "u",
+        "ö": "o",
+        "ş": "s",
+        "ç": "c",
+        "İ": "i",
+        "Ğ": "g",
+        "Ü": "u",
+        "Ö": "o",
+        "Ş": "s",
+        "Ç": "c",
+    }
+    for old, new in replacements.items():
+        topic = topic.replace(old, new)
+    topic = re.sub(r"[^a-z0-9 ]+", "", topic)
+    topic = re.sub(r"\s+", " ", topic).strip()
+    return topic
+
+
+def _canonicalize_topic(topic: str) -> str:
+    normalized = _normalize_topic(topic)
+    aliases = {
+        "noktalama": "Noktalama İşaretleri",
+        "noktalamaisaretleri": "Noktalama İşaretleri",
+        "cumlede anlam": "Cümlede Anlam",
+        "cumlede vurgu": "Cümlede Vurgu",
+        "cumle turleri": "Cümle Türleri",
+        "soz sanatlari": "Söz Sanatları",
+        "sozsanatlari": "Söz Sanatları",
+        "deyimler ve atasozleri": "Deyimler ve Atasözleri",
+        "degimler ve atasozleri": "Deyimler ve Atasözleri",
+        "deyimler": "Deyimler ve Atasözleri",
+        "atasozleri": "Deyimler ve Atasözleri",
+        "gecis ve baglanti ifadeleri": "Geçiş ve Bağlantı İfadeleri",
+        "sozcukler arasi anlam iliskileri": "Sözcükler Arası Anlam İlişkileri",
+    }
+    if normalized in aliases:
+        return aliases[normalized]
+    for canonical in ALL_TOPICS:
+        if _normalize_topic(canonical) == normalized:
+            return canonical
+    return topic
 
 
 class QuestionDataset(Dataset):
@@ -81,7 +131,7 @@ class QuestionDataset(Dataset):
         label = self.labels[idx]
         
         # Preprocess text (use static method to avoid recursion)
-        text = TextPreprocessor.preprocess(text)
+        text = TextPreprocessor.preprocess_for_classification(text)
         
         # Tokenize
         encoding = self.tokenizer(
@@ -129,22 +179,41 @@ def load_question_dataset(
     texts = []
     subjects = []
     topics = []
+    filtered_questions = []
+    seen_samples = set()
     
     for question in questions:
         question_text = question.get("question_text", "")
-        topic = question.get("topic", "")
+        topic = _canonicalize_topic(question.get("topic", ""))
+        if topic and topic not in ALL_TOPICS:
+            continue
+
+        question_text = TextPreprocessor.extract_question_text_only(question_text)
         
         if not question_text or not topic:
             continue
+
+        sample_key = (
+            question.get("question_id", ""),
+            question_text,
+            topic,
+        )
+        if sample_key in seen_samples:
+            continue
+        seen_samples.add(sample_key)
         
         # Determine subject from topic
         subject = TOPIC_TO_SUBJECT.get(topic, "turkce")  # Default to Turkish
+        cleaned_question = dict(question)
+        cleaned_question["question_text"] = question_text
+        cleaned_question["topic"] = topic
         
         texts.append(question_text)
         subjects.append(subject)
         topics.append(topic)
+        filtered_questions.append(cleaned_question)
     
-    return questions, subjects, topics
+    return filtered_questions, subjects, topics
 
 
 def load_training_dataset(

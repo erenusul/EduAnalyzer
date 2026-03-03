@@ -33,6 +33,24 @@ EduAnalyzer/
 
 ## Hızlı Başlangıç
 
+### Tüm Servisleri Çalıştır (Önerilen)
+
+```bash
+# Tek komutla Backend + ML + Frontend başlat
+./start-all.sh
+
+# Durdurmak için
+./stop-all.sh
+```
+
+- **Frontend:** http://localhost:5173
+- **Backend:** http://localhost:5131
+- **Demo giriş:** ogretmen@demo.com / demo123
+
+İlk çalıştırmada: `cd backend && dotnet restore` ve `cd viewer-app && npm install` gerekebilir.
+
+---
+
 ### 1. PDF Çıkarma (Backend)
 
 ```bash

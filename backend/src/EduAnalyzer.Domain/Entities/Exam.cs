@@ -16,6 +16,11 @@ public class Exam
     /// Cevap anahtarı JSON - soru sırasına göre doğru cevaplar: ["A","B","C","D",...]
     /// </summary>
     public string? AnswerKeyJson { get; set; }
+    /// <summary>
+    /// Seçilen soruların analiz sonuçları JSON - QuestionAnalysisResultDto[].
+    /// Boşsa tüm analiz kullanılır (geriye dönük uyumluluk).
+    /// </summary>
+    public string? SelectedResultsJson { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

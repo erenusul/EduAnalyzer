@@ -1,9 +1,16 @@
 """
 FastAPI application for question classification service
 """
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
+
+from ml_service.config import PROJECT_ROOT
+
+# pdf_extractor importu için proje kökünü path'e ekle
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware

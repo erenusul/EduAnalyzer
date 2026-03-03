@@ -41,16 +41,32 @@ public class MlServiceClient : IMlServiceClient
         int topKTopic = 3,
         CancellationToken ct = default)
     {
+        // ByteArrayContent kullan - Stream bazı senaryolarda düzgün iletilmeyebilir
+        await using var ms = new MemoryStream();
+        await fileStream.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
         using var content = new MultipartFormDataContent();
-        content.Add(new StreamContent(fileStream), "file", fileName);
-        content.Add(new StringContent(useOcr.ToString()), "use_ocr");
+        content.Add(new ByteArrayContent(bytes), "file", fileName);
+        content.Add(new StringContent(useOcr ? "true" : "false"), "use_ocr");
         content.Add(new StringContent(topKSubject.ToString()), "top_k_subject");
         content.Add(new StringContent(topKTopic.ToString()), "top_k_topic");
 
         var response = await _httpClient.PostAsync("api/analyze-pdf", content, ct);
-        response.EnsureSuccessStatusCode();
-
         var json = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = json;
+            try
+            {
+                var err = JsonSerializer.Deserialize<MlErrorResponse>(json, JsonOptions);
+                detail = err?.Detail ?? json;
+            }
+            catch { /* use raw json */ }
+            throw new HttpRequestException(detail);
+        }
+
         var raw = JsonSerializer.Deserialize<MlPdfAnalysisResponse>(json, JsonOptions)
             ?? throw new InvalidOperationException("ML servisi geçersiz yanıt döndü.");
 
@@ -112,5 +128,10 @@ public class MlServiceClient : IMlServiceClient
         public string Status { get; set; } = "";
         public bool ModelLoaded { get; set; }
         public string? Message { get; set; }
+    }
+
+    private class MlErrorResponse
+    {
+        public string? Detail { get; set; }
     }
 }

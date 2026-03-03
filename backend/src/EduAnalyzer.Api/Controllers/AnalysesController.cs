@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Security.Claims;
 using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Interfaces;
@@ -47,6 +48,53 @@ public class AnalysesController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpPost("pdf-result")]
+    public async Task<ActionResult<AnalysisRecordDto>> CreateFromPdfResult(
+        [FromBody] CreatePdfResultRequest request,
+        CancellationToken ct = default)
+    {
+        var teacher = await _teacherRepo.GetByUserIdAsync(UserId, ct);
+        if (teacher == null) return Forbid();
+
+        var mlResult = MapToPdfResponseDto(request);
+        var dto = await _service.CreateFromPdfAsync(teacher.Id, request.Title, request.FileName, mlResult, ct);
+        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+    }
+
+    private static PdfAnalysisResponseDto MapToPdfResponseDto(CreatePdfResultRequest r)
+    {
+        var results = new List<QuestionAnalysisResultDto>();
+        if (r.Results is System.Text.Json.JsonElement arr && arr.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in arr.EnumerateArray())
+            {
+                var subject = ParsePredictions(item.TryGetProperty("subject", out var s) ? s : default);
+                var topic = ParsePredictions(item.TryGetProperty("topic", out var t) ? t : default);
+                results.Add(new QuestionAnalysisResultDto(
+                    item.TryGetProperty("question_id", out var qi) ? qi.GetString() ?? "" : "",
+                    item.TryGetProperty("question_text", out var qt) ? qt.GetString() ?? "" : "",
+                    subject,
+                    topic,
+                    item.TryGetProperty("has_visual", out var hv) && hv.GetBoolean()
+                ));
+            }
+        }
+        return new PdfAnalysisResponseDto(r.TotalQuestions, r.AnalyzedQuestions, results, r.Warning);
+    }
+
+    private static IReadOnlyList<PredictionItemDto> ParsePredictions(System.Text.Json.JsonElement el)
+    {
+        if (el.ValueKind != System.Text.Json.JsonValueKind.Array) return Array.Empty<PredictionItemDto>();
+        var list = new List<PredictionItemDto>();
+        foreach (var item in el.EnumerateArray())
+        {
+            var label = item.TryGetProperty("label", out var l) ? l.GetString() ?? "" : "";
+            var conf = item.TryGetProperty("confidence", out var c) ? c.GetDouble() : 0;
+            list.Add(new PredictionItemDto(label, conf));
+        }
+        return list;
+    }
+
     [HttpPost("single")]
     public async Task<ActionResult<AnalysisRecordDto>> CreateSingle([FromBody] CreateSingleAnalysisRequest request, CancellationToken ct)
     {
@@ -73,10 +121,21 @@ public class AnalysesController : ControllerBase
         var teacher = await _teacherRepo.GetByUserIdAsync(UserId, ct);
         if (teacher == null) return Forbid();
 
-        await using var stream = file.OpenReadStream();
-        var mlResult = await _mlClient.AnalyzePdfAsync(stream, file.FileName, useOcr, topKSubject, topKTopic, ct);
-        var dto = await _service.CreateFromPdfAsync(teacher.Id, file.FileName, file.FileName, mlResult, ct);
-        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var mlResult = await _mlClient.AnalyzePdfAsync(stream, file.FileName, useOcr, topKSubject, topKTopic, ct);
+            var dto = await _service.CreateFromPdfAsync(teacher.Id, file.FileName, file.FileName, mlResult, ct);
+            return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        }
+        catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id:guid}")]
@@ -104,7 +163,7 @@ public class AnalysesController : ControllerBase
     {
         var teacher = await _teacherRepo.GetByUserIdAsync(UserId, ct);
         if (teacher == null) return Forbid();
-        var dto = await _service.CreateExamFromAnalysisAsync(id, teacher.Id, request.WeekLabel, request.Date, ct);
+        var dto = await _service.CreateExamFromAnalysisAsync(id, teacher.Id, request.WeekLabel, request.Date, request.SelectedIndices, request.AnswerKey, ct);
         if (dto == null) return NotFound();
         return Ok(dto);
     }
@@ -120,4 +179,4 @@ public class AnalysesController : ControllerBase
     }
 }
 
-public record CreateExamRequest(string WeekLabel, DateTime Date);
+public record CreateExamRequest(string WeekLabel, DateTime Date, int[]? SelectedIndices = null, string[]? AnswerKey = null);

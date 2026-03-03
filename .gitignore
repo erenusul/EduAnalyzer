@@ -33,6 +33,7 @@ viewer-app/public/*.csv
 # .NET / Build
 bin/
 obj/
+*.db
 *.dll
 *.pdb
 *.deps.json

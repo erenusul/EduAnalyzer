@@ -41,9 +41,14 @@ def extract_topic_from_filename(filename: str) -> str:
     # .pdf uzantısını kaldır
     topic = filename.replace(".pdf", "").replace(".PDF", "")
     
+    # Yaprak Test formatı: "8. Sınıf Türkçe Yaprak Test_Ornek"
+    if "yaprak test" in topic.lower():
+        topic = re.sub(r"yaprak\s*test.*$", "", topic, flags=re.IGNORECASE)
+        topic = re.sub(r"^\d+\.\s*sınıf\s*", "", topic, flags=re.IGNORECASE).strip() or "Türkçe"
+
     # Yeni format: 8.-sinif-indirilebilir-testler-01-Noktalama-Isaretleri-cevapsiz.pdf
     # veya: 8.-Sinif-Gorsel-Okuma-ve-Grafik-Tablo_01-Cevapsiz.pdf
-    if topic.startswith("8.-sinif-") or topic.startswith("8.-Sinif-"):
+    elif topic.startswith("8.-sinif-") or topic.startswith("8.-Sinif-"):
         # "8.-sinif-" veya "8.-Sinif-" kısmını kaldır
         topic = re.sub(r'^8\.-[Ss]inif-', '', topic)
         
@@ -342,6 +347,138 @@ def _strip_metadata_from_question(text: str) -> str:
     return re.sub(r'\s+', ' ', result).strip()
 
 
+def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Question]:
+    """
+    Esnek parser: Ana parser soru bulamadığında kullanılır.
+    Daha gevşek kurallarla metni bölerek soru bloklarını çıkarır.
+    Seçenek zorunluluğu yok; sadece numara + metin yeterli.
+    """
+    questions = []
+    # Soru başlangıç: "1) metin", "1. metin", "1- metin", "1) " (tek başına), "Soru 1: metin"
+    split_pattern = re.compile(r'^\s*(\d+)\s*[\)\.\-–:]\s*(.*)$', re.IGNORECASE)
+    split_soru = re.compile(r'^\s*Soru\s+(\d+)\s*[:\.]\s*(.*)$', re.IGNORECASE)
+    # Sadece numara: "1)" veya "1." (metin sonraki satırda)
+    num_only = re.compile(r'^\s*(\d+)\s*[\)\.]\s*$')
+
+    lines = text.split('\n')
+    current_num = None
+    current_text: List[str] = []
+    current_options: List[str] = []
+
+    option_pattern = re.compile(r'^([ABCDabcd])[\)\.]\s*(.+)$', re.IGNORECASE)
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Seçenek mi?
+        opt_match = option_pattern.match(stripped)
+        if opt_match and current_num is not None:
+            current_options.append(f"{opt_match.group(1).upper()}) {opt_match.group(2).strip()}")
+            continue
+
+        # Soru numarası + metin aynı satırda mı?
+        q_match = split_pattern.match(stripped)
+        if not q_match:
+            q_match = split_soru.match(stripped)
+
+        # Sadece "1)" veya "1." (metin sonraki satırlarda)
+        num_only_match = num_only.match(stripped) if not q_match else None
+
+        if q_match:
+            following = q_match.group(2).strip()
+            # "5. ünite", "8. sınıf" gibi saçma satırları atla
+            if following and _is_excluded_question_line(following):
+                continue
+            if current_num is not None and current_text:
+                qtext = clean_question_text(' '.join(current_text))
+
+                if len(qtext) >= 25 and not _is_word_pair_or_non_question(qtext):
+                    try:
+                        from .visual_detector import VisualDetector
+                    except ImportError:
+                        from visual_detector import VisualDetector
+                    detector = VisualDetector()
+                    visual_info = detector.detect_visual_content(qtext)
+                    enhanced = detector.add_visual_description(qtext, visual_info)
+                    questions.append(Question(
+                        question_id=f"{pdf_name}_q{current_num}",
+                        question_text=enhanced,
+                        options=current_options.copy(),
+                        topic=topic,
+                        exam_info=None,
+                        question_number=current_num,
+                        source_pdf=pdf_name,
+                        has_visual=visual_info["has_visual"],
+                        visual_type=visual_info.get("primary_type"),
+                        visual_description=visual_info.get("primary_type"),
+                    ))
+
+            current_num = int(q_match.group(1))
+            current_text = [following] if following else []
+            current_options = []
+            continue
+
+        # Sadece "1)" veya "1." - metin sonraki satırlarda
+        if num_only_match:
+            if current_num is not None and current_text:
+                qtext = clean_question_text(' '.join(current_text))
+                if len(qtext) >= 25 and not _is_word_pair_or_non_question(qtext):
+                    try:
+                        from .visual_detector import VisualDetector
+                    except ImportError:
+                        from visual_detector import VisualDetector
+                    detector = VisualDetector()
+                    visual_info = detector.detect_visual_content(qtext)
+                    enhanced = detector.add_visual_description(qtext, visual_info)
+                    questions.append(Question(
+                        question_id=f"{pdf_name}_q{current_num}",
+                        question_text=enhanced,
+                        options=current_options.copy(),
+                        topic=topic,
+                        exam_info=None,
+                        question_number=current_num,
+                        source_pdf=pdf_name,
+                        has_visual=visual_info["has_visual"],
+                        visual_type=visual_info.get("primary_type"),
+                        visual_description=visual_info.get("primary_type"),
+                    ))
+            current_num = int(num_only_match.group(1))
+            current_text = []
+            current_options = []
+            continue
+
+        if current_num is not None:
+            current_text.append(stripped)
+
+    # Son soru
+    if current_num is not None and current_text:
+        qtext = clean_question_text(' '.join(current_text))
+        if len(qtext) >= 25 and not _is_word_pair_or_non_question(qtext):
+            try:
+                from .visual_detector import VisualDetector
+            except ImportError:
+                from visual_detector import VisualDetector
+            detector = VisualDetector()
+            visual_info = detector.detect_visual_content(qtext)
+            enhanced = detector.add_visual_description(qtext, visual_info)
+            questions.append(Question(
+                question_id=f"{pdf_name}_q{current_num}",
+                question_text=enhanced,
+                options=current_options.copy(),
+                topic=topic,
+                exam_info=None,
+                question_number=current_num,
+                source_pdf=pdf_name,
+                has_visual=visual_info["has_visual"],
+                visual_type=visual_info.get("primary_type"),
+                visual_description=visual_info.get("primary_type"),
+            ))
+
+    return questions
+
+
 def _is_valid_question(question_text: str, options: List[str]) -> bool:
     """
     Gerçek bir sınav sorusu kalıbında mı?
@@ -387,13 +524,14 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
     # Sınav bilgisi pattern'i: "LGS-2020", "TEOG", vb.
     exam_pattern = re.compile(r'(LGS-\d{4}|TEOG|201\d[-–]\w+\s*TEOG|201\d[-–]\w+\s*Mazeret\s*TEOG)')
     
-    # Soru numarası: "1)" veya "1." - AMA "2. ağlamak - ağlamamak" gibi liste maddeleri SORU DEĞİL
-    # Liste maddesi = "N. kelime - kelime" (kelime çifti) -> soru başlangıcı sayma
-    question_num_paren = re.compile(r'^(\d+)\)\s*(.+)$')   # "2) metin" - her zaman soru
-    question_num_dot = re.compile(r'^(\d+)\.\s*(.+)$')    # "2. metin" - sadece kelime çifti DEĞİLSE soru
-    
-    # Seçenek pattern'i: "A)", "B)", "C)", "D)" ile başlayan satırlar
-    option_pattern = re.compile(r'^([ABCD])\)\s*(.+)$')
+    # Soru numarası: "1)", "1.", "Soru 1:", "1-" - Yaprak Test ve LGS/TEOG formatları
+    question_num_paren = re.compile(r'^(\d+)\)\s*(.+)$')   # "2) metin"
+    question_num_dot = re.compile(r'^(\d+)\.\s*(.+)$')    # "2. metin"
+    question_num_soru = re.compile(r'^Soru\s+(\d+)\s*[:\.]\s*(.+)$', re.IGNORECASE)  # "Soru 1: metin"
+    question_num_dash = re.compile(r'^(\d+)[-–]\s*(.+)$')  # "1- metin" (Yaprak Test)
+
+    # Seçenek pattern'i: "A)", "B)", "C)", "D)" veya "A.", "B.", "C.", "D." (Yaprak Test)
+    option_pattern = re.compile(r'^([ABCD])[\)\.]\s*(.+)$')
     
     i = 0
     current_exam = None
@@ -418,10 +556,14 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             i += 1
             continue
         
-        # Soru numarası kontrolü
-        q_match = question_num_paren.match(line)  # "2) metin"
+        # Soru numarası kontrolü (birden fazla format desteklenir)
+        q_match = question_num_paren.match(line)
         if not q_match:
-            q_match = question_num_dot.match(line)  # "2. metin"
+            q_match = question_num_dot.match(line)
+        if not q_match:
+            q_match = question_num_soru.match(line)  # "Soru 1:"
+        if not q_match:
+            q_match = question_num_dash.match(line)  # "1-"
         if q_match:
             following_text = q_match.group(2).strip()
             # "5. ünite", "8. sınıf", "test06" gibi saçma satırları atla
@@ -478,7 +620,7 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
         
         # Seçenek kontrolü - önce çoklu seçenek kontrolü (orijinal satırla)
         if in_question:
-            multi_option_match = re.findall(r'([ABCD])\)\s*([^\t\n]+?)(?=\s+[ABCD]\)|$)', original_line)
+            multi_option_match = re.findall(r'([ABCD])[\)\.]\s*([^\t\n]+?)(?=\s+[ABCD][\)\.]|$)', original_line)
             if multi_option_match:
                 for opt_letter, opt_text in multi_option_match:
                     opt_text_clean = re.sub(r'\s+', ' ', opt_text).strip()
@@ -654,6 +796,9 @@ def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Qu
         for page_num in range(len(doc)):
             page = doc[page_num]
             page_text = _extract_page_text_column_order(page)
+            # Sütun sıralı çıkarım az metin verirse, basit get_text() dene
+            if len(page_text.strip()) < 50:
+                page_text = page.get_text() or page_text
             page_texts[page_num] = page_text
             all_text += page_text + "\n\n"
             
@@ -663,8 +808,20 @@ def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Qu
                 if topic_from_text:
                     topic = topic_from_text
         
+        # Taranmış PDF kontrolü: metin çok az veya boşsa OCR gerekebilir
+        text_stripped = all_text.strip()
+        if len(text_stripped) < 50 and not use_ocr:
+            raise ValueError(
+                "PDF'den yeterli metin çıkarılamadı. Bu PDF taranmış (görsel) olabilir. "
+                "Lütfen 'OCR kullan' seçeneğini işaretleyip tekrar deneyin."
+            )
+
         # Soruları parse et
         questions = parse_questions_from_text(all_text, topic, pdf_path.name)
+
+        # Ana parser 0 soru bulduysa, esnek (lenient) fallback dene
+        if not questions and len(text_stripped) > 200:
+            questions = _parse_questions_lenient(all_text, topic, pdf_path.name)
         
         # Enhance questions with visual content if OCR is enabled
         if use_ocr and ocr_extractor and page_visuals:

@@ -2,6 +2,7 @@
 BERTurk-based classifier for question classification
 """
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -10,19 +11,17 @@ import torch.nn as nn
 from transformers import (
     AutoModel,
     AutoTokenizer,
-    AutoModelForSequenceClassification,
 )
 
 from ml_service.config import (
     BERT_MODEL_NAME,
     MAX_SEQUENCE_LENGTH,
-    CHECKPOINTS_DIR,
     DEVICE,
     SUBJECTS,
     SUBJECT_TOPICS,
-    TOPIC_TO_SUBJECT,
     SUBJECT_MODEL_NAME,
     TOPIC_MODEL_NAME,
+    ALL_TOPICS,
 )
 from ml_service.data.preprocessor import TextPreprocessor
 
@@ -203,6 +202,56 @@ class QuestionClassifier:
         if model_path:
             self.load_model(model_path, model_type)
 
+    @staticmethod
+    def _normalize_label_key(label: str) -> str:
+        if not label:
+            return ""
+        normalized = label.lower().strip()
+        replacements = {
+            "ı": "i",
+            "ğ": "g",
+            "ü": "u",
+            "ö": "o",
+            "ş": "s",
+            "ç": "c",
+            "İ": "i",
+            "Ğ": "g",
+            "Ü": "u",
+            "Ö": "o",
+            "Ş": "s",
+            "Ç": "c",
+        }
+        for old, new in replacements.items():
+            normalized = normalized.replace(old, new)
+        normalized = re.sub(r"[^a-z0-9]+", "", normalized, flags=re.IGNORECASE)
+        return normalized
+
+    @classmethod
+    def _canonicalize_topic(cls, topic: str) -> str:
+        normalized = cls._normalize_label_key(topic)
+        if not normalized:
+            return ""
+
+        alias = {
+            "noktalama": "Noktalama İşaretleri",
+            "noktalamaisaretleri": "Noktalama İşaretleri",
+            "cumledesozlugu": "Cümlede Vurgu",
+            "cumledenanlam": "Cümlede Anlam",
+            "degimlervecumlede": "Deyimler ve Atasözleri",
+            "deyimlerveatasozleri": "Deyimler ve Atasözleri",
+            "cevrim": "Cümle Türleri",
+            "cumleturleri": "Cümle Türleri",
+            "ozel": "Öge",
+        }
+        if normalized in alias:
+            return alias[normalized]
+
+        for canonical in ALL_TOPICS:
+            if cls._normalize_label_key(canonical) == normalized:
+                return canonical
+
+        return topic
+
     def load_model(
         self,
         model_path: Path,
@@ -276,13 +325,25 @@ class QuestionClassifier:
         
         elif model_type == "topic":
             # Load topic labels from checkpoint or config
-            topic_labels = checkpoint.get("labels", [])
+            topic_labels = [
+                self._canonicalize_topic(topic)
+                for topic in checkpoint.get("labels", [])
+            ]
             if not topic_labels:
                 # Get all topics from config
                 topic_labels = []
                 for topics in SUBJECT_TOPICS.values():
                     topic_labels.extend(topics)
                 topic_labels = sorted(list(set(topic_labels)))
+            topic_labels = list(dict.fromkeys(topic_labels))
+            # Keep only known canonical topics
+            topic_labels = [
+                topic
+                for topic in topic_labels
+                if topic in ALL_TOPICS
+            ]
+            if not topic_labels:
+                topic_labels = sorted(list(set(topic for topics in SUBJECT_TOPICS.values() for topic in topics)))
             
             num_labels = len(topic_labels)
             checkpoint_state = checkpoint["model_state_dict"]
@@ -335,8 +396,8 @@ class QuestionClassifier:
         if self.subject_model is None:
             raise ValueError("Subject model not loaded")
         
-        # Preprocess and tokenize (use static method to avoid recursion)
-        text = TextPreprocessor.preprocess(text)
+        # Preprocess text for classification and remove option noise
+        text = TextPreprocessor.preprocess_for_classification(text)
         encoding = self.tokenizer(
             text,
             truncation=True,
@@ -384,8 +445,8 @@ class QuestionClassifier:
         if self.topic_model is None:
             raise ValueError("Topic model not loaded")
         
-        # Preprocess and tokenize (use static method to avoid recursion)
-        text = TextPreprocessor.preprocess(text)
+        # Preprocess text for classification and remove option noise
+        text = TextPreprocessor.preprocess_for_classification(text)
         encoding = self.tokenizer(
             text,
             truncation=True,
@@ -444,16 +505,29 @@ class QuestionClassifier:
         Returns:
             Dictionary with subject and topic predictions
         """
-        # Since all training data is Turkish, always predict Turkish as subject
-        # In the future, when we have data for other subjects, we can use subject_model
-        subject_predictions = [("turkce", 1.0)]
-        
+        # Use Turkish subject as default, but use learned subject model when available
+        if self.subject_model is not None:
+            subject_predictions = self.predict_subject(
+                text,
+                top_k=top_k_subject,
+            )
+        else:
+            subject_predictions = [("turkce", 1.0)]
+
         # Check if topic model is loaded
         if self.topic_model is None:
             raise ValueError("Topic model not loaded. Please load the model before making predictions.")
-        
-        # Use Turkish subject for topic prediction
-        topic_predictions = self.predict_topic(text, subject="turkce", top_k=top_k_topic)
+
+        # Use first subject prediction to narrow topic space when possible
+        selected_subject = self._canonicalize_subject(subject_predictions[0][0]) if subject_predictions else "turkce"
+        if selected_subject not in SUBJECT_TOPICS:
+            selected_subject = "turkce"
+
+        topic_predictions = self.predict_topic(
+            text,
+            subject=selected_subject,
+            top_k=top_k_topic,
+        )
         
         # Apply keyword-based fallback for better accuracy
         topic_predictions = self._apply_keyword_fallback(text, topic_predictions)
@@ -462,6 +536,20 @@ class QuestionClassifier:
             "subject": subject_predictions,
             "topic": topic_predictions,
         }
+
+    @staticmethod
+    def _canonicalize_subject(subject: str) -> str:
+        normalized = subject.strip().lower()
+        if not normalized:
+            return "turkce"
+        if "türkçe" in normalized or "turkce" in normalized:
+            return "turkce"
+        if normalized in SUBJECTS:
+            return normalized
+        if normalized in {code.lower() for code in SUBJECTS.keys()}:
+            return normalized
+        subject_by_name = {value.lower(): code for code, value in SUBJECTS.items()}
+        return subject_by_name.get(normalized, "turkce")
     
     def _apply_keyword_fallback(
         self,
@@ -472,44 +560,67 @@ class QuestionClassifier:
         Apply keyword-based fallback to improve predictions
         
         Args:
-            text: Question text (lowercase)
+            text: Question text
             predictions: Model predictions
             
         Returns:
             Adjusted predictions with keyword boost
         """
-        text_lower = text.lower()
+        text_lower = TextPreprocessor.normalize_for_keyword_matching(text)
+
+        def _count_keyword_matches(keywords: List[str]) -> int:
+            return sum(1 for keyword in keywords if keyword in text_lower)
         
         # Keyword mappings for Turkish topics
         keyword_mappings = {
             "Söz Sanatları": [
-                # Temel söz sanatları
                 "benzetme", "teşbih", "mecaz", "istiare", "kinaye", "mübalağa",
                 "tezat", "tenasüp", "tecahül", "hüsn-i talil", "teşhis", "intak",
-                "söz sanatı", "edebi sanat", "sanat", "metafor", "kişileştirme",
-                # Alt konular ve varyasyonlar
+                "söz sanatı", "edebi sanat", "metafor", "kişileştirme",
                 "konuşturma", "abartma", "mübalağa", "teşbih-i beliğ", "istiare-i temsiliye",
-                "istiare-i mekniye", "istiare-i mürekkebe", "kinaye-i mürekkebe",
-                "teşhis-i mürsel", "intak-ı mürsel", "tecahül-i arif", "hüsn-i ta'lil",
-                # Soru formatları
+                "istek sanatı",
+                "istiare-i mekniye",
+                "istiare-i mürekkebe", "kinaye-i mürekkebe",
+                "hüsn-i ta'lil",
                 "hangi söz sanatı", "söz sanatlarından hangisi", "hangi edebi sanat",
                 "numaralanmış cümlelerden hangisinde", "hangi dizede", "hangi mısrada",
-                "söz sanatı kullanılmıştır", "edebi sanat yapılmıştır", "hangi sanat",
-                # Özel durumlar
-                "şemsiye", "şemsiyeymişçesine", "gibi", "kadar", "sanki", "adeta"
+                "söz sanatı kullanılmıştır", "edebi sanat yapılmıştır", "hangi sanat"
+            ],
+            "Sözcükte Anlam": [
+                "sözcüğü", "sözcüğe", "sözcüğün", "anlamı nedir", "anlamı olarak",
+                "sözcüğün anlamı", "bu sözcüğün", "sözcüğün karşılığı",
+                "hangisinde", "hangisinin", "kelimenin anlamı", "kelime anlamı",
+                "yalın mecazî", "mecazen", "sözcük anlamı"
+            ],
+            "Cümlede Anlam": [
+                "cümlede", "cümledeki anlam", "cümledeki anlamı", "bu cümlede",
+                "cümleyi", "numaralanmış cümle", "verilen cümlede", "hangi cümlede",
+                "cümlede anlama",
+                "bu cümle", "cümle anlamını", "cümle anlamı",
+            ],
+            "Sözcükler Arası Anlam İlişkileri": [
+                "anlam ilişkisi", "eş anlamlı", "zıt anlamlı", "anlamca yakın",
+                "anlamdaş", "özdeş", "bir anlamı karşılayan", "birbirine yakın anlamlı",
+                "aynı anlama gelen", "anlamı farklıdır"
+            ],
+            "Geçiş ve Bağlantı İfadeleri": [
+                "geçiş", "bağlantı", "ara cümle", "bağlaç", "ilişki kuran", "neden-sonuç",
+                "dolayısıyla", "o nedenle", "fakat", "ancak", "bu nedenle",
+                "çünkü", "oysa", "yalnızca", "ayrıca", "oysa da", "buna göre"
             ],
             "Cümle Türleri": [
-                "cümle türü", "fiil cümlesi", "isim cümlesi", "kurallı cümle",
+                "cümle türü", "fiil cümlesi", "isim cümlesi", "kurallı cümlesi",
                 "devrik cümle", "basit cümle", "birleşik cümle", "sıralı cümle",
-                "bağlı cümle", "yüklem", "cümle çeşidi"
+                "bağlı cümle", "cümle çeşidi", "cümle türlerini"
             ],
             "Fiilimsiler": [
                 "fiilimsi", "isim-fiil", "sıfat-fiil", "zarf-fiil", "ulaç",
                 "ortaç", "eylemsi", "-ma/-me", "-mak/-mek", "-an/-en", "-dık/-dik"
             ],
-            "Noktalama": [
+            "Noktalama İşaretleri": [
                 "nokta", "virgül", "noktalı virgül", "iki nokta", "üç nokta",
-                "soru işareti", "ünlem işareti", "tırnak", "parantez", "noktalama"
+                "soru işareti", "ünlem işareti", "tırnak", "parantez", "noktalama",
+                "noktalama işareti", "noktalama işaretleri"
             ],
             "Fiil Çatıları": [
                 "fiil çatısı", "etken", "edilgen", "dönüşlü", "işteş",
@@ -531,37 +642,59 @@ class QuestionClassifier:
         }
         
         # Check for keywords and boost matching predictions
-        boosted_predictions = []
+        keyword_scores: Dict[str, float] = {topic: 0.0 for topic, _ in predictions}
+        strong_yazim_tokens = [
+            "büyük harf",
+            "küçük harf",
+            "bitişik",
+            "ayrı yazım",
+            "birleşik yazım",
+            "yazım kural",
+            "imla kural",
+            "kısaltma",
+            "yazım",
+            "imla",
+            "ses bilgisi",
+        ]
+
         for topic, confidence in predictions:
-            boost = 0.0
             keywords = keyword_mappings.get(topic, [])
-            
-            # Count matching keywords (for Söz Sanatları, count multiple matches)
-            matching_keywords = 0
-            for keyword in keywords:
-                if keyword in text_lower:
-                    matching_keywords += 1
-                    # For Söz Sanatları, apply stronger boost
-                    if topic == "Söz Sanatları":
-                        boost += 0.25  # Boost by 25% per keyword for Söz Sanatları
-                    else:
-                        boost += 0.15  # Boost by 15% per keyword for other topics
-                    # For other topics, break after first match
-                    if topic != "Söz Sanatları":
-                        break
-            
-            # For Söz Sanatları, if multiple keywords match, apply extra boost
-            if topic == "Söz Sanatları" and matching_keywords > 1:
-                boost += 0.10  # Extra 10% boost for multiple keyword matches
-            
-            # Cap boost at 0.5 (50%) for Söz Sanatları, 0.3 (30%) for others
-            max_boost = 0.5 if topic == "Söz Sanatları" else 0.3
-            boost = min(boost, max_boost)
+            matching_keywords = _count_keyword_matches(keywords)
+            if matching_keywords == 0:
+                keyword_scores[topic] = confidence
+                continue
+
+            per_match_boost = 0.11 if topic == "Söz Sanatları" else 0.07
+            if topic == "Cümlede Anlam":
+                per_match_boost = 0.09
+            if topic == "Sözcükte Anlam":
+                per_match_boost = 0.08
+            max_boost = 0.4 if topic == "Söz Sanatları" else 0.25
+            boost = min(per_match_boost * matching_keywords, max_boost)
+
             new_confidence = min(confidence + boost, 1.0)
-            boosted_predictions.append((topic, new_confidence))
-        
-        # Re-sort by confidence
+
+            if topic == "Noktalama İşaretleri" and any(token in text_lower for token in strong_yazim_tokens):
+                new_confidence = max(0.0, new_confidence - 0.08)
+            keyword_scores[topic] = new_confidence
+
+        # Consider strong hints from unseen topics too
+        for topic, keywords in keyword_mappings.items():
+            if topic in keyword_scores:
+                continue
+            if topic not in self.topic_labels:
+                continue
+            matching_keywords = _count_keyword_matches(keywords)
+            if matching_keywords < 3:
+                continue
+
+            score = min(0.16, 0.05 * matching_keywords)
+            if score > 0:
+                keyword_scores[topic] = score
+
+        boosted_predictions = [(topic, conf) for topic, conf in keyword_scores.items()]
         boosted_predictions.sort(key=lambda x: x[1], reverse=True)
         
-        return boosted_predictions[:len(predictions)]
+        # Keep stable ordering with existing model predictions first when scores are close
+        return boosted_predictions[: len(predictions)]
 

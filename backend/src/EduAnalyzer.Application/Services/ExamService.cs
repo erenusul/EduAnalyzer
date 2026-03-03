@@ -140,9 +140,17 @@ public class ExamService : IExamService
         if (student == null || student.TeacherId != teacherId)
             throw new UnauthorizedAccessException("Öğrenci bulunamadı veya yetkiniz yok.");
 
-        var analysis = exam.Analysis;
-        var pdfResponse = JsonSerializer.Deserialize<PdfAnalysisResponseDto>(analysis.ResultsJson);
-        var results = pdfResponse?.Results ?? new List<QuestionAnalysisResultDto>();
+        List<QuestionAnalysisResultDto> results;
+        if (!string.IsNullOrEmpty(exam.SelectedResultsJson))
+        {
+            results = JsonSerializer.Deserialize<List<QuestionAnalysisResultDto>>(exam.SelectedResultsJson) ?? new List<QuestionAnalysisResultDto>();
+        }
+        else
+        {
+            var analysis = exam.Analysis;
+            var pdfResponse = JsonSerializer.Deserialize<PdfAnalysisResponseDto>(analysis.ResultsJson);
+            results = (pdfResponse?.Results ?? new List<QuestionAnalysisResultDto>()).ToList();
+        }
 
         var wrongQuestions = new List<WrongQuestionDto>();
         var topicCounts = new Dictionary<string, int>();
@@ -200,6 +208,9 @@ public class ExamService : IExamService
         var answerKey = string.IsNullOrEmpty(e.AnswerKeyJson)
             ? null
             : JsonSerializer.Deserialize<List<string>>(e.AnswerKeyJson) as IReadOnlyList<string>;
+        var selectedResults = string.IsNullOrEmpty(e.SelectedResultsJson)
+            ? null
+            : JsonSerializer.Deserialize<List<QuestionAnalysisResultDto>>(e.SelectedResultsJson) as IReadOnlyList<QuestionAnalysisResultDto>;
         return new ExamDto(
             e.Id,
             e.AnalysisId,
@@ -208,6 +219,7 @@ public class ExamService : IExamService
             e.Date,
             e.Status.ToString().ToLowerInvariant(),
             answerKey,
+            selectedResults,
             e.CreatedAt
         );
     }
