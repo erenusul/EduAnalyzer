@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1400" width="900" height="1400">
+  <rect x="0" y="0" width="900" height="1400" fill="#ffffff" />
+
+  <!-- Corner markers used by OCR -->
+  <rect x="35" y="35" width="70" height="70" fill="#000000" />
+  <rect x="795" y="35" width="70" height="70" fill="#000000" />
+  <rect x="795" y="1295" width="70" height="70" fill="#000000" />
+  <rect x="35" y="1295" width="70" height="70" fill="#000000" />
+
+  <!-- Header -->
+  <text x="450" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#111111">
+    EduAnalyzer Optik Form
+  </text>
+  <text x="450" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#444444">
+    A4 boyutunda, %100 ölçekte ve kenarlardaki siyah marker'lar görünür kalacak _ekilde yazd1r1n.
+  </text>
+
+  <!-- Student / exam info -->
+  <text x="120" y="190" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">S1nav Ad1:</text>
+  <line x1="210" y1="184" x2="760" y2="184" stroke="#222222" stroke-width="1.5" />
+
+  <text x="120" y="218" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">Örenci Ad1:</text>
+  <line x1="220" y1="212" x2="760" y2="212" stroke="#222222" stroke-width="1.5" />
+
+  <!-- Answer grid labels -->
+  <text x="205" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222222">A</text>
+  <text x="328" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222222">B</text>
+  <text x="450" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222222">C</text>
+  <text x="572" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222222">D</text>
+  <text x="695" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222222">E</text>
+
+  <!-- Question numbers -->
+  <text x="110" y="278" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">1</text>
+  <text x="110" y="329" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">2</text>
+  <text x="110" y="380" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">3</text>
+  <text x="110" y="431" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">4</text>
+  <text x="110" y="482" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">5</text>
+  <text x="110" y="533" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">6</text>
+  <text x="110" y="584" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">7</text>
+  <text x="110" y="635" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">8</text>
+  <text x="110" y="686" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">9</text>
+  <text x="110" y="737" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">10</text>
+  <text x="110" y="788" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">11</text>
+  <text x="110" y="839" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">12</text>
+  <text x="110" y="890" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">13</text>
+  <text x="110" y="941" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">14</text>
+  <text x="110" y="992" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">15</text>
+  <text x="110" y="1043" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">16</text>
+  <text x="110" y="1094" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">17</text>
+  <text x="110" y="1145" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">18</text>
+  <text x="110" y="1196" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">19</text>
+  <text x="110" y="1247" text-anchor="end" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#222222">20</text>
+
+  <!-- Answer bubbles -->
+  <g fill="none" stroke="#000000" stroke-width="3">
+    <!-- Row 1 -->
+    <circle cx="205" cy="276" r="16" /><circle cx="328" cy="276" r="16" /><circle cx="450" cy="276" r="16" /><circle cx="572" cy="276" r="16" /><circle cx="695" cy="276" r="16" />
+    <!-- Row 2 -->
+    <circle cx="205" cy="327" r="16" /><circle cx="328" cy="327" r="16" /><circle cx="450" cy="327" r="16" /><circle cx="572" cy="327" r="16" /><circle cx="695" cy="327" r="16" />
+    <!-- Row 3 -->
+    <circle cx="205" cy="378" r="16" /><circle cx="328" cy="378" r="16" /><circle cx="450" cy="378" r="16" /><circle cx="572" cy="378" r="16" /><circle cx="695" cy="378" r="16" />
+    <!-- Row 4 -->
+    <circle cx="205" cy="429" r="16" /><circle cx="328" cy="429" r="16" /><circle cx="450" cy="429" r="16" /><circle cx="572" cy="429" r="16" /><circle cx="695" cy="429" r="16" />
+    <!-- Row 5 -->
+    <circle cx="205" cy="480" r="16" /><circle cx="328" cy="480" r="16" /><circle cx="450" cy="480" r="16" /><circle cx="572" cy="480" r="16" /><circle cx="695" cy="480" r="16" />
+    <!-- Row 6 -->
+    <circle cx="205" cy="531" r="16" /><circle cx="328" cy="531" r="16" /><circle cx="450" cy="531" r="16" /><circle cx="572" cy="531" r="16" /><circle cx="695" cy="531" r="16" />
+    <!-- Row 7 -->
+    <circle cx="205" cy="582" r="16" /><circle cx="328" cy="582" r="16" /><circle cx="450" cy="582" r="16" /><circle cx="572" cy="582" r="16" /><circle cx="695" cy="582" r="16" />
+    <!-- Row 8 -->
+    <circle cx="205" cy="633" r="16" /><circle cx="328" cy="633" r="16" /><circle cx="450" cy="633" r="16" /><circle cx="572" cy="633" r="16" /><circle cx="695" cy="633" r="16" />
+    <!-- Row 9 -->
+    <circle cx="205" cy="684" r="16" /><circle cx="328" cy="684" r="16" /><circle cx="450" cy="684" r="16" /><circle cx="572" cy="684" r="16" /><circle cx="695" cy="684" r="16" />
+    <!-- Row 10 -->
+    <circle cx="205" cy="735" r="16" /><circle cx="328" cy="735" r="16" /><circle cx="450" cy="735" r="16" /><circle cx="572" cy="735" r="16" /><circle cx="695" cy="735" r="16" />
+    <!-- Row 11 -->
+    <circle cx="205" cy="786" r="16" /><circle cx="328" cy="786" r="16" /><circle cx="450" cy="786" r="16" /><circle cx="572" cy="786" r="16" /><circle cx="695" cy="786" r="16" />
+    <!-- Row 12 -->
+    <circle cx="205" cy="837" r="16" /><circle cx="328" cy="837" r="16" /><circle cx="450" cy="837" r="16" /><circle cx="572" cy="837" r="16" /><circle cx="695" cy="837" r="16" />
+    <!-- Row 13 -->
+    <circle cx="205" cy="888" r="16" /><circle cx="328" cy="888" r="16" /><circle cx="450" cy="888" r="16" /><circle cx="572" cy="888" r="16" /><circle cx="695" cy="888" r="16" />
+    <!-- Row 14 -->
+    <circle cx="205" cy="939" r="16" /><circle cx="328" cy="939" r="16" /><circle cx="450" cy="939" r="16" /><circle cx="572" cy="939" r="16" /><circle cx="695" cy="939" r="16" />
+    <!-- Row 15 -->
+    <circle cx="205" cy="990" r="16" /><circle cx="328" cy="990" r="16" /><circle cx="450" cy="990" r="16" /><circle cx="572" cy="990" r="16" /><circle cx="695" cy="990" r="16" />
+    <!-- Row 16 -->
+    <circle cx="205" cy="1041" r="16" /><circle cx="328" cy="1041" r="16" /><circle cx="450" cy="1041" r="16" /><circle cx="572" cy="1041" r="16" /><circle cx="695" cy="1041" r="16" />
+    <!-- Row 17 -->
+    <circle cx="205" cy="1092" r="16" /><circle cx="328" cy="1092" r="16" /><circle cx="450" cy="1092" r="16" /><circle cx="572" cy="1092" r="16" /><circle cx="695" cy="1092" r="16" />
+    <!-- Row 18 -->
+    <circle cx="205" cy="1143" r="16" /><circle cx="328" cy="1143" r="16" /><circle cx="450" cy="1143" r="16" /><circle cx="572" cy="1143" r="16" /><circle cx="695" cy="1143" r="16" />
+    <!-- Row 19 -->
+    <circle cx="205" cy="1194" r="16" /><circle cx="328" cy="1194" r="16" /><circle cx="450" cy="1194" r="16" /><circle cx="572" cy="1194" r="16" /><circle cx="695" cy="1194" r="16" />
+    <!-- Row 20 -->
+    <circle cx="205" cy="1245" r="16" /><circle cx="328" cy="1245" r="16" /><circle cx="450" cy="1245" r="16" /><circle cx="572" cy="1245" r="16" /><circle cx="695" cy="1245" r="16" />
+  </g>
+
+  <!-- Footer notes -->
+  <text x="450" y="1330" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#444444">
+    Tek _1k koyu _ekilde i_aretlenmeli. Silik i_aretler ve birden fazla _1k OCR doruluunu dü_ürür.
+  </text>
+</svg>
