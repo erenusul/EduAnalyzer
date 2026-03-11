@@ -109,9 +109,7 @@ export function EditablePredictionResults({
           ) : (
             <div className="d-flex align-items-center gap-2">
               <span className="fw-medium">
-                {topicLabel
-                  ? `${formatConfidence(topic[0]?.confidence ?? 0)} ${topicLabel}`
-                  : '—'}
+                {topicLabel ? `${formatConfidence(topic[0]?.confidence ?? 0)} ${topicLabel}` : '—'}
               </span>
               {canEdit && (
                 <button

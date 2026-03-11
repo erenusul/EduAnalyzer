@@ -11,7 +11,8 @@ import type {
 
 export type { PredictionItem, PredictionResponse, QuestionAnalysisResult, PDFAnalysisResponse };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:8000');
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:8000');
 
 export interface PredictionRequest {
   question_text: string;
@@ -31,9 +32,7 @@ function parseJsonSafe<T>(text: string): T {
   }
 }
 
-export async function predictQuestion(
-  request: PredictionRequest
-): Promise<PredictionResponse> {
+export async function predictQuestion(request: PredictionRequest): Promise<PredictionResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/predict`, {
       method: 'POST',
@@ -46,9 +45,7 @@ export async function predictQuestion(
     const text = await response.text();
     if (!response.ok) {
       const errorData = parseJsonSafe<{ detail?: string }>(text) ?? {};
-      throw new Error(
-        errorData.detail || `API request failed with status ${response.status}`
-      );
+      throw new Error(errorData.detail || `API request failed with status ${response.status}`);
     }
 
     const data = parseJsonSafe<PredictionResponse>(text);
@@ -132,15 +129,12 @@ export async function analyzePDF(
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error('PDF analizi zaman aşımına uğradı. Lütfen OCR\'ı kapatarak tekrar deneyin veya daha küçük bir PDF kullanın.');
+        throw new Error(
+          "PDF analizi zaman aşımına uğradı. Lütfen OCR'ı kapatarak tekrar deneyin veya daha küçük bir PDF kullanın."
+        );
       }
       throw error;
     }
     throw new Error('Unknown error occurred during PDF analysis');
   }
 }
-
-
-
-
-

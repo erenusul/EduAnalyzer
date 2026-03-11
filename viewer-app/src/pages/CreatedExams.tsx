@@ -2,27 +2,85 @@
  * Oluşturulan Sınavlar sayfası - hazırlanan sınavların listesi
  */
 
-import { Card, Table, Button, Badge } from 'react-bootstrap';
+import { useState } from 'react';
+import { Card, Table, Button, Badge, Modal, Form } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
+import { parseUtcToLocal } from '../utils/dateUtils';
+import type { Exam } from '../types/teacher';
 
 export function CreatedExams() {
-  const { exams, analyses } = useTeacherData();
+  const { exams, analyses, students, refresh, loading, addExamResult } = useTeacherData();
+  const { showToast } = useToast();
+  const [addModalExam, setAddModalExam] = useState<Exam | null>(null);
+  const [addStudentId, setAddStudentId] = useState('');
+  const [addCorrect, setAddCorrect] = useState(0);
+  const [addWrong, setAddWrong] = useState(0);
+  const [addSaving, setAddSaving] = useState(false);
 
-  const getAnalysisByExamId = (analysisId: string) =>
-    analyses.find((a) => a.id === analysisId);
+  const getAnalysisByExamId = (analysisId: string) => analyses.find((a) => a.id === analysisId);
+
+  const handleOpenAddResult = (exam: Exam) => {
+    setAddModalExam(exam);
+    setAddStudentId('');
+    setAddCorrect(0);
+    setAddWrong(0);
+  };
+
+  const handleCloseAddResult = () => {
+    setAddModalExam(null);
+    setAddStudentId('');
+    setAddCorrect(0);
+    setAddWrong(0);
+  };
+
+  const handleAddResult = async () => {
+    if (!addModalExam || !addStudentId) {
+      showToast('Öğrenci seçiniz.', 'warning');
+      return;
+    }
+    setAddSaving(true);
+    try {
+      await addExamResult({
+        studentId: addStudentId,
+        examId: addModalExam.id,
+        correctCount: addCorrect,
+        wrongCount: addWrong,
+        wrongTopics: [],
+      });
+      showToast('Sınav sonucu eklendi.');
+      handleCloseAddResult();
+    } catch {
+      showToast('Sonuç eklenirken hata oluştu.', 'danger');
+    } finally {
+      setAddSaving(false);
+    }
+  };
 
   const sortedExams = [...exams].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => parseUtcToLocal(b.createdAt).getTime() - parseUtcToLocal(a.createdAt).getTime()
   );
 
   return (
     <div>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">Oluşturulan Sınavlar</h4>
-        <p className="text-muted mb-0">
-          Hazırlanan ve öğrenci uygulamasında kullanılabilir sınavlar.
-        </p>
+      <div className="mb-4 d-flex justify-content-between align-items-start">
+        <div>
+          <h4 className="fw-bold mb-1">Oluşturulan Sınavlar</h4>
+          <p className="text-muted mb-0">
+            Hazırlanan ve öğrenci uygulamasında kullanılabilir sınavlar.
+          </p>
+        </div>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() => refresh()}
+          disabled={loading}
+          aria-label="Sınav listesini yenile"
+        >
+          <i className="bi bi-arrow-clockwise me-1" aria-hidden />
+          Yenile
+        </Button>
       </div>
 
       <Card className="border-0 shadow-sm">
@@ -56,11 +114,11 @@ export function CreatedExams() {
                   const analysis = getAnalysisByExamId(exam.analysisId);
                   const questionCount = Array.isArray(exam.selectedResults)
                     ? exam.selectedResults.length
-                    : analysis?.analyzedQuestions ?? 0;
+                    : (analysis?.analyzedQuestions ?? 0);
                   return (
                     <tr key={exam.id}>
                       <td className="small">
-                        {new Date(exam.createdAt).toLocaleDateString('tr-TR', {
+                        {parseUtcToLocal(exam.createdAt).toLocaleDateString('tr-TR', {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
@@ -77,25 +135,27 @@ export function CreatedExams() {
                         </Badge>
                       </td>
                       <td className="text-end">
+                        <Link to={`/dashboard/analiz-gecmisi/${exam.analysisId}`}>
+                          <Button variant="primary" size="sm" className="me-1">
+                            <i className="bi bi-pencil me-1" />
+                            Düzenle
+                          </Button>
+                        </Link>
                         <Button
-                          variant="primary"
+                          variant="outline-success"
                           size="sm"
                           className="me-1"
-                          as={Link}
-                          to={`/dashboard/analiz-gecmisi/${exam.analysisId}`}
+                          onClick={() => handleOpenAddResult(exam)}
+                          aria-label="Sonuç ekle"
                         >
-                          <i className="bi bi-pencil me-1" />
-                          Düzenle
+                          <i className="bi bi-plus-circle me-1" />
+                          Sonuç Ekle
                         </Button>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          as={Link}
-                          to={`/dashboard/analiz-gecmisi/${exam.analysisId}`}
-                          aria-label="Görüntüle"
-                        >
-                          <i className="bi bi-eye" />
-                        </Button>
+                        <Link to={`/dashboard/analiz-gecmisi/${exam.analysisId}`}>
+                          <Button variant="outline-primary" size="sm" aria-label="Görüntüle">
+                            <i className="bi bi-eye" />
+                          </Button>
+                        </Link>
                       </td>
                     </tr>
                   );
@@ -105,6 +165,77 @@ export function CreatedExams() {
           </Table>
         </Card.Body>
       </Card>
+
+      <Modal show={!!addModalExam} onHide={handleCloseAddResult} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Manuel Sonuç Ekle</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {addModalExam && (
+            <p className="text-muted small mb-3">
+              {addModalExam.title} ({addModalExam.weekLabel})
+            </p>
+          )}
+          <Form.Group className="mb-3">
+            <Form.Label htmlFor="add-result-student">Öğrenci</Form.Label>
+            <Form.Select
+              id="add-result-student"
+              value={addStudentId}
+              onChange={(e) => setAddStudentId(e.target.value)}
+              aria-label="Öğrenci seçin"
+            >
+              <option value="">Öğrenci seçin</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.firstName} {s.lastName} ({s.studentNo})
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label htmlFor="add-result-correct">Doğru Sayısı</Form.Label>
+            <Form.Control
+              id="add-result-correct"
+              type="number"
+              min={0}
+              value={addCorrect}
+              onChange={(e) => setAddCorrect(parseInt(e.target.value, 10) || 0)}
+              aria-label="Doğru sayısı"
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label htmlFor="add-result-wrong">Yanlış Sayısı</Form.Label>
+            <Form.Control
+              id="add-result-wrong"
+              type="number"
+              min={0}
+              value={addWrong}
+              onChange={(e) => setAddWrong(parseInt(e.target.value, 10) || 0)}
+              aria-label="Yanlış sayısı"
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseAddResult}>
+            İptal
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleAddResult}
+            disabled={addSaving || !addStudentId}
+            aria-label="Sonucu kaydet"
+          >
+            {addSaving ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                Kaydediliyor...
+              </>
+            ) : (
+              'Kaydet'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

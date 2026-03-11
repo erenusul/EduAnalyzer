@@ -6,7 +6,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, Form } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
+import { parseUtcToLocal } from '../utils/dateUtils';
 import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import type { PDFAnalysisResponse, QuestionAnalysisResult } from '../types/prediction';
 
@@ -15,7 +17,9 @@ const MAX_SELECTED_QUESTIONS = 20;
 function getCurrentWeekLabel(): string {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const weekNum = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+  const weekNum = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
   return `${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
 }
 
@@ -23,6 +27,7 @@ export function AnalysisDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { analyses, updateAnalysis, addExam, updateExam, getExamByAnalysisId } = useTeacherData();
+  const { showToast } = useToast();
   const [weekLabel, setWeekLabel] = useState(getCurrentWeekLabel());
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [answerKey, setAnswerKey] = useState<string[]>([]);
@@ -34,6 +39,19 @@ export function AnalysisDetail() {
   const results = analysis?.results as PDFAnalysisResponse | undefined;
   const items = results?.results ?? [];
   const exam = analysis ? getExamByAnalysisId(analysis.id) : undefined;
+
+  const getQuestionId = (item: QuestionAnalysisResult) =>
+    item?.question_id ?? (item as { questionId?: string })?.questionId ?? '';
+  const displayItems: QuestionAnalysisResult[] =
+    exam && Array.isArray(exam.selectedResults) && exam.selectedResults.length > 0
+      ? (exam.selectedResults as QuestionAnalysisResult[]).map((sr) => {
+          const fromAnalysis = items.find(
+            (i) =>
+              getQuestionId(i) && getQuestionId(i) === getQuestionId(sr as QuestionAnalysisResult)
+          );
+          return fromAnalysis ?? (sr as QuestionAnalysisResult);
+        })
+      : items;
 
   const toggleQuestionSelection = useCallback((index: number) => {
     setSelectedIndices((prev) => {
@@ -59,7 +77,9 @@ export function AnalysisDetail() {
 
   const handlePrepareExam = useCallback(async () => {
     if (!analysis || selectedIndices.size !== MAX_SELECTED_QUESTIONS) return;
-    const filled = answerKey.filter((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+    const filled = answerKey.filter((a) =>
+      ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || '')
+    );
     if (filled.length !== MAX_SELECTED_QUESTIONS) return;
     setSavingExam(true);
     try {
@@ -76,10 +96,13 @@ export function AnalysisDetail() {
       );
       setSelectedIndices(new Set());
       setAnswerKey([]);
+      showToast('Sınav oluşturuldu.');
+    } catch {
+      showToast('Sınav oluşturulurken bir hata oluştu.', 'danger');
     } finally {
       setSavingExam(false);
     }
-  }, [analysis, selectedIndices, weekLabel, answerKey, addExam]);
+  }, [analysis, selectedIndices, weekLabel, answerKey, addExam, showToast]);
 
   const isAnswerKeyComplete =
     answerKey.length === MAX_SELECTED_QUESTIONS &&
@@ -123,6 +146,7 @@ export function AnalysisDetail() {
         await updateExam(exam.id, { answerKey: toSave });
       }
       setSaveStatus('saved');
+      showToast('Değişiklikler kaydedildi.');
       if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
       saveFeedbackTimeoutRef.current = setTimeout(() => {
         setSaveStatus('idle');
@@ -130,8 +154,9 @@ export function AnalysisDetail() {
       }, 2500);
     } catch {
       setSaveStatus('idle');
+      showToast('Kaydederken bir hata oluştu.', 'danger');
     }
-  }, [exam, updateExam]);
+  }, [exam, updateExam, showToast]);
 
   if (!analysis) {
     return (
@@ -165,8 +190,11 @@ export function AnalysisDetail() {
       { label: topicLabel, confidence: 1 },
       ...(secondTopicLabel ? [{ label: secondTopicLabel, confidence: 1 }] : []),
     ];
+    const targetItem = displayItems[questionIndex];
+    const originalIndex = items.findIndex((i) => getQuestionId(i) === getQuestionId(targetItem));
+    if (originalIndex < 0) return;
     const newResults: QuestionAnalysisResult[] = items.map((item, i) => {
-      if (i !== questionIndex) return item;
+      if (i !== originalIndex) return item;
       return {
         ...item,
         subject: [{ label: subjectCode, confidence: 1 }],
@@ -182,6 +210,7 @@ export function AnalysisDetail() {
         },
       });
       setSaveStatus('saved');
+      showToast('Değişiklikler kaydedildi.');
       if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
       saveFeedbackTimeoutRef.current = setTimeout(() => {
         setSaveStatus('idle');
@@ -189,6 +218,7 @@ export function AnalysisDetail() {
       }, 2500);
     } catch {
       setSaveStatus('idle');
+      showToast('Kaydederken bir hata oluştu.', 'danger');
     }
   };
 
@@ -210,8 +240,8 @@ export function AnalysisDetail() {
           </Button>
           <h4 className="fw-bold mb-1">{analysis.title}</h4>
           <p className="text-muted small mb-0">
-            {new Date(analysis.date).toLocaleString('tr-TR')} ·{' '}
-            {analysis.analyzedQuestions} / {analysis.totalQuestions} soru
+            {parseUtcToLocal(analysis.date).toLocaleString('tr-TR')} · {analysis.analyzedQuestions}{' '}
+            / {analysis.totalQuestions} soru
           </p>
         </div>
         <div className="d-flex align-items-center gap-2">
@@ -236,7 +266,10 @@ export function AnalysisDetail() {
           </Button>
           {exam ? (
             <>
-              <Badge bg={exam.status === 'ready' ? 'success' : 'warning'} className="align-self-center">
+              <Badge
+                bg={exam.status === 'ready' ? 'success' : 'warning'}
+                className="align-self-center"
+              >
                 {exam.status === 'ready' ? 'Hazır' : 'Taslak'}
               </Badge>
               {exam.status === 'draft' && (
@@ -309,10 +342,15 @@ export function AnalysisDetail() {
               className="mt-3"
               onClick={handlePrepareExam}
               disabled={!isAnswerKeyComplete || savingExam}
+              aria-label="Sınavı oluştur ve hazırla"
             >
               {savingExam ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden
+                  />
                   Kaydediliyor...
                 </>
               ) : (
@@ -323,7 +361,8 @@ export function AnalysisDetail() {
               )}
             </Button>
             <p className="text-muted small mt-2 mb-0">
-              Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına kaydedilir ve öğrenci mobil uygulamasında kullanılabilir.
+              Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına kaydedilir ve
+              öğrenci mobil uygulamasında kullanılabilir.
             </p>
           </Card.Body>
         </Card>
@@ -357,12 +396,17 @@ export function AnalysisDetail() {
             <h6 className="fw-semibold mb-0">
               <i className="bi bi-key me-2" />
               Cevap Anahtarı (
-              {Array.isArray(exam.selectedResults) ? exam.selectedResults.length : items.length} soru)
+              {Array.isArray(exam.selectedResults)
+                ? exam.selectedResults.length
+                : items.length}{' '}
+              soru)
             </h6>
           </Card.Header>
           <Card.Body className="p-4">
             <AnswerKeyEditor
-              questionCount={Array.isArray(exam.selectedResults) ? exam.selectedResults.length : items.length}
+              questionCount={
+                Array.isArray(exam.selectedResults) ? exam.selectedResults.length : items.length
+              }
               value={exam.answerKey ?? []}
               onChange={handleAnswerKeyChange}
               disabled={exam.status === 'ready'}
@@ -372,7 +416,7 @@ export function AnalysisDetail() {
       )}
 
       <div className="d-flex flex-column gap-3">
-        {items.map((result, index) => (
+        {displayItems.map((result, index) => (
           <Card key={result.question_id ?? index} className="border-0 shadow-sm">
             <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center py-3">
               <div className="d-flex align-items-center gap-2">
@@ -382,7 +426,9 @@ export function AnalysisDetail() {
                     id={`detail-q-${index}`}
                     checked={selectedIndices.has(index)}
                     onChange={() => toggleQuestionSelection(index)}
-                    disabled={selectedIndices.size >= MAX_SELECTED_QUESTIONS && !selectedIndices.has(index)}
+                    disabled={
+                      selectedIndices.size >= MAX_SELECTED_QUESTIONS && !selectedIndices.has(index)
+                    }
                     aria-label={`Soru ${index + 1} seç`}
                   />
                 )}
@@ -396,7 +442,10 @@ export function AnalysisDetail() {
               )}
             </Card.Header>
             <Card.Body className="p-4">
-              <p className="text-muted small mb-4 lh-base text-break" style={{ whiteSpace: 'pre-wrap' }}>
+              <p
+                className="text-muted small mb-4 lh-base text-break"
+                style={{ whiteSpace: 'pre-wrap' }}
+              >
                 {result.question_text}
               </p>
               <EditablePredictionResults

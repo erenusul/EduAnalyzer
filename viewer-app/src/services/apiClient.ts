@@ -3,8 +3,7 @@
  */
 
 const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? '/backend' : 'http://localhost:5131');
+  import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? '/backend' : 'http://localhost:5131');
 
 export interface ApiError {
   message: string;
@@ -28,10 +27,7 @@ function buildUrl(path: string): string {
   return base ? `${base}${p}` : p;
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -124,6 +120,40 @@ export async function apiUpload<T>(
         try {
           const body = JSON.parse(text) as { message?: string };
           message = body.message ?? message;
+        } catch {
+          message = text;
+        }
+      }
+    } catch {
+      /* body okunamadı */
+    }
+    throw { message, status: response.status } as ApiError;
+  }
+
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+export async function apiUploadFormData<T>(path: string, formData: FormData): Promise<T> {
+  const token = await getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const url = buildUrl(path);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          const body = JSON.parse(text) as { message?: string; detail?: string };
+          message = body.message ?? body.detail ?? message;
         } catch {
           message = text;
         }

@@ -2,9 +2,10 @@
  * Raporlar ve istatistikler sayfası
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Row, Col, ProgressBar, Form } from 'react-bootstrap';
+import { Card, Row, Col, ProgressBar, Form, Button } from 'react-bootstrap';
+import * as XLSX from 'xlsx';
 import {
   BarChart,
   Bar,
@@ -50,7 +51,11 @@ export function Reports() {
       }
     }
     return Array.from(topicMap.entries())
-      .map(([topic, count]) => ({ name: topic.length > 18 ? topic.substring(0, 18) + '...' : topic, fullName: topic, yanlis: count }))
+      .map(([topic, count]) => ({
+        name: topic.length > 18 ? topic.substring(0, 18) + '...' : topic,
+        fullName: topic,
+        yanlis: count,
+      }))
       .sort((a, b) => b.yanlis - a.yanlis)
       .slice(0, 12);
   }, [examResults]);
@@ -74,17 +79,66 @@ export function Reports() {
       }
     }
     return Array.from(weekMap.entries())
-      .map(([week, { totalWrong, totalCorrect }]) => ({ week, yanlis: totalWrong, dogru: totalCorrect }))
+      .map(([week, { totalWrong, totalCorrect }]) => ({
+        week,
+        yanlis: totalWrong,
+        dogru: totalCorrect,
+      }))
       .sort((a, b) => a.week.localeCompare(b.week));
   }, [examResults, exams, classFilter, getStudentsByClass]);
 
+  const handleExportExcel = useCallback(() => {
+    const wb = XLSX.utils.book_new();
+
+    const summaryData = [
+      { Metrik: 'Toplam Öğrenci', Değer: stats.totalStudents },
+      { Metrik: 'Sınıf Sayısı', Değer: stats.totalClasses },
+      { Metrik: 'Yapılan Analiz', Değer: stats.totalAnalyses },
+      { Metrik: 'Analiz Edilen Soru', Değer: stats.totalQuestions },
+      { Metrik: 'Sınıfa Atanmış Öğrenci', Değer: stats.studentsWithClass },
+      { Metrik: 'Sınıfa Atanmamış Öğrenci', Değer: stats.studentsWithoutClass },
+    ];
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Özet');
+
+    const topicExport = topicChartData.map((r) => ({
+      Konu: r.fullName,
+      'Yanlış Sayısı': r.yanlis,
+    }));
+    if (topicExport.length > 0) {
+      const wsTopic = XLSX.utils.json_to_sheet(topicExport);
+      XLSX.utils.book_append_sheet(wb, wsTopic, 'Konu Bazlı Yanlış');
+    }
+
+    const trendExport = weeklyTrendData.map((r) => ({
+      Hafta: r.week,
+      'Toplam Doğru': r.dogru,
+      'Toplam Yanlış': r.yanlis,
+    }));
+    if (trendExport.length > 0) {
+      const wsTrend = XLSX.utils.json_to_sheet(trendExport);
+      XLSX.utils.book_append_sheet(wb, wsTrend, 'Haftalık Trend');
+    }
+
+    const fileName = `rapor-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  }, [stats, topicChartData, weeklyTrendData]);
+
   return (
     <div>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">Raporlar</h4>
-        <p className="text-muted mb-0">
-          Genel istatistikler ve özet bilgiler.
-        </p>
+      <div className="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h4 className="fw-bold mb-1">Raporlar</h4>
+          <p className="text-muted mb-0">Genel istatistikler ve özet bilgiler.</p>
+        </div>
+        <Button
+          variant="outline-success"
+          onClick={handleExportExcel}
+          aria-label="Raporu Excel dosyasına aktar"
+        >
+          <i className="bi bi-file-earmark-excel me-2" />
+          Excel&apos;e Aktar
+        </Button>
       </div>
 
       <Row className="g-4 mb-4">
@@ -166,7 +220,9 @@ export function Reports() {
                   <span className="fw-semibold">{stats.studentsWithClass}</span>
                 </div>
                 <ProgressBar
-                  now={stats.totalStudents ? (stats.studentsWithClass / stats.totalStudents) * 100 : 0}
+                  now={
+                    stats.totalStudents ? (stats.studentsWithClass / stats.totalStudents) * 100 : 0
+                  }
                   variant="success"
                 />
               </div>
@@ -176,7 +232,11 @@ export function Reports() {
                   <span className="fw-semibold">{stats.studentsWithoutClass}</span>
                 </div>
                 <ProgressBar
-                  now={stats.totalStudents ? (stats.studentsWithoutClass / stats.totalStudents) * 100 : 0}
+                  now={
+                    stats.totalStudents
+                      ? (stats.studentsWithoutClass / stats.totalStudents) * 100
+                      : 0
+                  }
                   variant="secondary"
                 />
               </div>
@@ -226,7 +286,11 @@ export function Reports() {
             </h6>
           </Card.Header>
           <Card.Body>
-            <div style={{ height: 320 }}>
+            <div
+              style={{ height: 320 }}
+              role="img"
+              aria-label="Konu bazlı yanlış dağılımı grafiği"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topicChartData} layout="vertical" margin={{ left: 20, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -236,7 +300,12 @@ export function Reports() {
                     formatter={(value: number | undefined) => [value ?? 0, 'Yanlış']}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
                   />
-                  <Bar dataKey="yanlis" fill="var(--bs-primary)" name="Yanlış" radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="yanlis"
+                    fill="var(--bs-primary)"
+                    name="Yanlış"
+                    radius={[0, 4, 4, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -268,7 +337,11 @@ export function Reports() {
             </div>
           </Card.Header>
           <Card.Body>
-            <div style={{ height: 250 }}>
+            <div
+              style={{ height: 250 }}
+              role="img"
+              aria-label="Haftalık yanlış trend grafiği"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={weeklyTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -276,8 +349,20 @@ export function Reports() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="dogru" stroke="var(--bs-success)" name="Toplam Doğru" strokeWidth={2} />
-                  <Line type="monotone" dataKey="yanlis" stroke="var(--bs-danger)" name="Toplam Yanlış" strokeWidth={2} />
+                  <Line
+                    type="monotone"
+                    dataKey="dogru"
+                    stroke="var(--bs-success)"
+                    name="Toplam Doğru"
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="yanlis"
+                    stroke="var(--bs-danger)"
+                    name="Toplam Yanlış"
+                    strokeWidth={2}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

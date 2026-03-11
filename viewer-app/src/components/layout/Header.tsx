@@ -28,9 +28,7 @@ export function Header() {
           >
             <i className="bi bi-person-fill small" aria-hidden />
           </div>
-          <span className="text-dark d-none d-sm-inline">
-            {user?.displayName ?? user?.email}
-          </span>
+          <span className="text-dark d-none d-sm-inline">{user?.displayName ?? user?.email}</span>
           <i className="bi bi-chevron-down small text-muted" aria-hidden />
         </Dropdown.Toggle>
         <Dropdown.Menu align="end" className="shadow-sm">

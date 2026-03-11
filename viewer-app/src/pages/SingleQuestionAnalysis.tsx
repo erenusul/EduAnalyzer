@@ -8,11 +8,13 @@ import { predictQuestion } from '../services/predictionApi';
 import type { PredictionResponse } from '../types/prediction';
 import { PredictionResults } from '../components/PredictionResults';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 
 const MAX_CHARS = 2000;
 
 export function SingleQuestionAnalysis() {
   const { addAnalysis } = useTeacherData();
+  const { showToast } = useToast();
   const [questionText, setQuestionText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +45,11 @@ export function SingleQuestionAnalysis() {
         analyzedQuestions: 1,
         results: result,
       });
+      showToast('Analiz kaydedildi.');
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Tahmin yapılırken bir hata oluştu.'
-      );
+      const msg = err instanceof Error ? err.message : 'Tahmin yapılırken bir hata oluştu.';
+      setError(msg);
+      showToast(msg, 'danger');
     } finally {
       setLoading(false);
     }
@@ -62,17 +65,18 @@ export function SingleQuestionAnalysis() {
     <div>
       <div className="mb-4">
         <h4 className="fw-bold mb-1">Tek Soru Analizi</h4>
-        <p className="text-muted mb-0">
-          Soru metnini yapıştırarak ders ve konu tahmini alın.
-        </p>
+        <p className="text-muted mb-0">Soru metnini yapıştırarak ders ve konu tahmini alın.</p>
       </div>
 
       <Card className="border-0 shadow-sm mb-4">
         <Card.Body className="p-4">
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-4">
-              <Form.Label className="fw-medium">Soru Metni</Form.Label>
+              <Form.Label htmlFor="question-text" className="fw-medium">
+                Soru Metni
+              </Form.Label>
               <Form.Control
+                id="question-text"
                 as="textarea"
                 rows={8}
                 value={questionText}
@@ -81,6 +85,7 @@ export function SingleQuestionAnalysis() {
                 disabled={loading}
                 isInvalid={!!error}
                 className="lh-base"
+                aria-label="Soru metni"
               />
               <Form.Text className="text-muted">
                 {questionText.length} / {MAX_CHARS} karakter
@@ -100,10 +105,15 @@ export function SingleQuestionAnalysis() {
                 variant="primary"
                 size="lg"
                 disabled={loading || !questionText.trim()}
+                aria-label="Soru metnini analiz et"
               >
                 {loading ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden
+                    />
                     Tahmin yapılıyor...
                   </>
                 ) : (

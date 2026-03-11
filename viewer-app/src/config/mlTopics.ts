@@ -53,10 +53,10 @@ export const ML_TOPICS_BY_SUBJECT: Record<SubjectCode, readonly string[]> = {
   ],
   inkilap: [
     "Osmanlı Devleti'nin Son Dönemi",
-    "I. Dünya Savaşı",
+    'I. Dünya Savaşı',
     'Mondros Ateşkes Antlaşması',
     'Kurtuluş Savaşı',
-    "Cumhuriyetin İlanı",
+    'Cumhuriyetin İlanı',
     "Atatürk'ün Hayatı",
     'İnkılaplar',
     'Dış Politika',

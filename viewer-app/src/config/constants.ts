@@ -9,7 +9,7 @@ export const SUBJECTS = {
   fen: 'Fen Bilimleri',
   inkilap: 'T.C. İnkılap Tarihi ve Atatürkçülük',
   din: 'Din Kültürü ve Ahlak Bilgisi',
-  ingilizce: 'İngilizce'
+  ingilizce: 'İngilizce',
 } as const;
 
 export type SubjectCode = keyof typeof SUBJECTS;
@@ -29,7 +29,7 @@ export const TURKCE_THEMES = [
   'Metin Türleri',
   'Tablo ve Grafik İnceleme',
   'Görsel Yorumlama',
-  'Sözel Mantık (Akıl Yürütme)'
+  'Sözel Mantık (Akıl Yürütme)',
 ] as const;
 
 export const TURKCE_SUB_THEMES = [
@@ -39,7 +39,7 @@ export const TURKCE_SUB_THEMES = [
   'Fiillerde Çatı',
   'Noktalama İşaretleri',
   'Yazım Kuralları',
-  'Anlatım Bozuklukları'
+  'Anlatım Bozuklukları',
 ] as const;
 
 export const TURKCE_TEXT_TYPES = [
@@ -58,7 +58,7 @@ export const TURKCE_TEXT_TYPES = [
   'Biyografi',
   'Otobiyografi',
   'Dilekçe',
-  'Reklam'
+  'Reklam',
 ] as const;
 
 export const TURKCE_LITERARY_DEVICES = [
@@ -66,7 +66,7 @@ export const TURKCE_LITERARY_DEVICES = [
   'Benzetme',
   'Kişileştirme',
   'Konuşturma',
-  'Karşıtlık'
+  'Karşıtlık',
 ] as const;
 
 // ========== MATEMATİK ==========
@@ -75,7 +75,7 @@ export const MATEMATIK_THEMES = [
   'Cebir',
   'Geometri ve Ölçme',
   'Veri İşleme ve Olasılık',
-  'Problem Çözme'
+  'Problem Çözme',
 ] as const;
 
 export const MATEMATIK_SUB_THEMES = [
@@ -90,7 +90,7 @@ export const MATEMATIK_SUB_THEMES = [
   'Dönüşüm Geometrisi',
   'Geometrik Cisimler',
   'Veri Analizi',
-  'Olasılık'
+  'Olasılık',
 ] as const;
 
 export const MATEMATIK_TEXT_TYPES = [
@@ -98,7 +98,7 @@ export const MATEMATIK_TEXT_TYPES = [
   'Açıklama',
   'Örnek',
   'Alıştırma',
-  'Etkinlik'
+  'Etkinlik',
 ] as const;
 
 // ========== FEN BİLİMLERİ ==========
@@ -107,7 +107,7 @@ export const FEN_THEMES = [
   'Kimya',
   'Biyoloji',
   'Yer Bilimleri',
-  'Bilimsel Süreç Becerileri'
+  'Bilimsel Süreç Becerileri',
 ] as const;
 
 export const FEN_SUB_THEMES = [
@@ -120,7 +120,7 @@ export const FEN_SUB_THEMES = [
   'Ekosistem',
   'Dünya ve Evren',
   'Deney',
-  'Gözlem'
+  'Gözlem',
 ] as const;
 
 export const FEN_TEXT_TYPES = [
@@ -129,7 +129,7 @@ export const FEN_TEXT_TYPES = [
   'Açıklama',
   'Etkinlik',
   'Araştırma',
-  'Proje'
+  'Proje',
 ] as const;
 
 // ========== İNKILAP TARİHİ ==========
@@ -139,18 +139,18 @@ export const INKILAP_THEMES = [
   'Atatürk İlkeleri',
   'Türkiye Cumhuriyeti',
   'Atatürk Dönemi',
-  'Çağdaş Türkiye'
+  'Çağdaş Türkiye',
 ] as const;
 
 export const INKILAP_SUB_THEMES = [
-  'Osmanlı Devleti\'nin Son Dönemi',
+  "Osmanlı Devleti'nin Son Dönemi",
   'I. Dünya Savaşı',
   'Mondros Ateşkes Antlaşması',
   'Kurtuluş Savaşı',
   'Cumhuriyetin İlanı',
-  'Atatürk\'ün Hayatı',
+  "Atatürk'ün Hayatı",
   'İnkılaplar',
-  'Dış Politika'
+  'Dış Politika',
 ] as const;
 
 export const INKILAP_TEXT_TYPES = [
@@ -159,7 +159,7 @@ export const INKILAP_TEXT_TYPES = [
   'Anı',
   'Biyografi',
   'Araştırma',
-  'Harita İnceleme'
+  'Harita İnceleme',
 ] as const;
 
 // ========== DİN KÜLTÜRÜ ==========
@@ -169,7 +169,7 @@ export const DIN_THEMES = [
   'Hz. Muhammed',
   'Kuran ve Sünnet',
   'Ahlak ve Değerler',
-  'Din ve Hayat'
+  'Din ve Hayat',
 ] as const;
 
 export const DIN_SUB_THEMES = [
@@ -178,10 +178,10 @@ export const DIN_SUB_THEMES = [
   'Oruç',
   'Zekat',
   'Hac',
-  'Hz. Muhammed\'in Hayatı',
-  'Kuran\'dan Ayetler',
+  "Hz. Muhammed'in Hayatı",
+  "Kuran'dan Ayetler",
   'Hadisler',
-  'Ahlaki Değerler'
+  'Ahlaki Değerler',
 ] as const;
 
 export const DIN_TEXT_TYPES = [
@@ -190,7 +190,7 @@ export const DIN_TEXT_TYPES = [
   'Açıklama',
   'Hikaye',
   'Etkinlik',
-  'Değerlendirme'
+  'Değerlendirme',
 ] as const;
 
 // ========== İNGİLİZCE ==========
@@ -200,7 +200,7 @@ export const INGILIZCE_THEMES = [
   'Reading',
   'Writing',
   'Listening',
-  'Speaking'
+  'Speaking',
 ] as const;
 
 export const INGILIZCE_SUB_THEMES = [
@@ -211,7 +211,7 @@ export const INGILIZCE_SUB_THEMES = [
   'Reported Speech',
   'Relative Clauses',
   'Phrasal Verbs',
-  'Word Formation'
+  'Word Formation',
 ] as const;
 
 export const INGILIZCE_TEXT_TYPES = [
@@ -220,7 +220,7 @@ export const INGILIZCE_TEXT_TYPES = [
   'Exercise',
   'Activity',
   'Reading Passage',
-  'Writing Task'
+  'Writing Task',
 ] as const;
 
 // ========== GENEL YAPILAR ==========
@@ -231,40 +231,52 @@ export const SUBJECT_THEMES: Record<SubjectCode, readonly string[]> = {
   fen: FEN_THEMES,
   inkilap: INKILAP_THEMES,
   din: DIN_THEMES,
-  ingilizce: INGILIZCE_THEMES
+  ingilizce: INGILIZCE_THEMES,
 };
 
 // Ders bazlı alt tema mapping (tema -> alt temalar)
 export const SUBJECT_SUBTHEMES: Record<SubjectCode, Record<string, readonly string[]>> = {
   turkce: { 'Dil Bilgisi': TURKCE_SUB_THEMES },
   matematik: {
-    'Sayılar ve İşlemler': ['Tam Sayılar', 'Rasyonel Sayılar', 'Üslü İfadeler', 'Kareköklü İfadeler'],
-    'Cebir': ['Cebirsel İfadeler', 'Denklemler', 'Eşitsizlikler'],
+    'Sayılar ve İşlemler': [
+      'Tam Sayılar',
+      'Rasyonel Sayılar',
+      'Üslü İfadeler',
+      'Kareköklü İfadeler',
+    ],
+    Cebir: ['Cebirsel İfadeler', 'Denklemler', 'Eşitsizlikler'],
     'Geometri ve Ölçme': ['Üçgenler', 'Dönüşüm Geometrisi', 'Geometrik Cisimler'],
-    'Veri İşleme ve Olasılık': ['Veri Analizi', 'Olasılık']
+    'Veri İşleme ve Olasılık': ['Veri Analizi', 'Olasılık'],
   },
   fen: {
-    'Fizik': ['Kuvvet ve Hareket', 'Enerji'],
-    'Kimya': ['Madde ve Doğası', 'Kimyasal Tepkimeler'],
-    'Biyoloji': ['Canlılar ve Hayat', 'Hücre Bölünmesi ve Kalıtım', 'Ekosistem'],
-    'Yer Bilimleri': ['Dünya ve Evren']
+    Fizik: ['Kuvvet ve Hareket', 'Enerji'],
+    Kimya: ['Madde ve Doğası', 'Kimyasal Tepkimeler'],
+    Biyoloji: ['Canlılar ve Hayat', 'Hücre Bölünmesi ve Kalıtım', 'Ekosistem'],
+    'Yer Bilimleri': ['Dünya ve Evren'],
   },
   inkilap: {
-    'Osmanlı Devleti': ['Osmanlı Devleti\'nin Son Dönemi', 'I. Dünya Savaşı'],
+    'Osmanlı Devleti': ["Osmanlı Devleti'nin Son Dönemi", 'I. Dünya Savaşı'],
     'Milli Mücadele': ['Mondros Ateşkes Antlaşması', 'Kurtuluş Savaşı'],
     'Atatürk İlkeleri': ['Cumhuriyetin İlanı', 'İnkılaplar'],
-    'Atatürk Dönemi': ['Atatürk\'ün Hayatı', 'Dış Politika']
+    'Atatürk Dönemi': ["Atatürk'ün Hayatı", 'Dış Politika'],
   },
   din: {
-    'İnanç': ['İman Esasları'],
-    'İbadet': ['Namaz', 'Oruç', 'Zekat', 'Hac'],
-    'Hz. Muhammed': ['Hz. Muhammed\'in Hayatı'],
-    'Kuran ve Sünnet': ['Kuran\'dan Ayetler', 'Hadisler']
+    İnanç: ['İman Esasları'],
+    İbadet: ['Namaz', 'Oruç', 'Zekat', 'Hac'],
+    'Hz. Muhammed': ["Hz. Muhammed'in Hayatı"],
+    'Kuran ve Sünnet': ["Kuran'dan Ayetler", 'Hadisler'],
   },
   ingilizce: {
-    'Grammar': ['Tenses', 'Modal Verbs', 'Conditionals', 'Passive Voice', 'Reported Speech', 'Relative Clauses'],
-    'Vocabulary': ['Phrasal Verbs', 'Word Formation']
-  }
+    Grammar: [
+      'Tenses',
+      'Modal Verbs',
+      'Conditionals',
+      'Passive Voice',
+      'Reported Speech',
+      'Relative Clauses',
+    ],
+    Vocabulary: ['Phrasal Verbs', 'Word Formation'],
+  },
 };
 
 // Ders bazlı metin türü mapping
@@ -274,7 +286,7 @@ export const SUBJECT_TEXT_TYPES: Record<SubjectCode, readonly string[]> = {
   fen: FEN_TEXT_TYPES,
   inkilap: INKILAP_TEXT_TYPES,
   din: DIN_TEXT_TYPES,
-  ingilizce: INGILIZCE_TEXT_TYPES
+  ingilizce: INGILIZCE_TEXT_TYPES,
 };
 
 // Ders bazlı söz sanatları mapping (sadece Türkçe için)
@@ -284,7 +296,7 @@ export const SUBJECT_LITERARY_DEVICES: Record<SubjectCode, readonly string[]> = 
   fen: [],
   inkilap: [],
   din: [],
-  ingilizce: []
+  ingilizce: [],
 };
 
 // Geriye dönük uyumluluk için (eski kodlar için)
@@ -293,12 +305,14 @@ export const SUB_THEMES = TURKCE_SUB_THEMES;
 export const TEXT_TYPES = TURKCE_TEXT_TYPES;
 export const LITERARY_DEVICES = TURKCE_LITERARY_DEVICES;
 export const THEME_SUBTHEME_MAP: Record<string, readonly string[]> = {
-  'Dil Bilgisi': TURKCE_SUB_THEMES
+  'Dil Bilgisi': TURKCE_SUB_THEMES,
 };
 
 // Yardımcı fonksiyon: Belirli bir tema için geçerli alt temaları döndürür
-export function getSubThemesForTheme(theme: string | null, subject: SubjectCode = 'turkce'): readonly string[] {
+export function getSubThemesForTheme(
+  theme: string | null,
+  subject: SubjectCode = 'turkce'
+): readonly string[] {
   if (!theme) return [];
   return SUBJECT_SUBTHEMES[subject]?.[theme] || [];
 }
-

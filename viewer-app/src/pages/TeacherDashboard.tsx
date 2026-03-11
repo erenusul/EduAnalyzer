@@ -141,9 +141,7 @@ export function TeacherDashboard() {
                 <Card.Title as="h6" className="fw-semibold mb-2">
                   {card.title}
                 </Card.Title>
-                <Card.Text className="text-muted mb-0 small">
-                  {card.description}
-                </Card.Text>
+                <Card.Text className="text-muted mb-0 small">{card.description}</Card.Text>
                 <div className="mt-3 text-primary small fw-medium">
                   Git <i className="bi bi-arrow-right ms-1" />
                 </div>

@@ -16,6 +16,7 @@ import {
   Legend,
 } from 'recharts';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export function StudentDetail() {
     exams,
     getResultsByStudent,
   } = useTeacherData();
+  const { showToast } = useToast();
 
   const student = id ? getStudentById(id) : null;
 
@@ -72,7 +74,7 @@ export function StudentDetail() {
           : null;
       })
       .filter(Boolean)
-      .sort((a, b) => (a!.week.localeCompare(b!.week)));
+      .sort((a, b) => a!.week.localeCompare(b!.week));
   }, [studentResults, exams]);
 
   if (!student) {
@@ -92,7 +94,10 @@ export function StudentDetail() {
   return (
     <div>
       <div className="mb-4">
-        <Link to="/dashboard/ogrenci-takibi" className="text-decoration-none text-muted small mb-2 d-inline-block">
+        <Link
+          to="/dashboard/ogrenci-takibi"
+          className="text-decoration-none text-muted small mb-2 d-inline-block"
+        >
           <i className="bi bi-arrow-left me-1" /> Öğrenci listesine dön
         </Link>
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-3">
@@ -114,7 +119,7 @@ export function StudentDetail() {
 
       <Row className="g-4">
         <Col lg={6}>
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="border-0 shadow-sm h-100" key={student.id}>
             <Card.Header className="bg-white border-bottom py-3">
               <h6 className="fw-semibold mb-0">
                 <i className="bi bi-person-vcard me-2" />
@@ -123,12 +128,21 @@ export function StudentDetail() {
             </Card.Header>
             <Card.Body>
               <Form.Group className="mb-3">
-                <Form.Label className="small text-muted">Sınıf</Form.Label>
+                <Form.Label htmlFor="student-class" className="small text-muted">
+                  Sınıf
+                </Form.Label>
                 <Form.Select
+                  id="student-class"
                   value={student.classId ?? ''}
-                  onChange={(e) => {
-                    void assignStudentToClass(student.id, e.target.value || null);
+                  onChange={async (e) => {
+                    try {
+                      await assignStudentToClass(student.id, e.target.value || null);
+                      showToast('Sınıf ataması yapıldı.');
+                    } catch {
+                      showToast('Sınıf ataması yapılırken bir hata oluştu.', 'danger');
+                    }
                   }}
+                  aria-label="Öğrenci sınıfı"
                 >
                   <option value="">Sınıf atanmamış</option>
                   {classes.map((c) => (
@@ -139,34 +153,64 @@ export function StudentDetail() {
                 </Form.Select>
               </Form.Group>
               <Form.Group className="mb-3">
-                <Form.Label className="small text-muted">E-posta</Form.Label>
+                <Form.Label htmlFor="student-email" className="small text-muted">
+                  E-posta
+                </Form.Label>
                 <Form.Control
+                  id="student-email"
                   type="email"
-                  value={student.email ?? ''}
-                  onChange={(e) => {
-                    void updateStudent(student.id, { email: e.target.value || undefined });
+                  defaultValue={student.email ?? ''}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim() || undefined;
+                    if (val === (student.email ?? undefined)) return;
+                    try {
+                      await updateStudent(student.id, { email: val });
+                      showToast('Öğrenci güncellendi.');
+                    } catch {
+                      showToast('Güncelleme sırasında bir hata oluştu.', 'danger');
+                    }
                   }}
                   placeholder="ornek@email.com"
                 />
               </Form.Group>
               <Form.Group className="mb-3">
-                <Form.Label className="small text-muted">Telefon</Form.Label>
+                <Form.Label htmlFor="student-phone" className="small text-muted">
+                  Telefon
+                </Form.Label>
                 <Form.Control
-                  value={student.phone ?? ''}
-                  onChange={(e) => {
-                    void updateStudent(student.id, { phone: e.target.value || undefined });
+                  id="student-phone"
+                  defaultValue={student.phone ?? ''}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim() || undefined;
+                    if (val === (student.phone ?? undefined)) return;
+                    try {
+                      await updateStudent(student.id, { phone: val });
+                      showToast('Öğrenci güncellendi.');
+                    } catch {
+                      showToast('Güncelleme sırasında bir hata oluştu.', 'danger');
+                    }
                   }}
                   placeholder="05XX XXX XX XX"
                 />
               </Form.Group>
               <Form.Group>
-                <Form.Label className="small text-muted">Notlar</Form.Label>
+                <Form.Label htmlFor="student-notes" className="small text-muted">
+                  Notlar
+                </Form.Label>
                 <Form.Control
+                  id="student-notes"
                   as="textarea"
                   rows={3}
-                  value={student.notes ?? ''}
-                  onChange={(e) => {
-                    void updateStudent(student.id, { notes: e.target.value || undefined });
+                  defaultValue={student.notes ?? ''}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim() || undefined;
+                    if (val === (student.notes ?? undefined)) return;
+                    try {
+                      await updateStudent(student.id, { notes: val });
+                      showToast('Öğrenci güncellendi.');
+                    } catch {
+                      showToast('Güncelleme sırasında bir hata oluştu.', 'danger');
+                    }
                   }}
                   placeholder="Öğrenci hakkında notlar..."
                 />
@@ -188,9 +232,7 @@ export function StudentDetail() {
                 <div className="text-center py-4 text-muted">
                   <i className="bi bi-file-earmark-text fs-2 d-block mb-2" />
                   <p className="mb-0 small">Henüz sınav sonucu yok</p>
-                  <p className="small mb-0">
-                    Optik okuma sonuçları burada görünecektir.
-                  </p>
+                  <p className="small mb-0">Optik okuma sonuçları burada görünecektir.</p>
                 </div>
               ) : (
                 <div className="d-flex flex-column gap-2">
@@ -207,7 +249,11 @@ export function StudentDetail() {
                             {exam?.weekLabel ?? ''} · {r.correctCount} doğru / {r.wrongCount} yanlış
                           </div>
                         </div>
-                        <Badge bg={r.wrongCount > 5 ? 'danger' : r.wrongCount > 2 ? 'warning' : 'success'}>
+                        <Badge
+                          bg={
+                            r.wrongCount > 5 ? 'danger' : r.wrongCount > 2 ? 'warning' : 'success'
+                          }
+                        >
                           {r.correctCount + r.wrongCount} soru
                         </Badge>
                       </div>
@@ -270,8 +316,20 @@ export function StudentDetail() {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Line type="monotone" dataKey="dogru" stroke="var(--bs-success)" name="Doğru" strokeWidth={2} />
-                      <Line type="monotone" dataKey="yanlis" stroke="var(--bs-danger)" name="Yanlış" strokeWidth={2} />
+                      <Line
+                        type="monotone"
+                        dataKey="dogru"
+                        stroke="var(--bs-success)"
+                        name="Doğru"
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="yanlis"
+                        stroke="var(--bs-danger)"
+                        name="Yanlış"
+                        strokeWidth={2}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

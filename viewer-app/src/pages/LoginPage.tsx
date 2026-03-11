@@ -12,23 +12,36 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, loginDemo, isAuthenticated } = useAuth();
+  const { login, loginDemo, loginDemoStudent, loginDemoParent, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.role) {
+      const path =
+        user.role === 'Teacher' ? '/dashboard' : user.role === 'Student' ? '/student' : '/parent';
+      navigate(path, { replace: true });
+    } else if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user?.role, navigate]);
+
+  const getPathForRole = (role?: string) =>
+    role === 'Teacher'
+      ? '/dashboard'
+      : role === 'Student'
+        ? '/student'
+        : role === 'Parent'
+          ? '/parent'
+          : '/dashboard';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const success = await login(email, password);
-      if (success) {
-        navigate('/dashboard', { replace: true });
+      const userData = await login(email, password);
+      if (userData) {
+        navigate(getPathForRole(userData.role), { replace: true });
       } else {
         setError('Geçersiz e-posta veya şifre.');
       }
@@ -41,9 +54,9 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const success = await loginDemo();
-      if (success) {
-        navigate('/dashboard', { replace: true });
+      const userData = await loginDemo();
+      if (userData) {
+        navigate(getPathForRole(userData.role), { replace: true });
       } else {
         setError('Demo girişi başarısız. Backend çalışıyor mu?');
       }
@@ -68,7 +81,7 @@ export function LoginPage() {
 
         <Card className="border-0 shadow-sm">
           <Card.Body className="p-4">
-            <h5 className="fw-semibold mb-3">Öğretmen Girişi</h5>
+            <h5 className="fw-semibold mb-3">Giriş</h5>
 
             {error && (
               <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3">
@@ -79,8 +92,11 @@ export function LoginPage() {
 
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
-                <Form.Label className="fw-medium">E-posta</Form.Label>
+                <Form.Label htmlFor="login-email" className="fw-medium">
+                  E-posta
+                </Form.Label>
                 <Form.Control
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -88,11 +104,15 @@ export function LoginPage() {
                   disabled={loading}
                   autoComplete="email"
                   size="lg"
+                  aria-label="E-posta adresi"
                 />
               </Form.Group>
               <Form.Group className="mb-4">
-                <Form.Label className="fw-medium">Şifre</Form.Label>
+                <Form.Label htmlFor="login-password" className="fw-medium">
+                  Şifre
+                </Form.Label>
                 <Form.Control
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -100,6 +120,7 @@ export function LoginPage() {
                   disabled={loading}
                   autoComplete="current-password"
                   size="lg"
+                  aria-label="Şifre"
                 />
               </Form.Group>
               <Button
@@ -111,7 +132,11 @@ export function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden
+                    />
                     Giriş yapılıyor...
                   </>
                 ) : (
@@ -127,24 +152,64 @@ export function LoginPage() {
               </span>
             </div>
 
-            <Button
-              variant="outline-primary"
-              size="lg"
-              className="w-100"
-              onClick={handleDemoLogin}
-              disabled={loading}
-            >
-              <i className="bi bi-lightning-charge me-2" />
-              Demo Giriş
-            </Button>
-            <p className="text-center text-muted small mt-3 mb-0">
-              E-posta ve şifre girmeden tek tıkla giriş
-            </p>
+            <div className="d-flex flex-column gap-2">
+              <Button
+                variant="outline-primary"
+                size="lg"
+                className="w-100"
+                onClick={handleDemoLogin}
+                disabled={loading}
+              >
+                <i className="bi bi-lightning-charge me-2" />
+                Öğretmen Demo
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="lg"
+                className="w-100"
+                onClick={async () => {
+                  setError(null);
+                  setLoading(true);
+                  try {
+                    const userData = await loginDemoStudent();
+                    if (userData) navigate(getPathForRole(userData.role), { replace: true });
+                    else setError('Demo girişi başarısız.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <i className="bi bi-person me-2" />
+                Öğrenci Demo
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="lg"
+                className="w-100"
+                onClick={async () => {
+                  setError(null);
+                  setLoading(true);
+                  try {
+                    const userData = await loginDemoParent();
+                    if (userData) navigate(getPathForRole(userData.role), { replace: true });
+                    else setError('Demo girişi başarısız.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <i className="bi bi-people me-2" />
+                Veli Demo
+              </Button>
+            </div>
+            <p className="text-center text-muted small mt-3 mb-0">Demo hesaplar: demo123 şifresi</p>
           </Card.Body>
         </Card>
 
         <p className="text-center text-muted small mt-3">
-          Demo: ogretmen@demo.com / demo123
+          Öğretmen: ogretmen@demo.com | Öğrenci: ogrenci@demo.com | Veli: veli@demo.com
         </p>
       </div>
     </div>

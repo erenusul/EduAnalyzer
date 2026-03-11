@@ -2,13 +2,7 @@
  * Auth Context - Backend API ile giriş
  */
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { AuthContextValue, User } from '../types/auth';
 import { authApi } from '../services/backendApi';
 
@@ -35,27 +29,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StoredSession | null>(loadStoredSession);
   const user = session?.user ?? null;
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       const res = await authApi.login(email, password);
+      const userData: User = {
+        id: res.user.id,
+        email: res.user.email,
+        displayName: res.user.displayName,
+        role: res.user.role as User['role'],
+      };
       const sessionData: StoredSession = {
         accessToken: res.accessToken,
-        user: {
-          id: res.user.id,
-          email: res.user.email,
-          displayName: res.user.displayName,
-        },
+        user: userData,
       };
       setSession(sessionData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
-      return true;
+      return userData;
     } catch {
-      return false;
+      return null;
     }
   }, []);
 
   const loginDemo = useCallback(async () => {
     return login('ogretmen@demo.com', 'demo123');
+  }, [login]);
+
+  const loginDemoStudent = useCallback(async () => {
+    return login('ogrenci@demo.com', 'demo123');
+  }, [login]);
+
+  const loginDemoParent = useCallback(async () => {
+    return login('veli@demo.com', 'demo123');
   }, [login]);
 
   const logout = useCallback(() => {
@@ -68,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: user !== null,
     login,
     loginDemo,
+    loginDemoStudent,
+    loginDemoParent,
     logout,
   };
 

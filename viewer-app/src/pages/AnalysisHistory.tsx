@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { Card, Table, Button, Badge, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
+import { parseUtcToLocal } from '../utils/dateUtils';
 import { PredictionResults } from '../components/PredictionResults';
 import type { PDFAnalysisResponse, PredictionResponse } from '../types/prediction';
 
@@ -32,27 +34,41 @@ function PdfResultsPreview({ results }: { results: PDFAnalysisResponse }) {
 }
 
 export function AnalysisHistory() {
-  const { analyses, deleteAnalysis, getExamByAnalysisId } = useTeacherData();
+  const { analyses, deleteAnalysis, getExamByAnalysisId, refresh, loading } = useTeacherData();
+  const { showToast } = useToast();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const selectedAnalysis = selectedId
-    ? analyses.find((a) => a.id === selectedId)
-    : null;
+  const selectedAnalysis = selectedId ? analyses.find((a) => a.id === selectedId) : null;
 
   const handleDelete = async (id: string, title: string) => {
     if (confirm(`"${title}" analizini silmek istediğinize emin misiniz?`)) {
-      await deleteAnalysis(id);
-      setSelectedId(null);
+      try {
+        await deleteAnalysis(id);
+        setSelectedId(null);
+        showToast('Analiz silindi.');
+      } catch {
+        showToast('Analiz silinirken bir hata oluştu.', 'danger');
+      }
     }
   };
 
   return (
     <div>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">Analiz Geçmişi</h4>
-        <p className="text-muted mb-0">
-          Yapılan PDF ve tek soru analizlerinin geçmişi.
-        </p>
+      <div className="mb-4 d-flex justify-content-between align-items-start">
+        <div>
+          <h4 className="fw-bold mb-1">Analiz Geçmişi</h4>
+          <p className="text-muted mb-0">Yapılan PDF ve tek soru analizlerinin geçmişi.</p>
+        </div>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() => refresh()}
+          disabled={loading}
+          aria-label="Analiz listesini yenile"
+        >
+          <i className="bi bi-arrow-clockwise me-1" aria-hidden />
+          Yenile
+        </Button>
       </div>
 
       <Card className="border-0 shadow-sm">
@@ -81,80 +97,88 @@ export function AnalysisHistory() {
                   const exam = getExamByAnalysisId(a.id);
                   const displayDate = exam ? exam.createdAt : a.date;
                   return (
-                  <tr key={a.id}>
-                    <td className="small">
-                      {new Date(displayDate).toLocaleDateString('tr-TR', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="fw-medium">{a.title}</td>
-                    <td>
-                      <Badge bg={a.type === 'pdf' ? 'primary' : 'secondary'}>
-                        {a.type === 'pdf' ? 'PDF' : 'Tek Soru'}
-                      </Badge>
-                    </td>
-                    <td>
-                      {a.analyzedQuestions} / {a.totalQuestions}
-                    </td>
-                    <td>
-                      {a.type === 'pdf' ? (
-                        getExamByAnalysisId(a.id) ? (
-                          <Badge bg={getExamByAnalysisId(a.id)?.status === 'ready' ? 'success' : 'warning'}>
-                            {getExamByAnalysisId(a.id)?.status === 'ready' ? 'Hazır' : 'Taslak'}
-                          </Badge>
+                    <tr key={a.id}>
+                      <td className="small">
+                        {parseUtcToLocal(displayDate).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="fw-medium">{a.title}</td>
+                      <td>
+                        <Badge bg={a.type === 'pdf' ? 'primary' : 'secondary'}>
+                          {a.type === 'pdf' ? 'PDF' : 'Tek Soru'}
+                        </Badge>
+                      </td>
+                      <td>
+                        {a.analyzedQuestions} / {a.totalQuestions}
+                      </td>
+                      <td>
+                        {a.type === 'pdf' ? (
+                          getExamByAnalysisId(a.id) ? (
+                            <Badge
+                              bg={
+                                getExamByAnalysisId(a.id)?.status === 'ready'
+                                  ? 'success'
+                                  : 'warning'
+                              }
+                            >
+                              {getExamByAnalysisId(a.id)?.status === 'ready' ? 'Hazır' : 'Taslak'}
+                            </Badge>
+                          ) : (
+                            <Link
+                              to={`/dashboard/analiz-gecmisi/${a.id}`}
+                              className="btn btn-sm btn-outline-success"
+                            >
+                              <i className="bi bi-plus me-1" />
+                              Sınav Oluştur
+                            </Link>
+                          )
                         ) : (
-                          <Link
-                            to={`/dashboard/analiz-gecmisi/${a.id}`}
-                            className="btn btn-sm btn-outline-success"
-                          >
-                            <i className="bi bi-plus me-1" />
-                            Sınav Oluştur
-                          </Link>
-                        )
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      {a.type === 'pdf' && (
-                        <>
-                          <Link
-                            to={`/dashboard/analiz-gecmisi/${a.id}`}
-                            className="btn btn-sm btn-primary me-1"
-                          >
-                            <i className="bi bi-list-check me-1" />
-                            Soru Analizleri
-                          </Link>
-                          <Link
-                            to={`/dashboard/analiz-gecmisi/${a.id}`}
-                            className="btn btn-sm btn-outline-secondary me-1"
-                            title="Düzenle"
-                          >
-                            <i className="bi bi-pencil" aria-label="Düzenle" />
-                          </Link>
-                        </>
-                      )}
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => setSelectedId(a.id)}
-                        className="me-1"
-                      >
-                        <i className="bi bi-eye" />
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDelete(a.id, a.title)}
-                      >
-                        <i className="bi bi-trash" />
-                      </Button>
-                    </td>
-                  </tr>
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        {a.type === 'pdf' && (
+                          <>
+                            <Link
+                              to={`/dashboard/analiz-gecmisi/${a.id}`}
+                              className="btn btn-sm btn-primary me-1"
+                            >
+                              <i className="bi bi-list-check me-1" />
+                              Soru Analizleri
+                            </Link>
+                            <Link
+                              to={`/dashboard/analiz-gecmisi/${a.id}`}
+                              className="btn btn-sm btn-outline-secondary me-1"
+                              title="Düzenle"
+                            >
+                              <i className="bi bi-pencil" aria-label="Düzenle" />
+                            </Link>
+                          </>
+                        )}
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => setSelectedId(a.id)}
+                          className="me-1"
+                          aria-label={`${a.title} analizini görüntüle`}
+                        >
+                          <i className="bi bi-eye" aria-hidden />
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(a.id, a.title)}
+                          aria-label={`${a.title} analizini sil`}
+                        >
+                          <i className="bi bi-trash" aria-hidden />
+                        </Button>
+                      </td>
+                    </tr>
                   );
                 })
               )}
@@ -163,12 +187,7 @@ export function AnalysisHistory() {
         </Card.Body>
       </Card>
 
-      <Modal
-        show={!!selectedAnalysis}
-        onHide={() => setSelectedId(null)}
-        size="lg"
-        centered
-      >
+      <Modal show={!!selectedAnalysis} onHide={() => setSelectedId(null)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>{selectedAnalysis?.title}</Modal.Title>
         </Modal.Header>
@@ -181,7 +200,7 @@ export function AnalysisHistory() {
           {selectedAnalysis ? (
             <div>
               <p className="text-muted small mb-3">
-                {new Date(selectedAnalysis.date).toLocaleString('tr-TR')} ·{' '}
+                {parseUtcToLocal(selectedAnalysis.date).toLocaleString('tr-TR')} ·{' '}
                 {selectedAnalysis.analyzedQuestions} / {selectedAnalysis.totalQuestions} soru
               </p>
               {selectedAnalysis.type === 'pdf' ? (

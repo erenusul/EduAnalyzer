@@ -4,15 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { Card, Form, Table, Badge } from 'react-bootstrap';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 
 interface TopicStats {
@@ -23,8 +15,7 @@ interface TopicStats {
 }
 
 export function ClassAnalysis() {
-  const { classes, exams, examResults, getStudentsByClass, getStudentById } =
-    useTeacherData();
+  const { classes, exams, examResults, getStudentsByClass, getStudentById } = useTeacherData();
   const readyExams = useMemo(() => exams.filter((e) => e.status === 'ready'), [exams]);
   const [selectedClassId, setSelectedClassId] = useState<string>(classes[0]?.id ?? '');
   const [selectedExamId, setSelectedExamId] = useState<string>(readyExams[0]?.id ?? '');
@@ -66,13 +57,7 @@ export function ClassAnalysis() {
           .map((s) => `${s!.firstName} ${s!.lastName}`),
       }))
       .sort((a, b) => b.totalWrong - a.totalWrong);
-  }, [
-    selectedClassId,
-    selectedExamId,
-    examResults,
-    getStudentsByClass,
-    getStudentById,
-  ]);
+  }, [selectedClassId, selectedExamId, examResults, getStudentsByClass, getStudentById]);
 
   const maxWrong = useMemo(
     () => (topicStats.length > 0 ? Math.max(...topicStats.map((t) => t.totalWrong)) : 0),
@@ -105,8 +90,11 @@ export function ClassAnalysis() {
           <div className="row g-3">
             <div className="col-md-6">
               <Form.Group>
-                <Form.Label className="fw-medium">Sınıf</Form.Label>
+                <Form.Label htmlFor="class-analysis-class" className="fw-medium">
+                  Sınıf
+                </Form.Label>
                 <Form.Select
+                  id="class-analysis-class"
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                   aria-label="Sınıf seçin"
@@ -122,8 +110,11 @@ export function ClassAnalysis() {
             </div>
             <div className="col-md-6">
               <Form.Group>
-                <Form.Label className="fw-medium">Sınav</Form.Label>
+                <Form.Label htmlFor="class-analysis-exam" className="fw-medium">
+                  Sınav
+                </Form.Label>
                 <Form.Select
+                  id="class-analysis-exam"
                   value={selectedExamId}
                   onChange={(e) => setSelectedExamId(e.target.value)}
                   aria-label="Sınav seçin"
@@ -170,7 +161,11 @@ export function ClassAnalysis() {
               </h6>
             </Card.Header>
             <Card.Body>
-              <div style={{ height: 300 }}>
+              <div
+                style={{ height: 300 }}
+                role="img"
+                aria-label="Sınıf konu bazlı yanlış dağılımı grafiği"
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -180,7 +175,12 @@ export function ClassAnalysis() {
                       formatter={(value: number | undefined) => [value ?? 0, 'Yanlış']}
                       labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
                     />
-                    <Bar dataKey="yanlis" fill="var(--bs-primary)" name="Yanlış" radius={[0, 4, 4, 0]} />
+                    <Bar
+                      dataKey="yanlis"
+                      fill="var(--bs-primary)"
+                      name="Yanlış"
+                      radius={[0, 4, 4, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

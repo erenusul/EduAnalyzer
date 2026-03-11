@@ -1,10 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TeacherDataProvider } from './contexts/TeacherDataContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { ToastProvider } from './contexts/ToastContext';
+import { RoleProtectedRoute } from './components/RoleProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { TeacherLayout } from './components/layout/TeacherLayout';
+import { StudentLayout } from './components/layout/StudentLayout';
+import { ParentLayout } from './components/layout/ParentLayout';
 import { TeacherDashboard } from './pages/TeacherDashboard';
+import { StudentDashboard } from './pages/StudentDashboard';
+import { StudentResultDetail } from './pages/StudentResultDetail';
+import { ParentDashboard } from './pages/ParentDashboard';
 import { StudentTracking } from './pages/StudentTracking';
 import { StudentDetail } from './pages/StudentDetail';
 import { PdfExamAnalysis } from './pages/PdfExamAnalysis';
@@ -13,29 +19,40 @@ import { ClassManagement } from './pages/ClassManagement';
 import { AnalysisHistory } from './pages/AnalysisHistory';
 import { AnalysisDetail } from './pages/AnalysisDetail';
 import { CreatedExams } from './pages/CreatedExams';
+import { OpticScan } from './pages/OpticScan';
 import { ClassAnalysis } from './pages/ClassAnalysis';
 import { Reports } from './pages/Reports';
 import './App.css';
 
 function RootRedirect() {
-  const { isAuthenticated } = useAuth();
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const path =
+    user?.role === 'Teacher'
+      ? '/dashboard'
+      : user?.role === 'Student'
+        ? '/student'
+        : user?.role === 'Parent'
+          ? '/parent'
+          : '/dashboard';
+  return <Navigate to={path} replace />;
 }
 
 function App() {
   return (
     <AuthProvider>
-      <TeacherDataProvider>
-        <BrowserRouter>
+      <ToastProvider>
+        <TeacherDataProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <RoleProtectedRoute role="Teacher">
                   <TeacherLayout />
-                </ProtectedRoute>
+                </RoleProtectedRoute>
               }
             >
               <Route index element={<TeacherDashboard />} />
@@ -47,13 +64,36 @@ function App() {
               <Route path="analiz-gecmisi" element={<AnalysisHistory />} />
               <Route path="analiz-gecmisi/:id" element={<AnalysisDetail />} />
               <Route path="olusturulan-sinavlar" element={<CreatedExams />} />
+              <Route path="optik-tarama" element={<OpticScan />} />
               <Route path="sinif-analizi" element={<ClassAnalysis />} />
               <Route path="raporlar" element={<Reports />} />
             </Route>
+            <Route
+              path="student"
+              element={
+                <RoleProtectedRoute role="Student">
+                  <StudentLayout />
+                </RoleProtectedRoute>
+              }
+            >
+              <Route index element={<StudentDashboard />} />
+              <Route path="sonuc/:id" element={<StudentResultDetail />} />
+            </Route>
+            <Route
+              path="parent"
+              element={
+                <RoleProtectedRoute role="Parent">
+                  <ParentLayout />
+                </RoleProtectedRoute>
+              }
+            >
+              <Route index element={<ParentDashboard />} />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-      </TeacherDataProvider>
+          </BrowserRouter>
+        </TeacherDataProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

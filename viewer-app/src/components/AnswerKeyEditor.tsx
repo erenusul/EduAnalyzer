@@ -19,9 +19,7 @@ function parsePasteText(text: string): string[] {
     .split(/[\s,;]+/)
     .map((s) => s.trim().toUpperCase())
     .filter((s) => s.length > 0);
-  return chunks.map((s) =>
-    OPTIONS.includes(s[0] as (typeof OPTIONS)[number]) ? s[0] : ''
-  );
+  return chunks.map((s) => (OPTIONS.includes(s[0] as (typeof OPTIONS)[number]) ? s[0] : ''));
 }
 
 export function AnswerKeyEditor({
@@ -82,10 +80,20 @@ export function AnswerKeyEditor({
           style={{ minWidth: 200, maxWidth: 400 }}
         />
         <div className="d-flex gap-1">
-          <Button variant="outline-primary" size="sm" onClick={handlePasteApply} disabled={disabled}>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={handlePasteApply}
+            disabled={disabled}
+          >
             Uygula
           </Button>
-          <Button variant="outline-secondary" size="sm" onClick={handlePasteClear} disabled={disabled}>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={handlePasteClear}
+            disabled={disabled}
+          >
             Temizle
           </Button>
         </div>

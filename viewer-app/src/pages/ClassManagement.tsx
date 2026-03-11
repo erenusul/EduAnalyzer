@@ -5,10 +5,11 @@
 import { useState } from 'react';
 import { Card, Form, Button, Badge, Modal } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 
 export function ClassManagement() {
-  const { classes, getStudentsByClass, addClass, deleteClass } =
-    useTeacherData();
+  const { classes, getStudentsByClass, addClass, deleteClass } = useTeacherData();
+  const { showToast } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newClass, setNewClass] = useState({ name: '', grade: '8', academicYear: '2024-2025' });
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
@@ -16,15 +17,29 @@ export function ClassManagement() {
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClass.name.trim()) return;
-    await addClass(newClass);
-    setNewClass({ name: '', grade: '8', academicYear: '2024-2025' });
-    setShowAddModal(false);
+    try {
+      await addClass(newClass);
+      setNewClass({ name: '', grade: '8', academicYear: '2024-2025' });
+      setShowAddModal(false);
+      showToast('Sınıf başarıyla eklendi.');
+    } catch {
+      showToast('Sınıf eklenirken bir hata oluştu.', 'danger');
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`"${name}" sınıfını silmek istediğinize emin misiniz? Öğrenciler sınıfsız kalacaktır.`)) {
-      await deleteClass(id);
-      setExpandedClassId(null);
+    if (
+      confirm(
+        `"${name}" sınıfını silmek istediğinize emin misiniz? Öğrenciler sınıfsız kalacaktır.`
+      )
+    ) {
+      try {
+        await deleteClass(id);
+        setExpandedClassId(null);
+        showToast('Sınıf silindi.');
+      } catch {
+        showToast('Sınıf silinirken bir hata oluştu.', 'danger');
+      }
     }
   };
 
@@ -33,12 +48,14 @@ export function ClassManagement() {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h4 className="fw-bold mb-1">Sınıf Yönetimi</h4>
-          <p className="text-muted mb-0">
-            Sınıflarınızı oluşturun ve öğrencileri atayın.
-          </p>
+          <p className="text-muted mb-0">Sınıflarınızı oluşturun ve öğrencileri atayın.</p>
         </div>
-        <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          <i className="bi bi-plus-lg me-2" />
+        <Button
+          variant="primary"
+          onClick={() => setShowAddModal(true)}
+          aria-label="Yeni sınıf ekle"
+        >
+          <i className="bi bi-plus-lg me-2" aria-hidden />
           Yeni Sınıf
         </Button>
       </div>
@@ -64,9 +81,7 @@ export function ClassManagement() {
                     <Button
                       variant="outline-primary"
                       size="sm"
-                      onClick={() =>
-                        setExpandedClassId(isExpanded ? null : cls.id)
-                      }
+                      onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
                     >
                       <i className={`bi bi-chevron-${isExpanded ? 'up' : 'down'} me-1`} />
                       {isExpanded ? 'Gizle' : 'Öğrenciler'}
@@ -75,8 +90,9 @@ export function ClassManagement() {
                       variant="outline-danger"
                       size="sm"
                       onClick={() => handleDelete(cls.id, cls.name)}
+                      aria-label={`${cls.name} sınıfını sil`}
                     >
-                      <i className="bi bi-trash" />
+                      <i className="bi bi-trash" aria-hidden />
                     </Button>
                   </div>
                   {isExpanded && (
@@ -122,19 +138,23 @@ export function ClassManagement() {
         <Form onSubmit={handleAddClass}>
           <Modal.Body>
             <Form.Group className="mb-3">
-              <Form.Label>Sınıf Adı</Form.Label>
+              <Form.Label htmlFor="new-class-name">Sınıf Adı</Form.Label>
               <Form.Control
+                id="new-class-name"
                 value={newClass.name}
                 onChange={(e) => setNewClass((p) => ({ ...p, name: e.target.value }))}
                 placeholder="8-A"
                 required
+                aria-label="Sınıf adı"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Seviye</Form.Label>
+              <Form.Label htmlFor="new-class-grade">Seviye</Form.Label>
               <Form.Select
+                id="new-class-grade"
                 value={newClass.grade}
                 onChange={(e) => setNewClass((p) => ({ ...p, grade: e.target.value }))}
+                aria-label="Sınıf seviyesi"
               >
                 {['5', '6', '7', '8'].map((g) => (
                   <option key={g} value={g}>
@@ -144,11 +164,13 @@ export function ClassManagement() {
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Eğitim Yılı</Form.Label>
+              <Form.Label htmlFor="new-class-year">Eğitim Yılı</Form.Label>
               <Form.Control
+                id="new-class-year"
                 value={newClass.academicYear}
                 onChange={(e) => setNewClass((p) => ({ ...p, academicYear: e.target.value }))}
                 placeholder="2024-2025"
+                aria-label="Eğitim yılı"
               />
             </Form.Group>
           </Modal.Body>

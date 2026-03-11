@@ -19,7 +19,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard/siniflar', label: 'Sınıf Yönetimi', icon: 'bi-collection' },
   { to: '/dashboard/sinif-analizi', label: 'Sınıf Analizi', icon: 'bi-bar-chart' },
   { to: '/dashboard/analiz-gecmisi', label: 'Analiz Geçmişi', icon: 'bi-clock-history' },
-  { to: '/dashboard/olusturulan-sinavlar', label: 'Oluşturulan Sınavlar', icon: 'bi-file-earmark-text' },
+  {
+    to: '/dashboard/olusturulan-sinavlar',
+    label: 'Oluşturulan Sınavlar',
+    icon: 'bi-file-earmark-text',
+  },
+  { to: '/dashboard/optik-tarama', label: 'Optik Tarama', icon: 'bi-ui-checks-grid' },
   { to: '/dashboard/raporlar', label: 'Raporlar', icon: 'bi-graph-up' },
 ];
 

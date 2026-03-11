@@ -6,9 +6,11 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Table, Form, Button, Card, Badge, InputGroup, Modal } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 
 export function StudentTracking() {
   const { students, classes, getClassById, addStudent, deleteStudent } = useTeacherData();
+  const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -40,18 +42,29 @@ export function StudentTracking() {
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudent.firstName.trim() || !newStudent.lastName.trim() || !newStudent.studentNo.trim()) return;
-    await addStudent({
-      ...newStudent,
-      classId: newStudent.classId || null,
-    });
-    setNewStudent({ studentNo: '', firstName: '', lastName: '', classId: null, email: '' });
-    setShowAddModal(false);
+    if (!newStudent.firstName.trim() || !newStudent.lastName.trim() || !newStudent.studentNo.trim())
+      return;
+    try {
+      await addStudent({
+        ...newStudent,
+        classId: newStudent.classId || null,
+      });
+      setNewStudent({ studentNo: '', firstName: '', lastName: '', classId: null, email: '' });
+      setShowAddModal(false);
+      showToast('Öğrenci başarıyla eklendi.');
+    } catch {
+      showToast('Öğrenci eklenirken bir hata oluştu.', 'danger');
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`"${name}" öğrencisini silmek istediğinize emin misiniz?`)) {
-      await deleteStudent(id);
+      try {
+        await deleteStudent(id);
+        showToast('Öğrenci silindi.');
+      } catch {
+        showToast('Öğrenci silinirken bir hata oluştu.', 'danger');
+      }
     }
   };
 
@@ -60,9 +73,7 @@ export function StudentTracking() {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h4 className="fw-bold mb-1">Öğrenci Takibi</h4>
-          <p className="text-muted mb-0">
-            Öğrencilerinizi listeleyin, arayın ve takip edin.
-          </p>
+          <p className="text-muted mb-0">Öğrencilerinizi listeleyin, arayın ve takip edin.</p>
         </div>
         <Button variant="primary" onClick={() => setShowAddModal(true)}>
           <i className="bi bi-person-plus me-2" />
@@ -76,12 +87,13 @@ export function StudentTracking() {
             <div className="col-md-6">
               <InputGroup>
                 <InputGroup.Text>
-                  <i className="bi bi-search" />
+                  <i className="bi bi-search" aria-hidden />
                 </InputGroup.Text>
                 <Form.Control
                   placeholder="Ad, soyad veya numara ile ara..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Öğrenci ara"
                 />
               </InputGroup>
             </div>
@@ -89,6 +101,7 @@ export function StudentTracking() {
               <Form.Select
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
+                aria-label="Sınıf filtresi"
               >
                 <option value="">Tüm sınıflar</option>
                 {classes.map((c) => (
@@ -206,9 +219,7 @@ export function StudentTracking() {
               <Form.Label>Sınıf</Form.Label>
               <Form.Select
                 value={newStudent.classId ?? ''}
-                onChange={(e) =>
-                  setNewStudent((p) => ({ ...p, classId: e.target.value || null }))
-                }
+                onChange={(e) => setNewStudent((p) => ({ ...p, classId: e.target.value || null }))}
               >
                 <option value="">Sınıf seçin</option>
                 {classes.map((c) => (

@@ -2,7 +2,7 @@
  * Backend API service - tüm CRUD işlemleri
  */
 
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut, apiUpload } from './apiClient';
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut, apiUpload, apiUploadFormData } from './apiClient';
 import type { Student, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
 
 export interface LoginResponse {
@@ -73,6 +73,14 @@ export interface BackendExamResult {
   createdAt: string;
 }
 
+export interface ScanExamResponse {
+  correctCount: number;
+  wrongCount: number;
+  totalCount: number;
+  wrongQuestions: { questionIndex: number; studentAnswer: string; topic: string }[];
+  wrongTopics: { topic: string; count: number }[];
+}
+
 function toStudent(d: BackendStudent): Student {
   return {
     id: d.id,
@@ -112,16 +120,9 @@ function normalizeResults(results: unknown): unknown {
   const r = results as Record<string, unknown>;
   const arr = r.results ?? r.Results;
   if (!Array.isArray(arr)) return results;
-  let total =
-    (r.TotalQuestions as number) ??
-    r.totalQuestions ??
-    r.total_questions ??
-    0;
+  let total = (r.TotalQuestions as number) ?? r.totalQuestions ?? r.total_questions ?? 0;
   let analyzed =
-    (r.AnalyzedQuestions as number) ??
-    r.analyzedQuestions ??
-    r.analyzed_questions ??
-    0;
+    (r.AnalyzedQuestions as number) ?? r.analyzedQuestions ?? r.analyzed_questions ?? 0;
   if (total === 0 && analyzed === 0 && arr.length > 0) {
     total = arr.length;
     analyzed = arr.length;
@@ -136,12 +137,10 @@ function normalizeResults(results: unknown): unknown {
       const topicArr = Array.isArray(rawTopic) ? rawTopic : [];
       return {
         question_id: item.QuestionId ?? item.questionId ?? item.question_id ?? '',
-        question_text:
-          item.QuestionText ?? item.questionText ?? item.question_text ?? '',
+        question_text: item.QuestionText ?? item.questionText ?? item.question_text ?? '',
         subject: subjectArr.map(normalizePredictionItem),
         topic: topicArr.map(normalizePredictionItem),
-        has_visual:
-          item.HasVisual ?? item.hasVisual ?? item.has_visual ?? false,
+        has_visual: item.HasVisual ?? item.hasVisual ?? item.has_visual ?? false,
       };
     }),
     warning: r.warning ?? r.Warning,
@@ -192,6 +191,16 @@ function toExamResult(d: BackendExamResult): ExamResult {
 export const authApi = {
   login: (email: string, password: string) =>
     apiPost<LoginResponse>('/api/auth/login', { email, password }),
+};
+
+export interface StudentWithResults {
+  student: BackendStudent;
+  results: BackendExamResult[];
+}
+
+export const meApi = {
+  getMyResults: () => apiGet<BackendExamResult[]>('/api/me/results'),
+  getMyChildren: () => apiGet<StudentWithResults[]>('/api/me/children'),
 };
 
 export const studentsApi = {
@@ -247,7 +256,15 @@ export const analysesApi = {
       `/api/analyses/pdf?useOcr=${useOcr ?? false}&topKSubject=1&topKTopic=3`,
       file
     ),
-  createFromPdfResult: (fileName: string, mlResult: { total_questions: number; analyzed_questions: number; results: unknown[]; warning?: string }) =>
+  createFromPdfResult: (
+    fileName: string,
+    mlResult: {
+      total_questions: number;
+      analyzed_questions: number;
+      results: unknown[];
+      warning?: string;
+    }
+  ) =>
     apiPost<BackendAnalysis>('/api/analyses/pdf-result', {
       title: fileName,
       fileName,
@@ -259,15 +276,20 @@ export const analysesApi = {
   updateResults: (id: string, results: unknown) =>
     apiPut<BackendAnalysis>(`/api/analyses/${id}/results`, results),
   delete: (id: string) => apiDelete(`/api/analyses/${id}`),
-  createExam: (id: string, weekLabel: string, date: string, selectedIndices?: number[], answerKey?: string[]) =>
+  createExam: (
+    id: string,
+    weekLabel: string,
+    date: string,
+    selectedIndices?: number[],
+    answerKey?: string[]
+  ) =>
     apiPost<BackendExam>(`/api/analyses/${id}/exam`, {
       weekLabel,
       date: date + 'T00:00:00Z',
       ...(selectedIndices != null && selectedIndices.length > 0 && { selectedIndices }),
       ...(answerKey != null && answerKey.length > 0 && { answerKey }),
     }),
-  markExamReady: (examId: string) =>
-    apiPost<BackendExam>(`/api/analyses/exam/${examId}/ready`),
+  markExamReady: (examId: string) => apiPost<BackendExam>(`/api/analyses/exam/${examId}/ready`),
 };
 
 export const examsApi = {
@@ -282,6 +304,26 @@ export const examsApi = {
     apiPut<BackendExam>(`/api/exams/${id}/answer-key`, answerKey),
   getAllResults: () => apiGet<BackendExamResult[]>('/api/exams/results'),
   getResults: (id: string) => apiGet<BackendExamResult[]>(`/api/exams/${id}/results`),
+  scan: (examId: string, studentId: string, studentAnswers: string[]) =>
+    apiPost<ScanExamResponse>(`/api/exams/${examId}/results/scan`, {
+      studentId,
+      studentAnswers,
+    }),
+  scanImage: (
+    examId: string,
+    studentId: string,
+    imageBlob: Blob,
+    questionCount?: number
+  ): Promise<ScanExamResponse> => {
+    const formData = new FormData();
+    formData.append('studentId', studentId);
+    formData.append('file', imageBlob, 'optical-form.jpg');
+    if (questionCount != null) formData.append('questionCount', String(questionCount));
+    return apiUploadFormData<ScanExamResponse>(
+      `/api/exams/${examId}/results/scan-image`,
+      formData
+    );
+  },
   addResult: (data: Omit<ExamResult, 'id' | 'createdAt'>) =>
     apiPost<BackendExamResult>('/api/exams/results', {
       studentId: data.studentId,

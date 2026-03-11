@@ -2,13 +2,22 @@
  * PDF'den sınav analizi sayfası
  */
 
-import { useState, useRef, useCallback, useEffect, type FormEvent, type ChangeEvent, type DragEvent } from 'react';
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  type FormEvent,
+  type ChangeEvent,
+  type DragEvent,
+} from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import type { PDFAnalysisResponse } from '../types/prediction';
 import { Link } from 'react-router-dom';
 import { EditablePredictionResults } from '../components/EditablePredictionResults';
 import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import { useToast } from '../contexts/ToastContext';
 import type { QuestionAnalysisResult } from '../types/prediction';
 
 const FIVE_MB = 5 * 1024 * 1024;
@@ -18,12 +27,15 @@ const MAX_SELECTED_QUESTIONS = 20;
 function getCurrentWeekLabel(): string {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const weekNum = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+  const weekNum = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
   return `${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
 }
 
 export function PdfExamAnalysis() {
   const { analyzePdf, updateAnalysis, getExamByAnalysisId, addExam, analyses } = useTeacherData();
+  const { showToast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lastAnalysisId, setLastAnalysisId] = useState<string | null>(null);
   const [useOCR, setUseOCR] = useState(false);
@@ -32,7 +44,10 @@ export function PdfExamAnalysis() {
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [pdfResults, setPdfResults] = useState<PDFAnalysisResponse | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<{ pages: { page: number; text: string; len: number }[]; total_chars: number } | null>(null);
+  const [debugInfo, setDebugInfo] = useState<{
+    pages: { page: number; text: string; len: number }[];
+    total_chars: number;
+  } | null>(null);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [weekLabel, setWeekLabel] = useState(getCurrentWeekLabel());
   const [answerKey, setAnswerKey] = useState<string[]>([]);
@@ -66,7 +81,9 @@ export function PdfExamAnalysis() {
 
   const handlePrepareExam = useCallback(async () => {
     if (!lastAnalysisId || selectedIndices.size !== MAX_SELECTED_QUESTIONS) return;
-    const filled = answerKey.filter((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+    const filled = answerKey.filter((a) =>
+      ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || '')
+    );
     if (filled.length !== MAX_SELECTED_QUESTIONS) return;
     const analysis = analyses.find((a) => a.id === lastAnalysisId);
     if (!analysis) return;
@@ -85,10 +102,13 @@ export function PdfExamAnalysis() {
       );
       setSelectedIndices(new Set());
       setAnswerKey([]);
+      showToast('Sınav oluşturuldu.');
+    } catch {
+      showToast('Sınav oluşturulurken bir hata oluştu.', 'danger');
     } finally {
       setSavingExam(false);
     }
-  }, [lastAnalysisId, selectedIndices, weekLabel, answerKey, analyses, addExam]);
+  }, [lastAnalysisId, selectedIndices, weekLabel, answerKey, analyses, addExam, showToast]);
 
   const isAnswerKeyComplete =
     answerKey.length === MAX_SELECTED_QUESTIONS &&
@@ -169,13 +189,15 @@ export function PdfExamAnalysis() {
       const result = record.results as PDFAnalysisResponse;
       setPdfResults(result);
       setLastAnalysisId(record.id);
+      showToast('PDF analiz edildi.');
     } catch (err) {
       const msg =
         err instanceof Error
           ? err.message
-          : (err as { message?: string })?.message ?? 'PDF analizi sırasında bir hata oluştu.';
+          : ((err as { message?: string })?.message ?? 'PDF analizi sırasında bir hata oluştu.');
       setError(msg);
       setDebugInfo(null);
+      showToast(msg, 'danger');
     } finally {
       setLoading(false);
       setProgressMessage(null);
@@ -223,7 +245,7 @@ export function PdfExamAnalysis() {
   return (
     <div>
       <div className="mb-4">
-        <h4 className="fw-bold mb-1">PDF'den Sınav Analizi</h4>
+        <h4 className="fw-bold mb-1">PDF&apos;den Sınav Analizi</h4>
         <p className="text-muted mb-0">
           PDF dosyası yükleyerek tüm soruların ders ve konu tahminlerini alın.
         </p>
@@ -233,7 +255,9 @@ export function PdfExamAnalysis() {
         <Card.Body className="p-4">
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-4">
-              <Form.Label className="fw-medium">PDF Dosyası</Form.Label>
+              <Form.Label htmlFor="pdf-file-input" className="fw-medium">
+                PDF Dosyası
+              </Form.Label>
               <div
                 role="button"
                 tabIndex={0}
@@ -246,6 +270,7 @@ export function PdfExamAnalysis() {
                 aria-label="PDF dosyası yüklemek için tıklayın veya sürükleyip bırakın"
               >
                 <input
+                  id="pdf-file-input"
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf"
@@ -256,7 +281,10 @@ export function PdfExamAnalysis() {
                 />
                 {selectedFile ? (
                   <>
-                    <i className="bi bi-file-earmark-pdf fs-1 text-success d-block mb-2" aria-hidden />
+                    <i
+                      className="bi bi-file-earmark-pdf fs-1 text-success d-block mb-2"
+                      aria-hidden
+                    />
                     <div className="fw-semibold">{selectedFile.name}</div>
                     <div className="small text-muted">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
@@ -266,7 +294,9 @@ export function PdfExamAnalysis() {
                 ) : (
                   <>
                     <i className="bi bi-cloud-arrow-up fs-1 text-muted d-block mb-2" aria-hidden />
-                    <div className="fw-medium">PDF dosyasını sürükleyip bırakın veya tıklayarak seçin</div>
+                    <div className="fw-medium">
+                      PDF dosyasını sürükleyip bırakın veya tıklayarak seçin
+                    </div>
                     <div className="small text-muted mt-1">Sadece .pdf dosyaları kabul edilir</div>
                   </>
                 )}
@@ -294,7 +324,12 @@ export function PdfExamAnalysis() {
                 {error}
                 {selectedFile && (
                   <div className="mt-3">
-                    <Button variant="outline-danger" size="sm" onClick={handleDiagnose} disabled={loading}>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={handleDiagnose}
+                      disabled={loading}
+                    >
                       <i className="bi bi-bug me-1" />
                       PDF Tanıla (çıkarılan metni gör)
                     </Button>
@@ -310,8 +345,13 @@ export function PdfExamAnalysis() {
                 </h6>
                 {debugInfo.pages?.map((p) => (
                   <details key={p.page} className="mb-2">
-                    <summary>Sayfa {p.page} ({p.len} karakter)</summary>
-                    <pre className="small bg-dark text-light p-2 rounded mt-1 mb-0" style={{ maxHeight: 150, overflow: 'auto' }}>
+                    <summary>
+                      Sayfa {p.page} ({p.len} karakter)
+                    </summary>
+                    <pre
+                      className="small bg-dark text-light p-2 rounded mt-1 mb-0"
+                      style={{ maxHeight: 150, overflow: 'auto' }}
+                    >
                       {p.text || '(boş)'}
                     </pre>
                   </details>
@@ -340,10 +380,15 @@ export function PdfExamAnalysis() {
                 variant="primary"
                 size="lg"
                 disabled={loading || !selectedFile}
+                aria-label="PDF analizini başlat"
               >
                 {loading ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden
+                    />
                     Analiz ediliyor...
                   </>
                 ) : (
@@ -372,7 +417,8 @@ export function PdfExamAnalysis() {
                 Analiz Özeti
               </h5>
               <p className="mb-0">
-                <strong>{pdfResults.analyzed_questions}</strong> / {pdfResults.total_questions} soru analiz edildi
+                <strong>{pdfResults.analyzed_questions}</strong> / {pdfResults.total_questions} soru
+                analiz edildi
               </p>
               {pdfResults.warning && (
                 <Alert variant="warning" className="mt-3 mb-0">
@@ -388,12 +434,16 @@ export function PdfExamAnalysis() {
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <p className="text-muted small mb-0">
                   <i className="bi bi-pencil-square me-1" />
-                  LLM yanlış tahmin verdiğinde ders veya konu etiketini düzenleyebilirsiniz. Değişiklikler
-                  otomatik kaydedilir.
+                  LLM yanlış tahmin verdiğinde ders veya konu etiketini düzenleyebilirsiniz.
+                  Değişiklikler otomatik kaydedilir.
                 </p>
                 {saveStatus === 'saving' && (
                   <span className="badge bg-secondary">
-                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden />
+                    <span
+                      className="spinner-border spinner-border-sm me-1"
+                      role="status"
+                      aria-hidden
+                    />
                     Kaydediliyor...
                   </span>
                 )}
@@ -410,7 +460,8 @@ export function PdfExamAnalysis() {
                   size="sm"
                   onClick={() => {
                     setSaveStatus('saved');
-                    if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+                    if (saveFeedbackTimeoutRef.current)
+                      clearTimeout(saveFeedbackTimeoutRef.current);
                     saveFeedbackTimeoutRef.current = setTimeout(() => {
                       setSaveStatus('idle');
                       saveFeedbackTimeoutRef.current = null;
@@ -461,56 +512,62 @@ export function PdfExamAnalysis() {
             </Card.Body>
           </Card>
 
-          {selectedIndices.size === MAX_SELECTED_QUESTIONS && !getExamByAnalysisId(lastAnalysisId!) && (
-            <Card className="border-0 shadow-sm mb-3">
-              <Card.Header className="bg-white border-bottom py-3">
-                <h6 className="fw-semibold mb-0">
-                  <i className="bi bi-key me-2" />
-                  Cevap Anahtarı ({MAX_SELECTED_QUESTIONS} soru)
-                </h6>
-              </Card.Header>
-              <Card.Body className="p-4">
-                <Form.Group className="mb-3">
-                  <Form.Label>Hafta Etiketi</Form.Label>
-                  <Form.Control
-                    value={weekLabel}
-                    onChange={(e) => setWeekLabel(e.target.value)}
-                    placeholder="2025-W08"
-                    aria-label="Hafta etiketi"
-                    style={{ maxWidth: 200 }}
+          {selectedIndices.size === MAX_SELECTED_QUESTIONS &&
+            !getExamByAnalysisId(lastAnalysisId!) && (
+              <Card className="border-0 shadow-sm mb-3">
+                <Card.Header className="bg-white border-bottom py-3">
+                  <h6 className="fw-semibold mb-0">
+                    <i className="bi bi-key me-2" />
+                    Cevap Anahtarı ({MAX_SELECTED_QUESTIONS} soru)
+                  </h6>
+                </Card.Header>
+                <Card.Body className="p-4">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Hafta Etiketi</Form.Label>
+                    <Form.Control
+                      value={weekLabel}
+                      onChange={(e) => setWeekLabel(e.target.value)}
+                      placeholder="2025-W08"
+                      aria-label="Hafta etiketi"
+                      style={{ maxWidth: 200 }}
+                    />
+                  </Form.Group>
+                  <AnswerKeyEditor
+                    questionCount={MAX_SELECTED_QUESTIONS}
+                    value={answerKey}
+                    onChange={setAnswerKey}
+                    disabled={savingExam}
                   />
-                </Form.Group>
-                <AnswerKeyEditor
-                  questionCount={MAX_SELECTED_QUESTIONS}
-                  value={answerKey}
-                  onChange={setAnswerKey}
-                  disabled={savingExam}
-                />
-                <Button
-                  variant="success"
-                  size="lg"
-                  className="mt-3"
-                  onClick={handlePrepareExam}
-                  disabled={!isAnswerKeyComplete || savingExam}
-                >
-                  {savingExam ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
-                      Kaydediliyor...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-check-circle me-2" />
-                      Sınavı Hazırla
-                    </>
-                  )}
-                </Button>
-                <p className="text-muted small mt-2 mb-0">
-                  Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına kaydedilir ve öğrenci mobil uygulamasında kullanılabilir.
-                </p>
-              </Card.Body>
-            </Card>
-          )}
+                  <Button
+                    variant="success"
+                    size="lg"
+                    className="mt-3"
+                    onClick={handlePrepareExam}
+                    disabled={!isAnswerKeyComplete || savingExam}
+                  >
+                    {savingExam ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden
+                        />
+                        Kaydediliyor...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle me-2" />
+                        Sınavı Hazırla
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-muted small mt-2 mb-0">
+                    Tüm {MAX_SELECTED_QUESTIONS} cevabı girdikten sonra sınav veritabanına
+                    kaydedilir ve öğrenci mobil uygulamasında kullanılabilir.
+                  </p>
+                </Card.Body>
+              </Card>
+            )}
 
           <div className="d-flex flex-column gap-3">
             {pdfResults.results.map((result, index) => (
@@ -523,7 +580,10 @@ export function PdfExamAnalysis() {
                         id={`pdf-q-${index}`}
                         checked={selectedIndices.has(index)}
                         onChange={() => toggleQuestionSelection(index)}
-                        disabled={selectedIndices.size >= MAX_SELECTED_QUESTIONS && !selectedIndices.has(index)}
+                        disabled={
+                          selectedIndices.size >= MAX_SELECTED_QUESTIONS &&
+                          !selectedIndices.has(index)
+                        }
                         aria-label={`Soru ${index + 1} seç`}
                       />
                     )}
@@ -567,11 +627,10 @@ export function PdfExamAnalysis() {
                         await updateAnalysis(lastAnalysisId, {
                           results: { ...pdfResults, results: newResults },
                         });
-                        setPdfResults((prev) =>
-                          prev ? { ...prev, results: newResults } : null
-                        );
+                        setPdfResults((prev) => (prev ? { ...prev, results: newResults } : null));
                         setSaveStatus('saved');
-                        if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
+                        if (saveFeedbackTimeoutRef.current)
+                          clearTimeout(saveFeedbackTimeoutRef.current);
                         saveFeedbackTimeoutRef.current = setTimeout(() => {
                           setSaveStatus('idle');
                           saveFeedbackTimeoutRef.current = null;
