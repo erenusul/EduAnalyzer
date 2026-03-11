@@ -1,6 +1,6 @@
 # EduAnalyzer
 
-MEB 8. Sınıf Türkçe ders kitabından metin çıkarma, temizleme ve görüntüleme projesi.
+MEB 8. Sınıf Türkçe sınav sorularının ders ve konu tahminini yapan, öğretmen/öğrenci/veli rolleriyle çalışan eğitim analiz platformu.
 
 ## Proje Yapısı
 
@@ -47,72 +47,38 @@ EduAnalyzer/
 - **Backend:** http://localhost:5131
 - **Demo giriş:** ogretmen@demo.com / demo123
 
-İlk çalıştırmada: `cd backend && dotnet restore` ve `cd viewer-app && npm install` gerekebilir.
-
----
-
-### 1. PDF Çıkarma (Backend)
-
-```bash
-# PDF dosyasını doğru konuma kopyalayın
-cp "Türkçe 8. Sınıf.pdf" pdf_extractor/data/raw/turkce_8_meb.pdf
-
-# Sanal ortam oluşturun
-cd pdf_extractor
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Bağımlılıkları yükleyin
-pip install -r requirements.txt
-
-# PDF'ten metin çıkarın
-python -m src.main
-
-# Çıktı: pdf_extractor/data/processed/turkce8_dataset.json
-```
-
-### 2. Veri Görüntüleme (Frontend)
-
-```bash
-# JSON dosyasını public klasörüne kopyalayın
-cp pdf_extractor/data/processed/turkce8_dataset.json viewer-app/public/
-
-# Bağımlılıkları yükleyin
-cd viewer-app
-npm install
-
-# Geliştirme sunucusunu başlatın
-npm run dev
-
-# Tarayıcıda http://localhost:5173 adresini açın
-```
+İlk çalıştırmada: `cd backend && dotnet restore`, `cd viewer-app && npm install` ve `cd ml-service && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt` gerekebilir.
 
 ## Özellikler
 
-### Backend (pdf_extractor)
-- ✅ PDF'ten sayfa sayfa metin çıkarma
-- ✅ Metin temizleme (boşluklar, sayfa numaraları)
-- ✅ JSON ve CSV export
-- ✅ Komut satırı arayüzü
+### Backend (.NET 8 Web API)
+- ✅ JWT tabanlı kimlik doğrulama (Öğretmen, Öğrenci, Veli)
+- ✅ Öğrenci, sınıf, sınav, analiz CRUD
+- ✅ PDF analizi (ML servisi entegrasyonu)
+- ✅ Optik tarama ve manuel sınav sonucu girişi
+- ✅ SQLite veritabanı (PostgreSQL'e geçiş desteklenir)
 
 ### Frontend (viewer-app)
-- ✅ Veri filtreleme (tema, metin türü, sayfa aralığı, arama)
-- ✅ Tablo görünümünde veri listeleme
-- ✅ Metin detay görünümü
-- ✅ Tema, metin türü ve notlar düzenleme
-- ✅ JSON ve CSV export
+- ✅ Öğretmen paneli: Öğrenci takibi, PDF analizi, tek soru tahmini
+- ✅ Sınıf yönetimi, analiz geçmişi, raporlar
+- ✅ Öğrenci paneli: Kendi sınav sonuçları
+- ✅ Veli paneli: Bağlı öğrencilerin sonuçları
+- ✅ Bootstrap + Metronic tema, dark/light mod
 
-## Veri Modeli
+### ML Servisi (Python FastAPI)
+- ✅ BERTurk tabanlı ders ve konu sınıflandırma
+- ✅ PDF'ten soru çıkarma ve toplu tahmin
+- ✅ Tek soru tahmin API
 
-Her metin birimi şu alanları içerir:
-- `id`: Benzersiz ID (örn: "page_1")
-- `page`: Sayfa numarası
-- `raw_text`: Ham metin
-- `clean_text`: Temizlenmiş metin
-- `title`: Başlık (düzenlenebilir)
-- `theme`: Tema (düzenlenebilir)
-- `text_type`: Metin türü (düzenlenebilir)
-- `notes`: Notlar (düzenlenebilir)
+## Mimari Dokümantasyonu
+
+`docs/architecture/` klasöründe detaylı mimari dokümantasyonu bulunur:
+- [eduanalyzer_eksikler_raporu.md](docs/eduanalyzer_eksikler_raporu.md) - Eksik özellikler ve yapılacaklar
+- [student_react_native_plan.md](docs/student_react_native_plan.md) - React Native öğrenci mobil uygulaması planı
+- [overview.md](docs/architecture/overview.md) - Genel mimari ve veri akışı
+- [backend.md](docs/architecture/backend.md) - Backend Clean Architecture
+- [frontend.md](docs/architecture/frontend.md) - Frontend sayfa yapısı ve context'ler
+- [ml.md](docs/architecture/ml.md) - ML model pipeline
 
 ## Geliştirme
 

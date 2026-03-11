@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore backend/EduAnalyzer.sln
+
+      - name: Build
+        run: dotnet build backend/EduAnalyzer.sln --no-restore -c Release
+
+      - name: Test
+        run: dotnet test backend/EduAnalyzer.sln --no-build -c Release --verbosity normal
+
+  frontend:
+    name: Frontend (Vite + React)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: viewer-app/package-lock.json
+
+      - name: Install
+        run: cd viewer-app && npm ci
+
+      - name: Build
+        run: cd viewer-app && npm run build
+
+      - name: Test
+        run: cd viewer-app && npm run test
+
+  ml-service:
+    name: ML Service (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd ml-service
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test
+        run: |
+          cd $GITHUB_WORKSPACE
+          python -m pytest ml-service/tests/ -v
