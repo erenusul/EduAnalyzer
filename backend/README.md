@@ -33,6 +33,13 @@ dotnet restore
 dotnet build
 ```
 
+## Test
+
+```bash
+cd backend
+dotnet test
+```
+
 ## Çalıştırma
 
 1. ML servisini başlatın (proje kökünden):
@@ -50,10 +57,13 @@ dotnet build
 
 ## Demo Giriş
 
-- **E-posta**: `ogretmen@demo.com`
-- **Şifre**: `demo123`
+| Rol | E-posta | Şifre |
+|-----|---------|-------|
+| Öğretmen | ogretmen@demo.com | demo123 |
+| Öğrenci | ogrenci@demo.com | demo123 |
+| Veli | veli@demo.com | demo123 |
 
-İlk çalıştırmada demo öğretmen ve örnek sınıf/öğrenci verileri otomatik oluşturulur.
+İlk çalıştırmada demo öğretmen, öğrenci, veli ve örnek sınıf/öğrenci verileri otomatik oluşturulur.
 
 ## API Özeti
 
@@ -61,6 +71,8 @@ dotnet build
 |----------|----------|
 | `POST /api/auth/login` | Giriş (JWT döner) |
 | `GET /api/health` | Sağlık kontrolü (ML servisi dahil) |
+| `GET /api/me/results` | Öğrenci: kendi sınav sonuçları |
+| `GET /api/me/children` | Veli: bağlı öğrenciler ve sonuçları |
 | `GET /api/students` | Öğrenci listesi |
 | `GET /api/students/{id}/results` | Öğrenci sınav sonuçları |
 | `GET /api/classes` | Sınıf listesi |
@@ -78,6 +90,9 @@ dotnet build
   "ConnectionStrings": {
     "Default": "Data Source=eduanalyzer.db"
   },
+  "Cors": {
+    "AllowedOrigins": ""
+  },
   "Jwt": {
     "Secret": "En az 32 karakter güçlü secret",
     "Issuer": "EduAnalyzer",
@@ -90,6 +105,8 @@ dotnet build
   }
 }
 ```
+
+**Production:** `appsettings.Production.json` örneğine bakın. CORS için `Cors:AllowedOrigins` (virgülle ayrılmış frontend URL'leri) ve `Jwt__Secret` environment variable zorunludur.
 
 ## Veritabanı
 

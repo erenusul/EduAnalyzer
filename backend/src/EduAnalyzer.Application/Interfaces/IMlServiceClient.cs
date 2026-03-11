@@ -16,6 +16,13 @@ public interface IMlServiceClient
         CancellationToken ct = default);
 
     Task<HealthCheckDto> CheckHealthAsync(CancellationToken ct = default);
+
+    Task<OpticalScanResultDto> ScanOpticalFormAsync(
+        Stream imageStream,
+        int questionCount = 20,
+        CancellationToken ct = default);
 }
 
 public record HealthCheckDto(string Status, bool ModelLoaded, string? Message);
+
+public record OpticalScanResultDto(IReadOnlyList<string> Answers, int QuestionCount);

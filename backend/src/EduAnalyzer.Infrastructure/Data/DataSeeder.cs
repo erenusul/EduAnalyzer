@@ -76,9 +76,11 @@ public static class DataSeeder
             ("1006", "Elif", "Arslan", (Guid?)null)
         };
 
+        Student? ahmetStudent = null;
+        Student? ayseStudent = null;
         foreach (var (no, fn, ln, classId) in students)
         {
-            context.Students.Add(new Student
+            var student = new Student
             {
                 Id = Guid.NewGuid(),
                 TeacherId = teacher.Id,
@@ -86,6 +88,63 @@ public static class DataSeeder
                 FirstName = fn,
                 LastName = ln,
                 ClassId = classId,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Students.Add(student);
+            if (no == "1001") ahmetStudent = student;
+            if (no == "1002") ayseStudent = student;
+        }
+
+        var studentUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "ogrenci@demo.com",
+            DisplayName = "Ahmet Yılmaz",
+            PasswordHash = hash,
+            Role = UserRole.Student,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(studentUser);
+        if (ahmetStudent != null)
+            ahmetStudent.UserId = studentUser.Id;
+
+        var parentUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "veli@demo.com",
+            DisplayName = "Demo Veli",
+            PasswordHash = hash,
+            Role = UserRole.Parent,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(parentUser);
+
+        var parent = new Parent
+        {
+            Id = Guid.NewGuid(),
+            UserId = parentUser.Id,
+            Phone = "05XX XXX XX XX",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Parents.Add(parent);
+
+        if (ahmetStudent != null)
+        {
+            context.StudentParents.Add(new StudentParent
+            {
+                StudentId = ahmetStudent.Id,
+                ParentId = parent.Id,
+                IsPrimary = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        if (ayseStudent != null)
+        {
+            context.StudentParents.Add(new StudentParent
+            {
+                StudentId = ayseStudent.Id,
+                ParentId = parent.Id,
+                IsPrimary = false,
                 CreatedAt = DateTime.UtcNow
             });
         }

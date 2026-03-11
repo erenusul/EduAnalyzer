@@ -73,6 +73,40 @@ public class MlServiceClient : IMlServiceClient
         return MapToDto(raw);
     }
 
+    public async Task<OpticalScanResultDto> ScanOpticalFormAsync(
+        Stream imageStream,
+        int questionCount = 20,
+        CancellationToken ct = default)
+    {
+        await using var ms = new MemoryStream();
+        await imageStream.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent(bytes), "file", "optical-form.jpg");
+        content.Add(new StringContent(questionCount.ToString()), "question_count"); // Python FastAPI Form expects snake_case
+
+        var response = await _httpClient.PostAsync("api/optical-scan", content, ct);
+        var json = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = json;
+            try
+            {
+                var err = JsonSerializer.Deserialize<MlErrorResponse>(json, JsonOptions);
+                detail = err?.Detail ?? json;
+            }
+            catch { /* use raw json */ }
+            throw new HttpRequestException(detail);
+        }
+
+        var raw = JsonSerializer.Deserialize<MlOpticalScanResponse>(json, JsonOptions)
+            ?? throw new InvalidOperationException("ML servisi geçersiz yanıt döndü.");
+
+        return new OpticalScanResultDto(raw.Answers ?? [], raw.QuestionCount);
+    }
+
     public async Task<HealthCheckDto> CheckHealthAsync(CancellationToken ct = default)
     {
         var response = await _httpClient.GetAsync("health", ct);
@@ -133,5 +167,11 @@ public class MlServiceClient : IMlServiceClient
     private class MlErrorResponse
     {
         public string? Detail { get; set; }
+    }
+
+    private class MlOpticalScanResponse
+    {
+        public List<string>? Answers { get; set; }
+        public int QuestionCount { get; set; }
     }
 }

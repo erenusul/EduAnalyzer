@@ -7,6 +7,7 @@ public interface IStudentRepository
     Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByClassIdAsync(Guid classId, CancellationToken ct = default);
+    Task<IReadOnlyList<Student>> GetByParentIdAsync(Guid parentId, CancellationToken ct = default);
     Task<Student> AddAsync(Student entity, CancellationToken ct = default);
     Task UpdateAsync(Student entity, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);

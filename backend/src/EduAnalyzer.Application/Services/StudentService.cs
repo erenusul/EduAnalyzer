@@ -103,7 +103,7 @@ public class StudentService : IStudentService
         return true;
     }
 
-    private static StudentDto MapToDto(Student s) => new(
+    public static StudentDto MapToDto(Student s) => new(
         s.Id,
         s.StudentNo,
         s.FirstName,

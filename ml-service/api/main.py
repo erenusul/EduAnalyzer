@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from ml_service.api.routes import predict, pdf_upload
+from ml_service.api.routes import predict, pdf_upload, optical_scan
 from ml_service.api.schemas import HealthResponse
 from ml_service.config import (
     CHECKPOINTS_DIR,
@@ -91,6 +91,7 @@ app.add_middleware(
 # Include routers
 app.include_router(predict.router, prefix="/api", tags=["prediction"])
 app.include_router(pdf_upload.router, prefix="/api", tags=["pdf-analysis"])
+app.include_router(optical_scan.router, prefix="/api", tags=["optical-scan"])
 
 
 @app.get("/", response_model=HealthResponse)

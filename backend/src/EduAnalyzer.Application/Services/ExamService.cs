@@ -17,6 +17,8 @@ public interface IExamService
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByTeacherAsync(Guid teacherId, CancellationToken ct = default);
+    Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentForSelfAsync(Guid studentId, CancellationToken ct = default);
+    Task<IReadOnlyList<StudentWithResultsDto>> GetStudentsWithResultsForParentAsync(Guid parentId, CancellationToken ct = default);
 }
 
 public class ExamService : IExamService
@@ -101,6 +103,27 @@ public class ExamService : IExamService
     {
         var list = await _resultRepo.GetByTeacherIdAsync(teacherId, ct);
         return list.Select(r => MapResultToDto(r, r.Student, r.Exam)).ToList();
+    }
+
+    public async Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentForSelfAsync(Guid studentId, CancellationToken ct = default)
+    {
+        var student = await _studentRepo.GetByIdAsync(studentId, ct);
+        if (student == null) return [];
+        var list = await _resultRepo.GetByStudentIdAsync(studentId, ct);
+        return list.Select(r => MapResultToDto(r, student, r.Exam)).ToList();
+    }
+
+    public async Task<IReadOnlyList<StudentWithResultsDto>> GetStudentsWithResultsForParentAsync(Guid parentId, CancellationToken ct = default)
+    {
+        var students = await _studentRepo.GetByParentIdAsync(parentId, ct);
+        var result = new List<StudentWithResultsDto>();
+        foreach (var student in students)
+        {
+            var results = await _resultRepo.GetByStudentIdAsync(student.Id, ct);
+            var dtos = results.Select(r => MapResultToDto(r, student, r.Exam)).ToList();
+            result.Add(new StudentWithResultsDto(StudentService.MapToDto(student), dtos));
+        }
+        return result;
     }
 
     public async Task<ExamDto?> UpdateAnswerKeyAsync(Guid examId, Guid teacherId, IReadOnlyList<string> answerKey, CancellationToken ct = default)

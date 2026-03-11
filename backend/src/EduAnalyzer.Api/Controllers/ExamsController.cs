@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using EduAnalyzer.Application.DTOs;
+using EduAnalyzer.Application.Interfaces;
 using EduAnalyzer.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,8 +13,13 @@ namespace EduAnalyzer.Api.Controllers;
 public class ExamsController : ControllerBase
 {
     private readonly IExamService _service;
+    private readonly IMlServiceClient _mlClient;
 
-    public ExamsController(IExamService service) => _service = service;
+    public ExamsController(IExamService service, IMlServiceClient mlClient)
+    {
+        _service = service;
+        _mlClient = mlClient;
+    }
 
     private Guid TeacherId => Guid.Parse(User.FindFirstValue("TeacherId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -57,6 +63,29 @@ public class ExamsController : ControllerBase
     [HttpPost("{id:guid}/results/scan")]
     public async Task<ActionResult<ScanExamResponse>> ScanResult(Guid id, [FromBody] ScanExamRequest request, CancellationToken ct)
     {
+        var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
+        return Ok(response);
+    }
+
+    [HttpPost("{id:guid}/results/scan-image")]
+    public async Task<ActionResult<ScanExamResponse>> ScanImage(
+        Guid id,
+        [FromForm] Guid studentId,
+        [FromForm] IFormFile file,
+        [FromForm] int? questionCount,
+        CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("Görsel dosyası gerekli.");
+
+        var exam = await _service.GetByIdAsync(id, TeacherId, ct);
+        if (exam == null) return NotFound();
+        var count = questionCount ?? exam.AnswerKey?.Count ?? 20;
+
+        await using var stream = file.OpenReadStream();
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(stream, count, ct);
+
+        var request = new ScanExamRequest(studentId, ocrResult.Answers);
         var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
         return Ok(response);
     }

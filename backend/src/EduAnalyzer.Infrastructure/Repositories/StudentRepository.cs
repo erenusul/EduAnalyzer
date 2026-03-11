@@ -31,6 +31,16 @@ public class StudentRepository : IStudentRepository
             .OrderBy(s => s.StudentNo)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Student>> GetByParentIdAsync(Guid parentId, CancellationToken ct = default)
+    {
+        var pairs = await _context.StudentParents
+            .Include(sp => sp.Student)
+            .ThenInclude(s => s!.Class)
+            .Where(sp => sp.ParentId == parentId)
+            .ToListAsync(ct);
+        return pairs.Select(sp => sp.Student).OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList();
+    }
+
     public async Task<Student> AddAsync(Student entity, CancellationToken ct = default)
     {
         _context.Students.Add(entity);

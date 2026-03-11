@@ -39,12 +39,23 @@ builder.Services.AddSwaggerGen(c =>
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? "Data Source=eduanalyzer.db";
-builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(connectionString));
+builder.Services.AddDbContext<AppDbContext>(o =>
+{
+    if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+        o.UseNpgsql(connectionString);
+    else
+        o.UseSqlite(connectionString);
+});
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<MlServiceOptions>(builder.Configuration.GetSection(MlServiceOptions.SectionName));
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "EduAnalyzer-SuperSecretKey-ChangeInProduction-Min32Chars";
+var isDevelopment = builder.Environment.IsDevelopment();
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? (isDevelopment ? "EduAnalyzer-SuperSecretKey-ChangeInProduction-Min32Chars" : null);
+if (string.IsNullOrEmpty(jwtSecret))
+    throw new InvalidOperationException("Jwt:Secret must be set in Production (appsettings or Jwt__Secret env var)");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
@@ -79,13 +90,23 @@ builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 
+var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"] ?? "";
+
 builder.Services.AddCors(o =>
 {
     o.AddDefaultPolicy(p =>
     {
-        p.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        p.AllowAnyMethod().AllowAnyHeader();
+        if (isDevelopment && string.IsNullOrWhiteSpace(allowedOrigins))
+            p.AllowAnyOrigin();
+        else
+        {
+            var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (origins.Length > 0)
+                p.WithOrigins(origins);
+            else if (isDevelopment)
+                p.AllowAnyOrigin();
+        }
     });
 });
 

@@ -24,6 +24,8 @@ public record ScanExamResponse(
     IReadOnlyList<WrongTopicDto> WrongTopics
 );
 
+public record StudentWithResultsDto(StudentDto Student, IReadOnlyList<ExamResultDto> Results);
+
 public record ExamResultDto(
     Guid Id,
     Guid StudentId,

@@ -88,9 +88,17 @@ public class AuthService : IAuthService
         };
         if (user.Role == UserRole.Teacher)
         {
-            var teacher = await _teacherRepo.GetByUserIdAsync(user.Id, default);
+            var teacher = await _teacherRepo.GetByUserIdAsync(user.Id, ct);
             if (teacher != null)
                 claims.Add(new Claim("TeacherId", teacher.Id.ToString()));
+        }
+        else if (user.Role == UserRole.Student && user.Student != null)
+        {
+            claims.Add(new Claim("StudentId", user.Student.Id.ToString()));
+        }
+        else if (user.Role == UserRole.Parent && user.Parent != null)
+        {
+            claims.Add(new Claim("ParentId", user.Parent.Id.ToString()));
         }
         var token = new JwtSecurityToken(
             _jwtOptions.Issuer,
