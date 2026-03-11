@@ -11,8 +11,10 @@ public interface IExamService
     Task<ExamDto?> GetByIdAsync(Guid id, Guid teacherId, CancellationToken ct = default);
     Task<ExamDto?> GetByAnalysisIdAsync(Guid analysisId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamDto>> GetByTeacherAsync(Guid teacherId, CancellationToken ct = default);
+    Task<IReadOnlyList<ExamDto>> GetExamsAvailableForStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<ExamDto?> UpdateAnswerKeyAsync(Guid examId, Guid teacherId, IReadOnlyList<string> answerKey, CancellationToken ct = default);
     Task<ScanExamResponse> ScanAndSaveResultAsync(Guid examId, Guid teacherId, ScanExamRequest request, CancellationToken ct = default);
+    Task<ScanExamResponse> SubmitScanForStudentAsync(Guid examId, Guid studentId, Stream imageStream, int? questionCount, CancellationToken ct = default);
     Task<ExamResultDto> AddExamResultAsync(Guid teacherId, CreateExamResultRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
@@ -26,15 +28,18 @@ public class ExamService : IExamService
     private readonly IExamRepository _examRepo;
     private readonly IExamResultRepository _resultRepo;
     private readonly IStudentRepository _studentRepo;
+    private readonly IMlServiceClient _mlClient;
 
     public ExamService(
         IExamRepository examRepo,
         IExamResultRepository resultRepo,
-        IStudentRepository studentRepo)
+        IStudentRepository studentRepo,
+        IMlServiceClient mlClient)
     {
         _examRepo = examRepo;
         _resultRepo = resultRepo;
         _studentRepo = studentRepo;
+        _mlClient = mlClient;
     }
 
     public async Task<ExamDto?> GetByIdAsync(Guid id, Guid teacherId, CancellationToken ct = default)
@@ -55,6 +60,24 @@ public class ExamService : IExamService
     {
         var list = await _examRepo.GetByTeacherIdAsync(teacherId, ct);
         return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<IReadOnlyList<ExamDto>> GetExamsAvailableForStudentAsync(Guid studentId, CancellationToken ct = default)
+    {
+        var student = await _studentRepo.GetByIdAsync(studentId, ct);
+        if (student == null) return [];
+
+        var exams = await _examRepo.GetByTeacherIdAsync(student.TeacherId, ct);
+        var results = await _resultRepo.GetByStudentIdAsync(studentId, ct);
+        var submittedExamIds = results.Select(r => r.ExamId).ToHashSet();
+
+        return exams
+            .Where(e =>
+                e.Status == ExamStatus.Ready &&
+                !submittedExamIds.Contains(e.Id) &&
+                (e.Analysis.ClassId == null || e.Analysis.ClassId == student.ClassId))
+            .Select(MapToDto)
+            .ToList();
     }
 
     public async Task<ExamResultDto> AddExamResultAsync(Guid teacherId, CreateExamResultRequest request, CancellationToken ct = default)
@@ -223,6 +246,49 @@ public class ExamService : IExamService
             answerKey.Count,
             wrongQuestions,
             wrongTopics
+        );
+    }
+
+    public async Task<ScanExamResponse> SubmitScanForStudentAsync(
+        Guid examId,
+        Guid studentId,
+        Stream imageStream,
+        int? questionCount,
+        CancellationToken ct = default)
+    {
+        var student = await _studentRepo.GetByIdAsync(studentId, ct)
+            ?? throw new UnauthorizedAccessException("Öğrenci bulunamadı.");
+
+        var exam = await _examRepo.GetByIdAsync(examId, ct)
+            ?? throw new KeyNotFoundException("Sınav bulunamadı.");
+
+        if (exam.TeacherId != student.TeacherId)
+            throw new UnauthorizedAccessException("Bu sınava erişim yetkiniz yok.");
+
+        if (exam.Status != ExamStatus.Ready)
+            throw new InvalidOperationException("Bu sınav henüz cevap gönderimine açık değil.");
+
+        if (exam.Analysis.ClassId != null && exam.Analysis.ClassId != student.ClassId)
+            throw new UnauthorizedAccessException("Bu sınav sizin sınıfınıza ait değil.");
+
+        var existingResults = await _resultRepo.GetByStudentIdAsync(studentId, ct);
+        if (existingResults.Any(r => r.ExamId == examId))
+            throw new InvalidOperationException("Bu sınav için sonucunuz zaten kaydedilmiş.");
+
+        var answerKey = string.IsNullOrEmpty(exam.AnswerKeyJson)
+            ? new List<string>()
+            : JsonSerializer.Deserialize<List<string>>(exam.AnswerKeyJson) ?? new List<string>();
+
+        var count = questionCount ?? answerKey.Count;
+        if (count <= 0)
+            count = 20;
+
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, ct);
+        return await ScanAndSaveResultAsync(
+            examId,
+            exam.TeacherId,
+            new ScanExamRequest(studentId, ocrResult.Answers),
+            ct
         );
     }
 

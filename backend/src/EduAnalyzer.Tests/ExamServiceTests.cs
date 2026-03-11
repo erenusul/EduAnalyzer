@@ -18,8 +18,9 @@ public class ExamServiceTests
 
         var examRepo = new Mock<IExamRepository>();
         var resultRepo = new Mock<IExamResultRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
 
-        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object);
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
 
         var result = await service.GetResultsByStudentForSelfAsync(studentId);
 
@@ -38,8 +39,9 @@ public class ExamServiceTests
 
         var examRepo = new Mock<IExamRepository>();
         var resultRepo = new Mock<IExamResultRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
 
-        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object);
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
 
         var result = await service.GetStudentsWithResultsForParentAsync(parentId);
 
@@ -95,10 +97,11 @@ public class ExamServiceTests
 
         var examRepo = new Mock<IExamRepository>();
         var resultRepo = new Mock<IExamResultRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
         resultRepo.Setup(x => x.GetByStudentIdAsync(student.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ExamResult> { examResult });
 
-        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object);
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
 
         var result = await service.GetStudentsWithResultsForParentAsync(parentId);
 

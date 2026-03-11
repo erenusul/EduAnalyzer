@@ -15,16 +15,63 @@ public class MeController : ControllerBase
 
     public MeController(IExamService examService) => _examService = examService;
 
+    private Guid? StudentIdOrNull
+    {
+        get
+        {
+            var studentIdStr = User.FindFirstValue("StudentId");
+            return Guid.TryParse(studentIdStr, out var studentId) ? studentId : null;
+        }
+    }
+
     [HttpGet("results")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<IReadOnlyList<ExamResultDto>>> GetMyResults(CancellationToken ct)
     {
-        var studentIdStr = User.FindFirstValue("StudentId");
-        if (string.IsNullOrEmpty(studentIdStr) || !Guid.TryParse(studentIdStr, out var studentId))
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
             return Forbid();
 
-        var list = await _examService.GetResultsByStudentForSelfAsync(studentId, ct);
+        var list = await _examService.GetResultsByStudentForSelfAsync(studentId.Value, ct);
         return Ok(list);
+    }
+
+    [HttpGet("exams")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<IReadOnlyList<ExamDto>>> GetMyAvailableExams(CancellationToken ct)
+    {
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
+            return Forbid();
+
+        var list = await _examService.GetExamsAvailableForStudentAsync(studentId.Value, ct);
+        return Ok(list);
+    }
+
+    [HttpPost("exams/{id:guid}/submit-scan")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ScanExamResponse>> SubmitScan(
+        Guid id,
+        [FromForm] IFormFile file,
+        [FromForm] int? questionCount,
+        CancellationToken ct)
+    {
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
+            return Forbid();
+
+        if (file == null || file.Length == 0)
+            return BadRequest("Görsel dosyası gerekli.");
+
+        await using var stream = file.OpenReadStream();
+        var response = await _examService.SubmitScanForStudentAsync(
+            id,
+            studentId.Value,
+            stream,
+            questionCount,
+            ct
+        );
+        return Ok(response);
     }
 
     [HttpGet("children")]
