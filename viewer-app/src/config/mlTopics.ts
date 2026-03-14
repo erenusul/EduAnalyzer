@@ -8,6 +8,10 @@ import { SUBJECTS } from './constants';
 
 export const ML_TOPICS_BY_SUBJECT: Record<SubjectCode, readonly string[]> = {
   turkce: [
+    'Paragraf Bilgisi',
+    'Anlatım Biçimleri',
+    'Düşünceyi Geliştirme Yolları',
+    'Anlatım Bozuklukları',
     'Cümle Türleri',
     'Fiilimsiler',
     'Noktalama İşaretleri',
@@ -25,7 +29,6 @@ export const ML_TOPICS_BY_SUBJECT: Record<SubjectCode, readonly string[]> = {
     'Sözcükler Arası Anlam İlişkileri',
     'Sözcükte Anlam',
     'Sözel Mantık',
-    'Yapısal Anlatım Bozuklukları',
   ],
   matematik: [
     'Tam Sayılar',

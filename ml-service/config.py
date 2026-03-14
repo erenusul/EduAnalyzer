@@ -62,6 +62,10 @@ SUBJECTS: Dict[str, str] = {
 # Other subjects will be added as data becomes available
 SUBJECT_TOPICS: Dict[str, List[str]] = {
     "turkce": [
+        "Paragraf Bilgisi",
+        "Anlatım Biçimleri",
+        "Düşünceyi Geliştirme Yolları",
+        "Anlatım Bozuklukları",
         "Cümle Türleri",
         "Fiilimsiler",
         "Noktalama İşaretleri",
@@ -79,7 +83,6 @@ SUBJECT_TOPICS: Dict[str, List[str]] = {
         "Sözcükler Arası Anlam İlişkileri",
         "Sözcükte Anlam",
         "Sözel Mantık",
-        "Yapısal Anlatım Bozuklukları",
     ],
     "matematik": [
         "Tam Sayılar",

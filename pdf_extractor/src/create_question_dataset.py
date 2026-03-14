@@ -2,6 +2,8 @@
 Çıkmış sorular PDF'lerinden dataset oluşturma scripti
 """
 import json
+import re
+import unicodedata
 from pathlib import Path
 from typing import List, Dict
 from .question_parser import process_all_pdf_questions, Question
@@ -42,6 +44,27 @@ def normalize_topic_name(topic: str) -> str:
     """
     # Konu mapping'leri - benzer konuları birleştir
     topic_mapping = {
+        # Yeni eksik konu kümeleri
+        "Paragraf Bilgisi": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Ana fikir)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Başlık)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Konu)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Yardımcı Fikir)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Paragraf Tamamlama)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Paragraf Oluşturma ve Sıralama)": "Paragraf Bilgisi",
+        "paragraf bilgisi": "Paragraf Bilgisi",
+        "paragraf": "Paragraf Bilgisi",
+        "Anlatım Biçimleri": "Anlatım Biçimleri",
+        "anlatım biçimleri": "Anlatım Biçimleri",
+        "anlatim bicimleri": "Anlatım Biçimleri",
+        "Düşünceyi Geliştirme Yolları": "Düşünceyi Geliştirme Yolları",
+        "düşünceyi geliştirme yolları": "Düşünceyi Geliştirme Yolları",
+        "dusunceyi gelistirme yollari": "Düşünceyi Geliştirme Yolları",
+        "Anlatım Bozuklukları": "Anlatım Bozuklukları",
+        "anlatım bozuklukları": "Anlatım Bozuklukları",
+        "anlatim bozukluklari": "Anlatım Bozuklukları",
+        "Yapısal Anlatım Bozuklukları": "Anlatım Bozuklukları",
+        "yapisal anlatim bozukluklari": "Anlatım Bozuklukları",
         # Noktalama birleştirme
         "Noktalama": "Noktalama İşaretleri",
         "noktalama": "Noktalama İşaretleri",
@@ -56,16 +79,43 @@ def normalize_topic_name(topic: str) -> str:
     }
     
     # Mapping'de varsa kullan
-    topic_normalized = topic.strip()
+    topic_normalized = unicodedata.normalize("NFKD", topic).strip()
+    topic_normalized = "".join(ch for ch in topic_normalized if not unicodedata.combining(ch))
     if topic_normalized in topic_mapping:
         return topic_mapping[topic_normalized]
     
     # Büyük/küçük harf duyarsız kontrol
     topic_lower = topic_normalized.lower()
+    topic_simplified = re.sub(r"[^a-z0-9 ]+", "", topic_lower)
     for key, value in topic_mapping.items():
-        if key.lower() == topic_lower:
+        key_normalized = unicodedata.normalize("NFKD", key).lower()
+        key_normalized = "".join(ch for ch in key_normalized if not unicodedata.combining(ch))
+        key_simplified = re.sub(r"[^a-z0-9 ]+", "", key_normalized)
+        if key_normalized == topic_lower or key_simplified == topic_simplified:
             return value
-    
+
+    legacy_mapping = {
+        "anlatimbozuklugu": "Anlatım Bozuklukları",
+        "edatbaglacunlem": "Edat Bağlaç Ünlem",
+        "isimler": "İsimler",
+        "sesbilgisi": "Ses Bilgisi",
+        "sifatlar": "Sıfatlar",
+        "sozcukteyapi": "Sözcükte Yapı",
+        "zamirler": "Zamirler",
+        "zarflar": "Zarflar",
+    }
+    normalized_compact = (
+        topic_simplified.replace("ı", "i")
+        .replace("ğ", "g")
+        .replace("ü", "u")
+        .replace("ş", "s")
+        .replace("ö", "o")
+        .replace("ç", "c")
+        .replace(" ", "")
+    )
+    if normalized_compact in legacy_mapping:
+        return legacy_mapping[normalized_compact]
+
     return topic_normalized
 
 
@@ -148,11 +198,15 @@ def create_question_dataset(merge_existing: bool = True):
         merge_existing: Mevcut dataset ile birleştirilsin mi (varsayılan: True)
     """
     
-    # PDF dizini (proje kök dizini)
-    pdf_dir = PROJECT_ROOT
+    # PDF dizini (repo kök dizini)
+    source_root = PROJECT_ROOT.parent
+    pdf_dir = source_root
     
-    # Yeni PDF klasörünü de ekle
-    new_pdf_dir = PROJECT_ROOT / "15.02.2026_son_veriler"
+    # Mevcut dataset üstüne eklenecek küratörlü yeni veri klasörü
+    curated_pdf_dir = source_root / "eksik_konular"
+    
+    # Geniş kapsamlı PDF klasörü; yalnızca sıfırdan dataset üretiminde kullan
+    new_pdf_dir = source_root / "15.02.2026_son_veriler"
     
     # Dataset çıktı yolu
     output_path = PROCESSED_DIR / "question_dataset.json"
@@ -176,16 +230,32 @@ def create_question_dataset(merge_existing: bool = True):
     use_ocr = os.getenv("USE_OCR", "false").lower() == "true"
     if use_ocr:
         print("🔍 OCR modu aktif - görsellerden metin çıkarılacak...")
-    
-    # Ana dizinden soruları çıkar
-    new_questions = process_all_pdf_questions(pdf_dir, include_subdirs=True, use_ocr=use_ocr)
-    
-    # Yeni PDF klasöründen de soruları çıkar
-    if new_pdf_dir.exists():
-        print(f"\n📚 Yeni PDF klasörü taranıyor: {new_pdf_dir.name}")
-        new_pdf_questions = process_all_pdf_questions(new_pdf_dir, include_subdirs=False, use_ocr=use_ocr)
-        print(f"✓ Yeni klasörden {len(new_pdf_questions)} soru çıkarıldı")
-        new_questions.extend(new_pdf_questions)
+
+    new_questions = []
+    if merge_existing and existing_questions:
+        # Mevcut dataset korunurken yalnızca yeni, küratörlü PDF'ler eklenir.
+        if curated_pdf_dir.exists():
+            print(f"\n📚 Küratörlü yeni PDF klasörü taranıyor: {curated_pdf_dir.name}")
+            curated_questions = process_all_pdf_questions(
+                curated_pdf_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ Küratörlü klasörden {len(curated_questions)} soru çıkarıldı")
+            new_questions.extend(curated_questions)
+    else:
+        # İlk kurulumda tüm proje kaynaklarını tara.
+        new_questions = process_all_pdf_questions(pdf_dir, include_subdirs=True, use_ocr=use_ocr)
+
+        if new_pdf_dir.exists():
+            print(f"\n📚 Yeni PDF klasörü taranıyor: {new_pdf_dir.name}")
+            new_pdf_questions = process_all_pdf_questions(
+                new_pdf_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ Yeni klasörden {len(new_pdf_questions)} soru çıkarıldı")
+            new_questions.extend(new_pdf_questions)
     
     print(f"\n📊 {len(new_questions)} soru çıkarıldı")
     
@@ -199,35 +269,29 @@ def create_question_dataset(merge_existing: bool = True):
     
     print(f"\n📊 Toplam {len(new_questions)} soru (yeni + örnek)")
     
-    # Soruları birleştir (Question objeleri olarak)
+    # Soruları birleştir (duplicate kontrolü ile)
     if merge_existing and existing_questions:
-        # Mevcut soruları Question objelerine çevir
-        existing_question_objs = []
-        for q_dict in existing_questions:
-            try:
-                q_obj = Question(
-                    question_id=q_dict.get("question_id", ""),
-                    question_text=q_dict.get("question_text", ""),
-                    options=q_dict.get("options", []),
-                    topic=q_dict.get("topic", ""),
-                    correct_answer=q_dict.get("correct_answer"),
-                    exam_info=q_dict.get("exam_info"),
-                    question_number=q_dict.get("question_number"),
-                    source_pdf=q_dict.get("source_pdf", "")
-                )
-                existing_question_objs.append(q_obj)
-            except:
-                pass
-        
-        all_questions = existing_question_objs + new_questions
+        all_questions = merge_questions(existing_questions, new_questions)
         print(f"📊 Toplam {len(all_questions)} soru (yeni: {len(new_questions)})")
     else:
-        all_questions = new_questions
+        all_questions = [q.to_dict() for q in new_questions]
         print(f"📊 Toplam {len(all_questions)} soru")
     
     # Data augmentation uygula (Question objeleri üzerinde)
     print("\n🔄 Data augmentation uygulanıyor...")
-    all_questions = apply_data_augmentation(all_questions)
+    all_questions = apply_data_augmentation([
+        q if isinstance(q, Question) else Question(
+            question_id=q.get("question_id", ""),
+            question_text=q.get("question_text", ""),
+            options=q.get("options", []),
+            topic=q.get("topic", ""),
+            correct_answer=q.get("correct_answer"),
+            exam_info=q.get("exam_info"),
+            question_number=q.get("question_number"),
+            source_pdf=q.get("source_pdf", "")
+        )
+        for q in all_questions
+    ])
     
     # Dataset'i temizle ve normalize et (dict'e çevir)
     print("\n🧹 Dataset temizleniyor ve normalize ediliyor...")

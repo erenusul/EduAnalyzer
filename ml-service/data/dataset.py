@@ -3,6 +3,7 @@ PyTorch Dataset classes for question classification
 """
 import json
 import re
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -25,7 +26,7 @@ from ml_service.data.preprocessor import TextPreprocessor
 
 
 def _normalize_topic(topic: str) -> str:
-    topic = (topic or "").strip().lower()
+    topic = unicodedata.normalize("NFKD", (topic or "")).strip().lower()
     replacements = {
         "ı": "i",
         "ğ": "g",
@@ -42,6 +43,7 @@ def _normalize_topic(topic: str) -> str:
     }
     for old, new in replacements.items():
         topic = topic.replace(old, new)
+    topic = "".join(ch for ch in topic if not unicodedata.combining(ch))
     topic = re.sub(r"[^a-z0-9 ]+", "", topic)
     topic = re.sub(r"\s+", " ", topic).strip()
     return topic
@@ -50,6 +52,27 @@ def _normalize_topic(topic: str) -> str:
 def _canonicalize_topic(topic: str) -> str:
     normalized = _normalize_topic(topic)
     aliases = {
+        "paragraf": "Paragraf Bilgisi",
+        "paragraf bilgisi": "Paragraf Bilgisi",
+        "paragraf ana fikir": "Paragraf Bilgisi",
+        "paragraf anafikir": "Paragraf Bilgisi",
+        "paragraf baslik": "Paragraf Bilgisi",
+        "paragraf konu": "Paragraf Bilgisi",
+        "paragraf yardimci fikir": "Paragraf Bilgisi",
+        "paragraf paragraf tamamlama": "Paragraf Bilgisi",
+        "paragraf paragraf olusturma ve siralama": "Paragraf Bilgisi",
+        "paragraf bilgisi ana fikir": "Paragraf Bilgisi",
+        "paragraf bilgisi anafikir": "Paragraf Bilgisi",
+        "paragraf bilgisi baslik": "Paragraf Bilgisi",
+        "paragraf bilgisi konu": "Paragraf Bilgisi",
+        "paragraf bilgisi yardimci fikir": "Paragraf Bilgisi",
+        "paragraf bilgisi paragraf tamamlama": "Paragraf Bilgisi",
+        "paragraf bilgisi paragraf olusturma ve siralama": "Paragraf Bilgisi",
+        "anlatim bicimleri": "Anlatım Biçimleri",
+        "dusunceyi gelistirme yollari": "Düşünceyi Geliştirme Yolları",
+        "anlatim bozuklugu": "Anlatım Bozuklukları",
+        "anlatim bozukluklari": "Anlatım Bozuklukları",
+        "yapisal anlatim bozukluklari": "Anlatım Bozuklukları",
         "noktalama": "Noktalama İşaretleri",
         "noktalamaisaretleri": "Noktalama İşaretleri",
         "cumlede anlam": "Cümlede Anlam",
@@ -63,6 +86,8 @@ def _canonicalize_topic(topic: str) -> str:
         "atasozleri": "Deyimler ve Atasözleri",
         "gecis ve baglanti ifadeleri": "Geçiş ve Bağlantı İfadeleri",
         "sozcukler arasi anlam iliskileri": "Sözcükler Arası Anlam İlişkileri",
+        "gorsel okuma ve grafik tablo": "Görsel Okuma ve Grafik Tablo",
+        "cumlenin ogeleri": "Öge",
     }
     if normalized in aliases:
         return aliases[normalized]

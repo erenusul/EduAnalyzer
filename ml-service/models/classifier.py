@@ -3,6 +3,7 @@ BERTurk-based classifier for question classification
 """
 import json
 import re
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -206,7 +207,7 @@ class QuestionClassifier:
     def _normalize_label_key(label: str) -> str:
         if not label:
             return ""
-        normalized = label.lower().strip()
+        normalized = unicodedata.normalize("NFKD", label).lower().strip()
         replacements = {
             "ı": "i",
             "ğ": "g",
@@ -223,6 +224,7 @@ class QuestionClassifier:
         }
         for old, new in replacements.items():
             normalized = normalized.replace(old, new)
+        normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
         normalized = re.sub(r"[^a-z0-9]+", "", normalized, flags=re.IGNORECASE)
         return normalized
 
@@ -233,6 +235,19 @@ class QuestionClassifier:
             return ""
 
         alias = {
+            "paragraf": "Paragraf Bilgisi",
+            "paragrafbilgisi": "Paragraf Bilgisi",
+            "paragrafbilgisianafikir": "Paragraf Bilgisi",
+            "paragrafbilgisibaslik": "Paragraf Bilgisi",
+            "paragrafbilgisikonu": "Paragraf Bilgisi",
+            "paragrafbilgisiyardimcifikir": "Paragraf Bilgisi",
+            "paragrafbilgisiparagraftamamlama": "Paragraf Bilgisi",
+            "paragrafbilgisiparagrafolusturmavesiralama": "Paragraf Bilgisi",
+            "anlatimbicimleri": "Anlatım Biçimleri",
+            "dusunceyigelistirmeyollari": "Düşünceyi Geliştirme Yolları",
+            "anlatimbozuklugu": "Anlatım Bozuklukları",
+            "anlatimbozukluklari": "Anlatım Bozuklukları",
+            "yapisalanlatimbozukluklari": "Anlatım Bozuklukları",
             "noktalama": "Noktalama İşaretleri",
             "noktalamaisaretleri": "Noktalama İşaretleri",
             "cumledesozlugu": "Cümlede Vurgu",
@@ -573,6 +588,23 @@ class QuestionClassifier:
         
         # Keyword mappings for Turkish topics
         keyword_mappings = {
+            "Paragraf Bilgisi": [
+                "paragraf", "parçada", "metne göre", "ana fikir", "yardımcı fikir",
+                "başlık", "paragraf tamamlama", "paragraf oluşturma", "paragraf sıralama",
+                "çıkarılamaz", "ulaşılabilir", "değinilmiştir"
+            ],
+            "Anlatım Biçimleri": [
+                "anlatım biçimi", "açıklama", "tartışma", "betimleme", "öyküleme",
+                "bu parçada kullanılan anlatım biçimi", "anlatım biçimlerinden hangisi"
+            ],
+            "Düşünceyi Geliştirme Yolları": [
+                "tanımlama", "örnekleme", "karşılaştırma", "tanık gösterme", "benzetme",
+                "sayısal verilerden", "düşünceyi geliştirme", "aşağıdakilerden hangisine başvurulmuştur"
+            ],
+            "Anlatım Bozuklukları": [
+                "anlatım bozukluğu", "gereksiz sözcük", "çelişen ifade", "özne yüklem",
+                "tamlama bozukluğu", "anlam belirsizliği", "hangi anlatım bozukluğu"
+            ],
             "Söz Sanatları": [
                 "benzetme", "teşbih", "mecaz", "istiare", "kinaye", "mübalağa",
                 "tezat", "tenasüp", "tecahül", "hüsn-i talil", "teşhis", "intak",

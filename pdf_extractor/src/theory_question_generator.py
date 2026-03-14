@@ -33,7 +33,10 @@ def extract_topic_from_theory_filename(filename: str) -> str:
         "fiildecati": "Fiil Çatıları",
         "sozcukteanlam": "Sözcükte Anlam",
         "metinturleri": "Metin Türleri",
-        "paragraf": "Metinde Anlam",
+        "paragraf": "Paragraf Bilgisi",
+        "anlatimbozukluklari": "Anlatım Bozuklukları",
+        "anlatimbicimleri": "Anlatım Biçimleri",
+        "dusunceyigelistirmeyollari": "Düşünceyi Geliştirme Yolları",
     }
     
     return topic_mapping.get(topic, "Bilinmeyen")

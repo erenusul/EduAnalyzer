@@ -3,6 +3,7 @@
 """
 import fitz  # PyMuPDF
 import re
+import unicodedata
 from pathlib import Path
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
@@ -84,6 +85,29 @@ def extract_topic_from_filename(filename: str) -> str:
     
     # Özel durumlar - dosya adından konu mapping
     topic_mapping = {
+        "PARAGRAF BILGISI": "Paragraf Bilgisi",
+        "paragraf bilgisi": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Ana Fikir)": "Paragraf Bilgisi",
+        "paragraf bilgisi (ana fikir)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Başlık)": "Paragraf Bilgisi",
+        "paragraf bilgisi (başlık)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Konu)": "Paragraf Bilgisi",
+        "paragraf bilgisi (konu)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Yardımcı Fikir)": "Paragraf Bilgisi",
+        "paragraf bilgisi (yardımcı fikir)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Paragraf Tamamlama)": "Paragraf Bilgisi",
+        "paragraf bilgisi (paragraf tamamlama)": "Paragraf Bilgisi",
+        "Paragraf Bilgisi (Paragraf Oluşturma Ve Sıralama)": "Paragraf Bilgisi",
+        "paragraf bilgisi (paragraf oluşturma ve sıralama)": "Paragraf Bilgisi",
+        "ANLATIM BICIMLERI": "Anlatım Biçimleri",
+        "anlatım biçimleri": "Anlatım Biçimleri",
+        "anlatim bicimleri": "Anlatım Biçimleri",
+        "DUSUNCEYI GELISTIRME YOLLARI": "Düşünceyi Geliştirme Yolları",
+        "düşünceyi geliştirme yolları": "Düşünceyi Geliştirme Yolları",
+        "dusunceyi gelistirme yollari": "Düşünceyi Geliştirme Yolları",
+        "ANLATIM BOZUKLUKLARI": "Anlatım Bozuklukları",
+        "anlatım bozuklukları": "Anlatım Bozuklukları",
+        "anlatim bozukluklari": "Anlatım Bozuklukları",
         "YAZIM KURALLARI": "Yazım Kuralları",
         "yazim kurallari": "Yazım Kuralları",
         "FIILIMSI": "Fiilimsiler",
@@ -130,8 +154,8 @@ def extract_topic_from_filename(filename: str) -> str:
         "sozcukte anlam": "Sözcükte Anlam",
         "Sozel Mantik": "Sözel Mantık",
         "sozel mantik": "Sözel Mantık",
-        "Yapisal Anlatim Bozukluklari": "Yapısal Anlatım Bozuklukları",
-        "yapisal anlatim bozukluklari": "Yapısal Anlatım Bozuklukları",
+        "Yapisal Anlatim Bozukluklari": "Anlatım Bozuklukları",
+        "yapisal anlatim bozukluklari": "Anlatım Bozuklukları",
         "Cumlenin Ogeleri": "Öge",
         "cumlenin ogeleri": "Öge",
         "cumlenin-ogeleri": "Öge",
@@ -155,7 +179,9 @@ def extract_topic_from_filename(filename: str) -> str:
     # Önce mapping'deki benzerleri kontrol et (normalize edilmiş karşılaştırma)
     def normalize_text(text: str) -> str:
         """Metni normalize eder (Türkçe karakterleri kaldırır, küçük harfe çevirir)"""
-        return text.lower().replace("ı", "i").replace("ğ", "g").replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c").replace(" ", "")
+        text = unicodedata.normalize("NFKD", text).lower()
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
+        return text.replace("ı", "i").replace("ğ", "g").replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c").replace(" ", "")
     
     normalized_topic = normalize_text(topic)
     for key, value in topic_mapping.items():
@@ -217,7 +243,7 @@ def extract_topic_from_text(text: str) -> Optional[str]:
     patterns = [
         r"([A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)+)\s*/\s*Çıkmış\s*Sorular",
         r"([A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)+)\s*/\s*Çıkmış",
-        r"(Yazım\s+Kuralları|Fiilimsiler?|Cümle\s+Türleri|Noktalama|Metin\s+Türleri|Söz\s+Sanatları|Öge|Fiil\s+Çatıları)",
+        r"(Paragraf\s+Bilgisi|Anlatım\s+Biçimleri|Düşünceyi\s+Geliştirme\s+Yolları|Anlatım\s+Bozuklukları|Yazım\s+Kuralları|Fiilimsiler?|Cümle\s+Türleri|Noktalama|Metin\s+Türleri|Söz\s+Sanatları|Öge|Fiil\s+Çatıları)",
     ]
     
     for pattern in patterns:

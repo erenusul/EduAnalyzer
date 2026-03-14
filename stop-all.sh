@@ -68,6 +68,9 @@ if command -v pkill >/dev/null 2>&1; then
   if pkill -f "dotnet.*EduAnalyzer.Api" 2>/dev/null; then
     stopped_any=1
   fi
+  if pkill -f "/EduAnalyzer.Api" 2>/dev/null; then
+    stopped_any=1
+  fi
   if pkill -f "vite" 2>/dev/null; then
     stopped_any=1
   fi

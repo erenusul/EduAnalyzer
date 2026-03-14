@@ -25,8 +25,13 @@ HEALTH_CHECK_STEP_SECONDS=2
 BACKEND_READY=0
 ML_READY=0
 FRONTEND_READY=0
+BACKEND_PID=""
 ML_PID=""
 FRONTEND_PID=""
+BACKEND_BUILD_CONFIG="Release"
+BACKEND_OUTPUT_DIR="$ROOT/backend/src/EduAnalyzer.Api/bin/$BACKEND_BUILD_CONFIG/net8.0"
+BACKEND_APPHOST="$BACKEND_OUTPUT_DIR/EduAnalyzer.Api"
+BACKEND_DLL="$BACKEND_OUTPUT_DIR/EduAnalyzer.Api.dll"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -99,6 +104,29 @@ start_frontend_service() {
     fi
   fi
   cd "$ROOT"
+}
+
+start_backend_service() {
+  echo "     Backend başlatılıyor (port 5131)..."
+
+  if [ -x "$BACKEND_APPHOST" ]; then
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development \
+    ASPNETCORE_URLS="http://0.0.0.0:5131" \
+      "$BACKEND_APPHOST" &
+  elif [ -f "$BACKEND_DLL" ]; then
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development \
+    ASPNETCORE_URLS="http://0.0.0.0:5131" \
+      dotnet "$BACKEND_DLL" &
+  else
+    fail_and_stop_all "HATA: Backend build çıktısı bulunamadı."
+  fi
+
+  BACKEND_PID=$!
+  if [ -z "$BACKEND_PID" ] || ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    fail_and_stop_all "HATA: Backend başlatılamadı."
+  fi
 }
 
 echo "=== EduAnalyzer Servisleri Başlatılıyor ==="
@@ -224,7 +252,7 @@ if [ $restore_status -ne 0 ]; then
 fi
 
 if [ $restore_status -eq 0 ] && [ $backend_built -eq 0 ]; then
-  if dotnet build "$BACKEND_PROJECT" -c Release --no-restore --verbosity minimal; then
+  if dotnet build "$BACKEND_PROJECT" -c "$BACKEND_BUILD_CONFIG" --no-restore --verbosity minimal; then
     echo "     Build başarılı."
     backend_built=1
   else
@@ -239,21 +267,16 @@ if [ $restore_status -ne 0 ]; then
   done
 
   if restore_backend; then
-    dotnet build "$BACKEND_PROJECT" -c Release --no-restore --verbosity minimal
+    dotnet build "$BACKEND_PROJECT" -c "$BACKEND_BUILD_CONFIG" --no-restore --verbosity minimal
   else
-    dotnet build "$BACKEND_PROJECT" -c Release --verbosity minimal
+    dotnet build "$BACKEND_PROJECT" -c "$BACKEND_BUILD_CONFIG" --verbosity minimal
   fi
   restore_status=$?
   backend_built=1
 fi
 
 if [ $restore_status -eq 0 ]; then
-  echo "     Backend başlatılıyor (port 5131)..."
-  dotnet run --project src/EduAnalyzer.Api --no-build -c Release &
-  BACKEND_PID=$!
-  if [ -z "$BACKEND_PID" ] || ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    fail_and_stop_all "HATA: Backend başlatılamadı."
-  fi
+  start_backend_service
   cd "$ROOT"
   if verify_http_ready "Backend" "http://localhost:5131/api/health" "200"; then
     BACKEND_READY=1

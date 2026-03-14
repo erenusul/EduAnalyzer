@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 TOPIC_CHECKPOINT="${TOPIC_CHECKPOINT:-$ROOT_DIR/ml-service/models/checkpoints/topic_classifier.pt}"
-DATASET_PATH="${DATASET_PATH:-$ROOT_DIR/ml-service/data/processed/question_dataset.json}"
+DATASET_PATH="${DATASET_PATH:-$ROOT_DIR/pdf_extractor/data/processed/question_dataset.json}"
 EVAL_OUTPUT="${EVAL_OUTPUT:-$ROOT_DIR/ml-service/eval/topic_confusions.json}"
 TOPIC_TOP_K="${TOPIC_TOP_K:-5}"
 TOPIC_LIMIT_PER_TOPIC="${TOPIC_LIMIT_PER_TOPIC:-30}"

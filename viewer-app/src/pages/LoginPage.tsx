@@ -69,13 +69,13 @@ export function LoginPage() {
     <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
       <div className="w-100" style={{ maxWidth: 420 }}>
         <div className="text-center mb-4">
-          <div
-            className="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary mb-3"
-            style={{ width: 64, height: 64 }}
-          >
-            <i className="bi bi-mortarboard-fill fs-2" aria-hidden />
+          <div style={{ marginTop: '0px', marginBottom: '-60px' }}>
+            <img 
+              src="/edulyzer_logo_gri.png" 
+              alt="EduAnalyzer Logo" 
+              style={{ height: '280px', width: 'auto', objectFit: 'contain' }} 
+            />
           </div>
-          <h2 className="fw-bold mb-1">EduAnalyzer</h2>
           <p className="text-muted mb-0">Sınav Analiz Paneli</p>
         </div>
 

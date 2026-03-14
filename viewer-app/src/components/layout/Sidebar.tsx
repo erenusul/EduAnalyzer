@@ -40,9 +40,12 @@ export function Sidebar() {
         color: 'var(--eduanalyzer-sidebar-text)',
       }}
     >
-      <div className="d-flex align-items-center gap-2 mb-4 px-2">
-        <i className="bi bi-mortarboard-fill fs-4 text-white" aria-hidden />
-        <span className="fw-semibold text-white">EduAnalyzer</span>
+      <div className="d-flex justify-content-center align-items-center" style={{ marginTop: '-55px', marginBottom: '-55px' }}>
+        <img 
+          src="/edulyzer_logo_beyaz.png" 
+          alt="EduAnalyzer Logo" 
+          style={{ width: '190px', height: 'auto', objectFit: 'contain' }} 
+        />
       </div>
       <Nav className="flex-column gap-1" as="ul">
         {NAV_ITEMS.map((item) => {
