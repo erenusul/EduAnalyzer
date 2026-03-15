@@ -20,10 +20,15 @@ Rapor: `ml-service/eval/topic_confusions.json`
 
 ### 2. Örnek Temizliği (Manuel)
 
-`priority_fix_plan_v2.md` içindeki her kritik çift için:
+**Etiket doğrulama raporu oluşturma:**
+```bash
+./ml-service/venv/bin/python ml-service/scripts/export_label_review_report.py
+```
+Rapor: `ml-service/eval/label_review_report.md`
 
-1. `topic_confusions.json` veya `analyze_topic_model.py --examples-per-pair` çıktısından yanlış örnekleri inceleyin
-2. `question_dataset.json` veya `question_training_dataset.json` içinde ilgili örnekleri bulun
+Her kritik çift için:
+1. `label_review_report.md` veya `topic_confusions.json` içindeki yanlış örnekleri inceleyin
+2. `question_dataset.json` ve `question_training_dataset.json` içinde ilgili örnekleri bulun
 3. Etiket doğruluğunu kontrol edin; hatalı etiketleri düzeltin veya belirsiz örnekleri çıkarın
 
 **Öncelikli çiftler:**

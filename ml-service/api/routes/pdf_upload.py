@@ -386,6 +386,7 @@ async def analyze_pdf(
                             subject=subject_items,
                             topic=topic_items,
                             has_visual=question.has_visual or False,
+                            quality_warning=getattr(question, "quality_warning", None),
                         )
                     )
                     analyzed_count += 1

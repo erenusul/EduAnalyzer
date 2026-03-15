@@ -40,11 +40,13 @@ TRAINING_CONFIG = {
     # Advanced loss function settings
     "use_focal_loss": True,  # Enable Focal Loss for imbalanced datasets
     "focal_alpha": None,  # Alpha weighting (None = use class weights, or provide list)
-    "focal_gamma": 2.0,  # Focal Loss focusing parameter (higher = focus more on hard examples)
-    "label_smoothing": 0.1,  # Label smoothing factor (0.0 = no smoothing, 0.1 = typical)
+    "focal_gamma": 2.5,  # Focal Loss focusing parameter (higher = focus more on hard examples)
+    "label_smoothing": 0.06,  # Label smoothing (reduced for less confusion between similar topics)
     # Data augmentation settings
     "augmentation_enabled": True,  # Enable data augmentation during training
-    "augmentation_ratio": 0.3,  # Percentage of training data to augment (0.0-1.0)
+    "augmentation_ratio": 0.3,  # Base ratio for augmentation (0.0-1.0)
+    "low_support_threshold": 100,  # Topics with fewer samples use low_support_ratio
+    "low_support_ratio": 0.5,  # Higher augmentation for low-support topics
 }
 
 # Subject codes and names

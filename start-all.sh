@@ -113,11 +113,13 @@ start_backend_service() {
     ASPNETCORE_ENVIRONMENT=Development \
     DOTNET_ENVIRONMENT=Development \
     ASPNETCORE_URLS="http://0.0.0.0:5131" \
+    Jwt__Secret="EduAnalyzer-SuperSecretKey-ChangeInProduction-Min32Chars" \
       "$BACKEND_APPHOST" &
   elif [ -f "$BACKEND_DLL" ]; then
     ASPNETCORE_ENVIRONMENT=Development \
     DOTNET_ENVIRONMENT=Development \
     ASPNETCORE_URLS="http://0.0.0.0:5131" \
+    Jwt__Secret="EduAnalyzer-SuperSecretKey-ChangeInProduction-Min32Chars" \
       dotnet "$BACKEND_DLL" &
   else
     fail_and_stop_all "HATA: Backend build çıktısı bulunamadı."

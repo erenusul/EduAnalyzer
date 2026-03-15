@@ -203,6 +203,39 @@ class TextAugmenter:
         return augmented_texts
 
 
+def augment_dataset_topic_aware(
+    texts: List[str],
+    labels: List[str],
+    base_ratio: float = 0.3,
+    low_support_threshold: int = 100,
+    low_support_ratio: float = 0.5,
+    seed: int = 42,
+) -> Tuple[List[str], List[str]]:
+    """
+    Augment dataset with higher ratio for low-support topics.
+    Topics with fewer samples get more augmentation to balance the dataset.
+    """
+    from collections import Counter
+    label_counts = Counter(labels)
+    total = len(texts)
+
+    augmented_texts = []
+    augmented_labels = []
+    augmenter = TextAugmenter(seed=seed)
+    random.seed(seed)
+
+    for i, (text, label) in enumerate(zip(texts, labels)):
+        augmented_texts.append(text)
+        augmented_labels.append(label)
+        count = label_counts[label]
+        ratio = low_support_ratio if count < low_support_threshold else base_ratio
+        if random.random() < ratio:
+            augmented_texts.append(augmenter.augment(text))
+            augmented_labels.append(label)
+
+    return augmented_texts, augmented_labels
+
+
 def augment_dataset(
     texts: List[str],
     labels: List[str],

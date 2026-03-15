@@ -23,7 +23,8 @@ class Question:
     has_visual: bool = False
     visual_type: Optional[str] = None
     visual_description: Optional[str] = None
-    
+    quality_warning: Optional[str] = None  # Şüpheli extraction için uyarı
+
     def to_dict(self) -> dict:
         """Dict'e dönüştür"""
         return asdict(self)
@@ -41,6 +42,8 @@ def extract_topic_from_filename(filename: str) -> str:
     """
     # .pdf uzantısını kaldır
     topic = filename.replace(".pdf", "").replace(".PDF", "")
+    # (Devam) sonekini kaldır - eksikler_devam formatı
+    topic = re.sub(r"\s*\(Devam\)\s*$", "", topic, flags=re.IGNORECASE).strip()
     
     # Yaprak Test formatı: "8. Sınıf Türkçe Yaprak Test_Ornek"
     if "yaprak test" in topic.lower():
@@ -159,6 +162,21 @@ def extract_topic_from_filename(filename: str) -> str:
         "Cumlenin Ogeleri": "Öge",
         "cumlenin ogeleri": "Öge",
         "cumlenin-ogeleri": "Öge",
+        # son_eksikler dosya adları (konu dosya adında)
+        "Öge": "Öge",
+        "öge": "Öge",
+        "Anlatım Biçimleri": "Anlatım Biçimleri",
+        "Cümle Türleri": "Cümle Türleri",
+        "cümle türleri": "Cümle Türleri",
+        "Düşünceyi Geliştirme Yolları": "Düşünceyi Geliştirme Yolları",
+        "düşünceyi geliştirme yolları": "Düşünceyi Geliştirme Yolları",
+        "Fiil Çatıları": "Fiil Çatıları",
+        "fiil çatıları": "Fiil Çatıları",
+        "Fiilimsiler": "Fiilimsiler",
+        "Görsel Okuma ve Grafik Tablo": "Görsel Okuma ve Grafik Tablo",
+        "görsel okuma ve grafik tablo": "Görsel Okuma ve Grafik Tablo",
+        "Sözel Mantık": "Sözel Mantık",
+        "sözel mantık": "Sözel Mantık",
     }
     
     # Mapping'de varsa kullan (büyük/küçük harf duyarsız)
@@ -439,6 +457,7 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                         has_visual=visual_info["has_visual"],
                         visual_type=visual_info.get("primary_type"),
                         visual_description=visual_info.get("primary_type"),
+                        quality_warning=_check_question_quality(enhanced, current_options),
                     ))
 
             current_num = int(q_match.group(1))
@@ -469,6 +488,7 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                         has_visual=visual_info["has_visual"],
                         visual_type=visual_info.get("primary_type"),
                         visual_description=visual_info.get("primary_type"),
+                        quality_warning=_check_question_quality(enhanced, current_options),
                     ))
             current_num = int(num_only_match.group(1))
             current_text = []
@@ -500,9 +520,28 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                 has_visual=visual_info["has_visual"],
                 visual_type=visual_info.get("primary_type"),
                 visual_description=visual_info.get("primary_type"),
+                quality_warning=_check_question_quality(enhanced, current_options),
             ))
 
     return questions
+
+
+def _check_question_quality(question_text: str, options: List[str]) -> Optional[str]:
+    """
+    Soru extraction kalitesini kontrol eder. Şüpheli durumlarda uyarı metni döner.
+    Format: 1. soru metni A) B) C) D)
+    """
+    warnings = []
+    text = question_text.strip()
+    if len(options) < 4:
+        warnings.append("Eksik seçenek (A,B,C,D bekleniyor)")
+    if len(text) < 30:
+        warnings.append("Kısa soru metni")
+    # Soru metninde seçenek işaretleri karışmış olabilir (A) B) soru ortasında)
+    option_in_text = re.search(r"\b[ABCD]\)\s+[^ABCD]", text[: min(len(text), 200)])
+    if option_in_text and len(options) < 4:
+        warnings.append("Soru metninde seçenek karışması olabilir")
+    return "; ".join(warnings) if warnings else None
 
 
 def _is_valid_question(question_text: str, options: List[str]) -> bool:
@@ -632,7 +671,8 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                         source_pdf=pdf_name,
                         has_visual=visual_info["has_visual"],
                         visual_type=visual_info.get("primary_type"),
-                        visual_description=visual_info.get("primary_type")
+                        visual_description=visual_info.get("primary_type"),
+                        quality_warning=_check_question_quality(enhanced_text, current_options),
                     )
                     questions.append(question)
 
@@ -690,7 +730,8 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                 topic=topic,
                 exam_info=current_exam,
                 question_number=current_question_num,
-                source_pdf=pdf_name
+                source_pdf=pdf_name,
+                quality_warning=_check_question_quality(question_text, current_options),
             )
             questions.append(question)
 

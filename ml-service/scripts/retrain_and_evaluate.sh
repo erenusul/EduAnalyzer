@@ -21,7 +21,10 @@ log "Python: $PYTHON_BIN"
 
 cd "$ROOT_DIR"
 
-log "Step 1/3: Training topic classifier"
+log "Step 0/4: Creating question dataset from PDFs"
+$PYTHON_BIN -m pdf_extractor.src.create_question_dataset
+
+log "Step 1/4: Training topic classifier"
 $PYTHON_BIN ml-service/models/trainer.py
 
 if [ ! -f "$TOPIC_CHECKPOINT" ]; then
@@ -29,7 +32,7 @@ if [ ! -f "$TOPIC_CHECKPOINT" ]; then
   exit 1
 fi
 
-log "Step 2/3: Evaluating topic confusion matrix"
+log "Step 2/4: Evaluating topic confusion matrix"
 mkdir -p "$(dirname "$EVAL_OUTPUT")"
 $PYTHON_BIN ml-service/scripts/analyze_topic_model.py \
   --checkpoint "$TOPIC_CHECKPOINT" \
@@ -39,5 +42,5 @@ $PYTHON_BIN ml-service/scripts/analyze_topic_model.py \
   --min-count "$TOPIC_MIN_COUNT" \
   --output "$EVAL_OUTPUT"
 
-log "Step 3/3: Done"
+log "Step 3/4: Done"
 log "Evaluation report: $EVAL_OUTPUT"

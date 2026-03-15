@@ -88,6 +88,10 @@ def _canonicalize_topic(topic: str) -> str:
         "sozcukler arasi anlam iliskileri": "Sözcükler Arası Anlam İlişkileri",
         "gorsel okuma ve grafik tablo": "Görsel Okuma ve Grafik Tablo",
         "cumlenin ogeleri": "Öge",
+        "oge": "Öge",
+        "fiil catilari": "Fiil Çatıları",
+        "sozel mantik": "Sözel Mantık",
+        "fiilimsiler": "Fiilimsiler",
     }
     if normalized in aliases:
         return aliases[normalized]
@@ -342,15 +346,23 @@ def create_topic_dataset(
         apply_augmentation = TRAINING_CONFIG.get("augmentation_enabled", False)
     
     if apply_augmentation:
-        from ml_service.data.augmentation import augment_dataset
-        augmentation_ratio = TRAINING_CONFIG.get("augmentation_ratio", 0.3)
+        from ml_service.data.augmentation import augment_dataset_topic_aware
+        base_ratio = TRAINING_CONFIG.get("augmentation_ratio", 0.3)
+        low_support_threshold = TRAINING_CONFIG.get("low_support_threshold", 100)
+        low_support_ratio = TRAINING_CONFIG.get("low_support_ratio", 0.5)
         seed = TRAINING_CONFIG.get("seed", 42)
         
-        print(f"Applying data augmentation (ratio={augmentation_ratio})...", flush=True)
-        texts, topics = augment_dataset(
+        print(
+            f"Applying topic-aware augmentation (base={base_ratio}, "
+            f"low-support<{low_support_threshold} uses {low_support_ratio})...",
+            flush=True,
+        )
+        texts, topics = augment_dataset_topic_aware(
             texts,
             topics,
-            augmentation_ratio=augmentation_ratio,
+            base_ratio=base_ratio,
+            low_support_threshold=low_support_threshold,
+            low_support_ratio=low_support_ratio,
             seed=seed,
         )
         print(f"Augmented dataset size: {len(texts)} samples", flush=True)

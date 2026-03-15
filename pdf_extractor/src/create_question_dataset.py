@@ -75,7 +75,35 @@ def normalize_topic_name(topic: str) -> str:
         "cumlenin ogeleri": "Öge",
         "Öge": "Öge",
         "oge": "Öge",
-        # Geçiş ve Bağlantı İfadeleri: ayrı konu olarak kalmaya devam etsin
+        # son_eksikler dosya adları ve varyasyonları
+        "Cümle Türleri": "Cümle Türleri",
+        "cumle turleri": "Cümle Türleri",
+        "Fiil Çatıları": "Fiil Çatıları",
+        "fiil catilari": "Fiil Çatıları",
+        "Fiilimsiler": "Fiilimsiler",
+        "fiilimsiler": "Fiilimsiler",
+        "Görsel Okuma ve Grafik Tablo": "Görsel Okuma ve Grafik Tablo",
+        "gorsel okuma ve grafik tablo": "Görsel Okuma ve Grafik Tablo",
+        "Sözel Mantık": "Sözel Mantık",
+        "sozel mantik": "Sözel Mantık",
+        # eksikler_devam (Devam) soneki varyasyonları
+        "Anlatım Biçimleri (Devam)": "Anlatım Biçimleri",
+        "Düşünceyi Geliştirme Yolları (Devam)": "Düşünceyi Geliştirme Yolları",
+        "Sözel Mantık (Devam)": "Sözel Mantık",
+        "anlatim bicimleri devam": "Anlatım Biçimleri",
+        "dusunceyi gelistirme yollari devam": "Düşünceyi Geliştirme Yolları",
+        "sozel mantik devam": "Sözel Mantık",
+        # Unicode/ASCII varyasyonları
+        "Cumlede Anlam": "Cümlede Anlam",
+        "Deyimler ve Atasozleri": "Deyimler ve Atasözleri",
+        "Gecis ve Baglanti Ifadeleri": "Geçiş ve Bağlantı İfadeleri",
+        "Gecis ve Baglantı Ifadeleri": "Geçiş ve Bağlantı İfadeleri",
+        "Metin Turleri": "Metin Türleri",
+        "Metin Türleri": "Metin Türleri",
+        "Soz Sanatlari": "Söz Sanatları",
+        "Soz Sanatları": "Söz Sanatları",
+        "Sozcukte Anlam": "Sözcükte Anlam",
+        "Anlatımbozuklugu": "Anlatım Bozuklukları",
     }
     
     # Mapping'de varsa kullan
@@ -205,6 +233,11 @@ def create_question_dataset(merge_existing: bool = True):
     # Mevcut dataset üstüne eklenecek küratörlü yeni veri klasörü
     curated_pdf_dir = source_root / "eksik_konular"
     
+    # son_eksikler: Konuları dosya adında olan PDF'ler (Anlatım Biçimleri.pdf vb.)
+    son_eksikler_dir = source_root / "son_eksikler"
+    # eksikler_devam: Sözel Mantık, Düşünceyi Geliştirme, Anlatım Biçimleri (150'şer soru)
+    eksikler_devam_dir = source_root / "eksikler_devam"
+    
     # Geniş kapsamlı PDF klasörü; yalnızca sıfırdan dataset üretiminde kullan
     new_pdf_dir = source_root / "15.02.2026_son_veriler"
     
@@ -243,6 +276,24 @@ def create_question_dataset(merge_existing: bool = True):
             )
             print(f"✓ Küratörlü klasörden {len(curated_questions)} soru çıkarıldı")
             new_questions.extend(curated_questions)
+        if son_eksikler_dir.exists():
+            print(f"\n📚 son_eksikler PDF klasörü taranıyor: {son_eksikler_dir.name}")
+            son_eksikler_questions = process_all_pdf_questions(
+                son_eksikler_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ son_eksikler klasöründen {len(son_eksikler_questions)} soru çıkarıldı")
+            new_questions.extend(son_eksikler_questions)
+        if eksikler_devam_dir.exists():
+            print(f"\n📚 eksikler_devam PDF klasörü taranıyor: {eksikler_devam_dir.name}")
+            eksikler_devam_questions = process_all_pdf_questions(
+                eksikler_devam_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ eksikler_devam klasöründen {len(eksikler_devam_questions)} soru çıkarıldı")
+            new_questions.extend(eksikler_devam_questions)
     else:
         # İlk kurulumda tüm proje kaynaklarını tara.
         new_questions = process_all_pdf_questions(pdf_dir, include_subdirs=True, use_ocr=use_ocr)
@@ -256,7 +307,25 @@ def create_question_dataset(merge_existing: bool = True):
             )
             print(f"✓ Yeni klasörden {len(new_pdf_questions)} soru çıkarıldı")
             new_questions.extend(new_pdf_questions)
-    
+        if son_eksikler_dir.exists():
+            print(f"\n📚 son_eksikler PDF klasörü taranıyor: {son_eksikler_dir.name}")
+            son_eksikler_questions = process_all_pdf_questions(
+                son_eksikler_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ son_eksikler klasöründen {len(son_eksikler_questions)} soru çıkarıldı")
+            new_questions.extend(son_eksikler_questions)
+        if eksikler_devam_dir.exists():
+            print(f"\n📚 eksikler_devam PDF klasörü taranıyor: {eksikler_devam_dir.name}")
+            eksikler_devam_questions = process_all_pdf_questions(
+                eksikler_devam_dir,
+                include_subdirs=False,
+                use_ocr=use_ocr,
+            )
+            print(f"✓ eksikler_devam klasöründen {len(eksikler_devam_questions)} soru çıkarıldı")
+            new_questions.extend(eksikler_devam_questions)
+
     print(f"\n📊 {len(new_questions)} soru çıkarıldı")
     
     # Konu anlatımı PDF'lerinden örnek sorular oluştur
@@ -288,7 +357,8 @@ def create_question_dataset(merge_existing: bool = True):
             correct_answer=q.get("correct_answer"),
             exam_info=q.get("exam_info"),
             question_number=q.get("question_number"),
-            source_pdf=q.get("source_pdf", "")
+            source_pdf=q.get("source_pdf", ""),
+            quality_warning=q.get("quality_warning"),
         )
         for q in all_questions
     ])
@@ -311,7 +381,8 @@ def create_question_dataset(merge_existing: bool = True):
                 correct_answer=q_dict.get("correct_answer"),
                 exam_info=q_dict.get("exam_info"),
                 question_number=q_dict.get("question_number"),
-                source_pdf=q_dict.get("source_pdf", "")
+                source_pdf=q_dict.get("source_pdf", ""),
+                quality_warning=q_dict.get("quality_warning"),
             )
             all_questions.append(q_obj)
         except:

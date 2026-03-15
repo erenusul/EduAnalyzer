@@ -18,6 +18,7 @@ export interface QuestionAnalysisResult {
   subject: PredictionItem[];
   topic: PredictionItem[];
   has_visual: boolean;
+  quality_warning?: string;
 }
 
 export interface PDFAnalysisResponse {

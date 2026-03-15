@@ -589,14 +589,28 @@ export function PdfExamAnalysis() {
                     )}
                     <h6 className="fw-semibold mb-0">Soru {index + 1}</h6>
                   </div>
-                  {result.has_visual && (
-                    <span className="badge bg-warning text-dark">
-                      <i className="bi bi-image me-1" />
-                      Görsel İçerir
-                    </span>
-                  )}
+                  <div className="d-flex align-items-center gap-2">
+                    {result.has_visual && (
+                      <span className="badge bg-warning text-dark">
+                        <i className="bi bi-image me-1" />
+                        Görsel İçerir
+                      </span>
+                    )}
+                    {result.quality_warning && (
+                      <span className="badge bg-info text-dark" title={result.quality_warning}>
+                        <i className="bi bi-exclamation-triangle me-1" />
+                        Kalite Uyarısı
+                      </span>
+                    )}
+                  </div>
                 </Card.Header>
                 <Card.Body className="p-4">
+                  {result.quality_warning && (
+                    <Alert variant="info" className="py-2 px-3 mb-3 small">
+                      <i className="bi bi-info-circle me-1" />
+                      {result.quality_warning}
+                    </Alert>
+                  )}
                   <p
                     className="text-body-secondary small mb-4 lh-base text-break"
                     style={{ whiteSpace: 'pre-wrap', minHeight: '2em' }}

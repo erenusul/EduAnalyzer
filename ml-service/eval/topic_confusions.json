@@ -1,143 +1,143 @@
 {
   "summary": {
-    "total": 2333,
-    "accuracy": 0.9777,
+    "total": 2522,
+    "accuracy": 0.9794,
     "missed_or_unmatched": 0,
-    "mean_confidence_top1": 0.9206,
-    "mean_confidence_gap_top1_top2": 0.8784,
-    "below_045_top1": 17,
-    "below_012_margin": 10,
-    "classes": 19
+    "mean_confidence_top1": 0.9366,
+    "mean_confidence_gap_top1_top2": 0.8817,
+    "below_045_top1": 9,
+    "below_012_margin": 5,
+    "classes": 18
   },
   "top_30_confused_pairs": [
     {
-      "true": "Fiilimsiler",
-      "pred": "Cümle Türleri",
+      "true": "Öge",
+      "pred": "Cümlede Anlam",
+      "count": 5
+    },
+    {
+      "true": "Anlatım Biçimleri",
+      "pred": "Düşünceyi Geliştirme Yolları",
       "count": 4
     },
     {
-      "true": "Görsel Okuma ve Grafik Tablo",
-      "pred": "Sözel Mantık",
-      "count": 4
+      "true": "Anlatım Biçimleri",
+      "pred": "Paragraf Bilgisi",
+      "count": 3
+    },
+    {
+      "true": "Cümlede Anlam",
+      "pred": "Anlatım Bozuklukları",
+      "count": 3
+    },
+    {
+      "true": "Fiilimsiler",
+      "pred": "Cümle Türleri",
+      "count": 3
+    },
+    {
+      "true": "Cümlede Anlam",
+      "pred": "Görsel Okuma ve Grafik Tablo",
+      "count": 2
+    },
+    {
+      "true": "Deyimler ve Atasözleri",
+      "pred": "Anlatım Bozuklukları",
+      "count": 2
     },
     {
       "true": "Fiil Çatıları",
       "pred": "Cümle Türleri",
-      "count": 3
+      "count": 2
     },
     {
-      "true": "Paragraf Bilgisi",
-      "pred": "Anlatım Biçimleri",
-      "count": 3
+      "true": "Fiilimsiler",
+      "pred": "Fiil Çatıları",
+      "count": 2
     },
     {
-      "true": "Sözel Mantık",
-      "pred": "Görsel Okuma ve Grafik Tablo",
-      "count": 3
+      "true": "Öge",
+      "pred": "Anlatım Bozuklukları",
+      "count": 2
+    },
+    {
+      "true": "Anlatım Bozuklukları",
+      "pred": "Öge",
+      "count": 1
     },
     {
       "true": "Cümle Türleri",
       "pred": "Cümlede Anlam",
-      "count": 2
+      "count": 1
+    },
+    {
+      "true": "Cümle Türleri",
+      "pred": "Paragraf Bilgisi",
+      "count": 1
+    },
+    {
+      "true": "Cümle Türleri",
+      "pred": "Öge",
+      "count": 1
+    },
+    {
+      "true": "Cümlede Anlam",
+      "pred": "Anlatım Biçimleri",
+      "count": 1
+    },
+    {
+      "true": "Cümlede Anlam",
+      "pred": "Öge",
+      "count": 1
+    },
+    {
+      "true": "Düşünceyi Geliştirme Yolları",
+      "pred": "Anlatım Biçimleri",
+      "count": 1
     },
     {
       "true": "Düşünceyi Geliştirme Yolları",
       "pred": "Paragraf Bilgisi",
-      "count": 2
-    },
-    {
-      "true": "Noktalama İşaretleri",
-      "pred": "Fiilimsiler",
-      "count": 2
-    },
-    {
-      "true": "Yazım Kuralları",
-      "pred": "Noktalama İşaretleri",
-      "count": 2
-    },
-    {
-      "true": "Öge",
-      "pred": "Cümle Türleri",
-      "count": 2
-    },
-    {
-      "true": "Öge",
-      "pred": "Cümlede Anlam",
-      "count": 2
-    },
-    {
-      "true": "Anlatım Biçimleri",
-      "pred": "Metin Türleri",
-      "count": 1
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Anlatım Bozuklukları",
-      "count": 1
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Fiil Çatıları",
-      "count": 1
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Fiilimsiler",
-      "count": 1
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Metin Türleri",
-      "count": 1
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Öge",
-      "count": 1
-    },
-    {
-      "true": "Cümlede Anlam",
-      "pred": "Cümle Türleri",
-      "count": 1
-    },
-    {
-      "true": "Cümlede Anlam",
-      "pred": "Fiilimsiler",
-      "count": 1
-    },
-    {
-      "true": "Deyimler ve Atasözleri",
-      "pred": "Cümle Türleri",
-      "count": 1
-    },
-    {
-      "true": "Deyimler ve Atasözleri",
-      "pred": "Cümlede Anlam",
       "count": 1
     },
     {
       "true": "Fiil Çatıları",
-      "pred": "Fiilimsiler",
-      "count": 1
-    },
-    {
-      "true": "Fiilimsiler",
-      "pred": "Fiil Çatıları",
-      "count": 1
-    },
-    {
-      "true": "Fiilimsiler",
-      "pred": "Noktalama İşaretleri",
-      "count": 1
-    },
-    {
-      "true": "Fiilimsiler",
       "pred": "Öge",
       "count": 1
     },
     {
-      "true": "Noktalama İşaretleri",
+      "true": "Fiilimsiler",
       "pred": "Sözcükte Anlam",
+      "count": 1
+    },
+    {
+      "true": "Geçiş ve Bağlantı İfadeleri",
+      "pred": "Deyimler ve Atasözleri",
+      "count": 1
+    },
+    {
+      "true": "Görsel Okuma ve Grafik Tablo",
+      "pred": "Sözel Mantık",
+      "count": 1
+    },
+    {
+      "true": "Metin Türleri",
+      "pred": "Anlatım Biçimleri",
+      "count": 1
+    },
+    {
+      "true": "Noktalama İşaretleri",
+      "pred": "Fiilimsiler",
+      "count": 1
+    },
+    {
+      "true": "Noktalama İşaretleri",
+      "pred": "Yazım Kuralları",
+      "count": 1
+    },
+    {
+      "true": "Paragraf Bilgisi",
+      "pred": "Anlatım Biçimleri",
       "count": 1
     },
     {
@@ -146,740 +146,743 @@
       "count": 1
     },
     {
-      "true": "Paragraf Bilgisi",
-      "pred": "Fiil Çatıları",
-      "count": 1
-    },
-    {
-      "true": "Paragraf Bilgisi",
+      "true": "Söz Sanatları",
       "pred": "Sözcükte Anlam",
       "count": 1
     },
     {
-      "true": "Söz Sanatları",
-      "pred": "Fiilimsiler",
+      "true": "Sözcükte Anlam",
+      "pred": "Cümlede Anlam",
+      "count": 1
+    },
+    {
+      "true": "Sözcükte Anlam",
+      "pred": "Söz Sanatları",
       "count": 1
     }
   ],
   "per_topic_top_confusions": [
     {
-      "true": "Fiilimsiler",
-      "support": 160,
+      "true": "Öge",
+      "support": 128,
       "top_confusions": [
         {
-          "pred": "Cümle Türleri",
-          "count": 4,
-          "rate": 0.025
+          "pred": "Cümlede Anlam",
+          "count": 5,
+          "rate": 0.0391
         },
         {
-          "pred": "Fiil Çatıları",
-          "count": 1,
-          "rate": 0.0063
+          "pred": "Anlatım Bozuklukları",
+          "count": 2,
+          "rate": 0.0156
         },
         {
-          "pred": "Noktalama İşaretleri",
+          "pred": "Geçiş ve Bağlantı İfadeleri",
           "count": 1,
-          "rate": 0.0063
-        },
-        {
-          "pred": "Öge",
-          "count": 1,
-          "rate": 0.0063
+          "rate": 0.0078
         }
       ]
     },
     {
-      "true": "Görsel Okuma ve Grafik Tablo",
-      "support": 101,
+      "true": "Anlatım Biçimleri",
+      "support": 109,
       "top_confusions": [
         {
-          "pred": "Sözel Mantık",
+          "pred": "Düşünceyi Geliştirme Yolları",
           "count": 4,
-          "rate": 0.0396
+          "rate": 0.0367
+        },
+        {
+          "pred": "Paragraf Bilgisi",
+          "count": 3,
+          "rate": 0.0275
+        }
+      ]
+    },
+    {
+      "true": "Cümlede Anlam",
+      "support": 174,
+      "top_confusions": [
+        {
+          "pred": "Anlatım Bozuklukları",
+          "count": 3,
+          "rate": 0.0172
+        },
+        {
+          "pred": "Görsel Okuma ve Grafik Tablo",
+          "count": 2,
+          "rate": 0.0115
+        },
+        {
+          "pred": "Anlatım Biçimleri",
+          "count": 1,
+          "rate": 0.0057
+        },
+        {
+          "pred": "Öge",
+          "count": 1,
+          "rate": 0.0057
+        }
+      ]
+    },
+    {
+      "true": "Fiilimsiler",
+      "support": 136,
+      "top_confusions": [
+        {
+          "pred": "Cümle Türleri",
+          "count": 3,
+          "rate": 0.0221
+        },
+        {
+          "pred": "Fiil Çatıları",
+          "count": 2,
+          "rate": 0.0147
+        },
+        {
+          "pred": "Sözcükte Anlam",
+          "count": 1,
+          "rate": 0.0074
+        }
+      ]
+    },
+    {
+      "true": "Deyimler ve Atasözleri",
+      "support": 83,
+      "top_confusions": [
+        {
+          "pred": "Anlatım Bozuklukları",
+          "count": 2,
+          "rate": 0.0241
         }
       ]
     },
     {
       "true": "Fiil Çatıları",
-      "support": 90,
+      "support": 82,
       "top_confusions": [
         {
           "pred": "Cümle Türleri",
-          "count": 3,
-          "rate": 0.0333
+          "count": 2,
+          "rate": 0.0244
         },
         {
-          "pred": "Fiilimsiler",
+          "pred": "Öge",
+          "count": 1,
+          "rate": 0.0122
+        }
+      ]
+    },
+    {
+      "true": "Anlatım Bozuklukları",
+      "support": 122,
+      "top_confusions": [
+        {
+          "pred": "Öge",
+          "count": 1,
+          "rate": 0.0082
+        }
+      ]
+    },
+    {
+      "true": "Cümle Türleri",
+      "support": 112,
+      "top_confusions": [
+        {
+          "pred": "Cümlede Anlam",
+          "count": 1,
+          "rate": 0.0089
+        },
+        {
+          "pred": "Paragraf Bilgisi",
+          "count": 1,
+          "rate": 0.0089
+        },
+        {
+          "pred": "Öge",
+          "count": 1,
+          "rate": 0.0089
+        }
+      ]
+    },
+    {
+      "true": "Düşünceyi Geliştirme Yolları",
+      "support": 140,
+      "top_confusions": [
+        {
+          "pred": "Anlatım Biçimleri",
+          "count": 1,
+          "rate": 0.0071
+        },
+        {
+          "pred": "Paragraf Bilgisi",
+          "count": 1,
+          "rate": 0.0071
+        }
+      ]
+    },
+    {
+      "true": "Geçiş ve Bağlantı İfadeleri",
+      "support": 90,
+      "top_confusions": [
+        {
+          "pred": "Deyimler ve Atasözleri",
           "count": 1,
           "rate": 0.0111
         }
       ]
     },
     {
-      "true": "Paragraf Bilgisi",
-      "support": 517,
+      "true": "Görsel Okuma ve Grafik Tablo",
+      "support": 169,
+      "top_confusions": [
+        {
+          "pred": "Sözel Mantık",
+          "count": 1,
+          "rate": 0.0059
+        }
+      ]
+    },
+    {
+      "true": "Metin Türleri",
+      "support": 109,
       "top_confusions": [
         {
           "pred": "Anlatım Biçimleri",
-          "count": 3,
-          "rate": 0.0058
-        },
-        {
-          "pred": "Cümlede Anlam",
           "count": 1,
-          "rate": 0.0019
-        },
-        {
-          "pred": "Fiil Çatıları",
-          "count": 1,
-          "rate": 0.0019
-        },
-        {
-          "pred": "Sözcükte Anlam",
-          "count": 1,
-          "rate": 0.0019
-        }
-      ]
-    },
-    {
-      "true": "Sözel Mantık",
-      "support": 42,
-      "top_confusions": [
-        {
-          "pred": "Görsel Okuma ve Grafik Tablo",
-          "count": 3,
-          "rate": 0.0714
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "support": 152,
-      "top_confusions": [
-        {
-          "pred": "Cümlede Anlam",
-          "count": 2,
-          "rate": 0.0132
-        },
-        {
-          "pred": "Anlatım Bozuklukları",
-          "count": 1,
-          "rate": 0.0066
-        },
-        {
-          "pred": "Fiil Çatıları",
-          "count": 1,
-          "rate": 0.0066
-        },
-        {
-          "pred": "Fiilimsiler",
-          "count": 1,
-          "rate": 0.0066
-        },
-        {
-          "pred": "Metin Türleri",
-          "count": 1,
-          "rate": 0.0066
-        },
-        {
-          "pred": "Öge",
-          "count": 1,
-          "rate": 0.0066
-        }
-      ]
-    },
-    {
-      "true": "Düşünceyi Geliştirme Yolları",
-      "support": 54,
-      "top_confusions": [
-        {
-          "pred": "Paragraf Bilgisi",
-          "count": 2,
-          "rate": 0.037
+          "rate": 0.0092
         }
       ]
     },
     {
       "true": "Noktalama İşaretleri",
-      "support": 205,
+      "support": 161,
       "top_confusions": [
         {
           "pred": "Fiilimsiler",
-          "count": 2,
-          "rate": 0.0098
+          "count": 1,
+          "rate": 0.0062
         },
         {
-          "pred": "Sözcükte Anlam",
+          "pred": "Yazım Kuralları",
           "count": 1,
-          "rate": 0.0049
+          "rate": 0.0062
         }
       ]
     },
     {
-      "true": "Yazım Kuralları",
-      "support": 136,
+      "true": "Paragraf Bilgisi",
+      "support": 508,
       "top_confusions": [
         {
-          "pred": "Noktalama İşaretleri",
-          "count": 2,
-          "rate": 0.0147
-        }
-      ]
-    },
-    {
-      "true": "Öge",
-      "support": 104,
-      "top_confusions": [
-        {
-          "pred": "Cümle Türleri",
-          "count": 2,
-          "rate": 0.0192
-        },
-        {
-          "pred": "Cümlede Anlam",
-          "count": 2,
-          "rate": 0.0192
-        },
-        {
-          "pred": "Fiilimsiler",
+          "pred": "Anlatım Biçimleri",
           "count": 1,
-          "rate": 0.0096
-        },
-        {
-          "pred": "Noktalama İşaretleri",
-          "count": 1,
-          "rate": 0.0096
-        }
-      ]
-    },
-    {
-      "true": "Anlatım Biçimleri",
-      "support": 56,
-      "top_confusions": [
-        {
-          "pred": "Metin Türleri",
-          "count": 1,
-          "rate": 0.0179
-        }
-      ]
-    },
-    {
-      "true": "Cümlede Anlam",
-      "support": 209,
-      "top_confusions": [
-        {
-          "pred": "Cümle Türleri",
-          "count": 1,
-          "rate": 0.0048
-        },
-        {
-          "pred": "Fiilimsiler",
-          "count": 1,
-          "rate": 0.0048
-        }
-      ]
-    },
-    {
-      "true": "Deyimler ve Atasözleri",
-      "support": 63,
-      "top_confusions": [
-        {
-          "pred": "Cümle Türleri",
-          "count": 1,
-          "rate": 0.0159
+          "rate": 0.002
         },
         {
           "pred": "Cümlede Anlam",
           "count": 1,
-          "rate": 0.0159
+          "rate": 0.002
         }
       ]
     },
     {
       "true": "Söz Sanatları",
-      "support": 68,
+      "support": 55,
       "top_confusions": [
-        {
-          "pred": "Fiilimsiler",
-          "count": 1,
-          "rate": 0.0147
-        },
         {
           "pred": "Sözcükte Anlam",
           "count": 1,
-          "rate": 0.0147
+          "rate": 0.0182
         }
       ]
     },
     {
       "true": "Sözcükte Anlam",
-      "support": 121,
+      "support": 99,
       "top_confusions": [
+        {
+          "pred": "Cümlede Anlam",
+          "count": 1,
+          "rate": 0.0101
+        },
         {
           "pred": "Söz Sanatları",
           "count": 1,
-          "rate": 0.0083
+          "rate": 0.0101
+        }
+      ]
+    },
+    {
+      "true": "Sözel Mantık",
+      "support": 171,
+      "top_confusions": [
+        {
+          "pred": "Görsel Okuma ve Grafik Tablo",
+          "count": 1,
+          "rate": 0.0058
+        }
+      ]
+    },
+    {
+      "true": "Yazım Kuralları",
+      "support": 74,
+      "top_confusions": [
+        {
+          "pred": "Cümle Türleri",
+          "count": 1,
+          "rate": 0.0135
+        },
+        {
+          "pred": "Fiilimsiler",
+          "count": 1,
+          "rate": 0.0135
         }
       ]
     }
   ],
   "confusion_examples": [
     {
-      "true": "Fiilimsiler",
-      "pred": "Cümle Türleri",
-      "count": 4,
+      "true": "Öge",
+      "pred": "Cümlede Anlam",
+      "count": 5,
       "examples": [
         {
-          "question_id": "fiilimsiler.pdf_q3",
-          "question_text": "ÇIKIŞ Uygulama TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 205 ÜNİTE DEĞERLENDİRME TESTİ",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.39372721314430237,
-          "second_conf": 0.12047857791185379,
-          "margin": 0.2732486352324486
+          "question_id": "CIKMIS-OGE-SORULARI-VE-COZUMLERI.pdf_q20",
+          "question_text": "Aşağıdaki cümlelerin hangisinde vurgu, zaman belirten ifade üzerindedir?",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 0.6931980848312378,
+          "second_conf": 0.1116141676902771,
+          "margin": 0.5815839171409607
         },
         {
-          "question_id": "Fiilimsiler.pdf_q20",
-          "question_text": "\"Seninle konuşacak konularımız var.\" cümlesindeki",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.5322611927986145,
-          "second_conf": 0.13881288468837738,
-          "margin": 0.3934483081102371
+          "question_id": "CIKMIS-OGE-SORULARI-VE-COZUMLERI.pdf_q26",
+          "question_text": "“Tatlı söz söyleyen, hiç kimseden kötü söz işitmez.” cümlesinde vurgulanan ifadenin cümledeki görevi aşağıdakilerden hangisi­ dir?",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 0.9401593470573425,
+          "second_conf": 0.028486764058470726,
+          "margin": 0.9116725829988718
         },
         {
-          "question_id": "Fiilimsiler.pdf_q7",
-          "question_text": "\"Gülerek yanımıza geldi ve olanları anlattı.\"",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.579494059085846,
-          "second_conf": 0.1537260115146637,
-          "margin": 0.42576804757118225
+          "question_id": "Cümlenin Ögeleri.pdf_q34",
+          "question_text": "\"Soğuk kış günlerinde, sıcacık bir ıhlamur içmek insana iyi gelir.\" Bu cümlede altı",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 1.0,
+          "second_conf": 0.0761461928486824,
+          "margin": 0.9238538071513176
         },
         {
-          "question_id": "Fiilimsiler.pdf_q6",
-          "question_text": "Numaralanmış cümlelerin hangisinde adlaşmış umursamadan yoluna devam etti. II. Gelenleri kapıda",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.78448086977005,
-          "second_conf": 0.11584338560700416,
-          "margin": 0.6686374841630459
+          "question_id": "Cümlenin Ögeleri.pdf_q10",
+          "question_text": "\"Soğuk kış günlerinde, sıcacık bir ıhlamur içmek insana iyi gelir.\" Bu cümlede altı",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 1.0,
+          "second_conf": 0.0761461928486824,
+          "margin": 0.9238538071513176
+        },
+        {
+          "question_id": "Cümlenin Ögeleri.pdf_q30",
+          "question_text": "\"Baharın gelişiyle birlikte ağaçlar bembeyaz çiçekler açtı.\" Bu cümlede aşağıdaki",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 1.0,
+          "second_conf": 0.013127927668392658,
+          "margin": 0.9868720723316073
         }
       ]
     },
     {
-      "true": "Görsel Okuma ve Grafik Tablo",
-      "pred": "Sözel Mantık",
+      "true": "Anlatım Biçimleri",
+      "pred": "Düşünceyi Geliştirme Yolları",
       "count": 4,
       "examples": [
         {
-          "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q32",
-          "question_text": "Bu verilere göre Ahmet'in telefonunun hangileridir?",
-          "pred": "Sözel Mantık",
-          "pred_conf": 0.43183618783950806,
-          "second_conf": 0.25098177790641785,
-          "margin": 0.1808544099330902
+          "question_id": "Anlatım Biçimleri.pdf_q50",
+          "question_text": "Yapay zeka (YZ), bilgisayarların ve makinelerin, problem çözme ve karar verme yetenekleri verinin algoritmalar tarafından analiz edilip telefonlardaki sesli asistanlardan sürücüsüz teşhislerinden finansal analizlere kadar hayatın zekanın en önemli özelliği, yeni verilerle güncelleyebilmesi ve hatalarından ders çıkarabilmesidir. biçimlerinden hangisine başvurulmuştur? Öyküleme 93. Ressam, fırçasını paletindeki mavi boyaya boş tuvale bakmaktan yorulan gözleri bir ettirerek gökyüzünün fırtınalı bulutlarını sadece fırçanın tuvale sürtünürken çıkardığı karıştıkça, içindeki o coşkulu fırtına yavaş nefes alarak fırçayı kenara bıraktı. Bu paragrafta",
+          "pred": "Düşünceyi Geliştirme Yolları",
+          "pred_conf": 0.7702682614326477,
+          "second_conf": 0.15744675666093827,
+          "margin": 0.6128215047717094
         },
         {
-          "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q21",
-          "question_text": "Bu plana göre, D7 koltuğunda oturan hangisi doğrudur?",
-          "pred": "Sözel Mantık",
-          "pred_conf": 0.7609258890151978,
-          "second_conf": 0.028681626543402672,
-          "margin": 0.7322442624717951
+          "question_id": "Anlatım Biçimleri (Devam).pdf_q3",
+          "question_text": "Soru Bazı eleştirmenler, çocuk edebiyatının çocuklara ciddi veya hüzünlü konuların anlatılmasının çocuklar da tıpkı yetişkinler gibi hayatın gerçeklerinin içinde büyüterek dünyanın zorluklarından koruyamayız. ayrılık veya üzüntü gibi temaların umutlu bir dille öncesi döneme kıyasla 1,2 derece artış Kuzey Kutbu'ndaki buzul kütlelerinin son tespit edilmiştir. Bilim insanları, karbon birçok kıyı şehrinin sular altında",
+          "pred": "Düşünceyi Geliştirme Yolları",
+          "pred_conf": 0.888888418674469,
+          "second_conf": 0.019053107127547264,
+          "margin": 0.8698353115469217
         },
         {
-          "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q79",
-          "question_text": "Minnoş ile ilgili verilen bilgilerden hangisi",
-          "pred": "Sözel Mantık",
-          "pred_conf": 0.8050451278686523,
-          "second_conf": 0.024173526093363762,
-          "margin": 0.7808716017752886
+          "question_id": "Anlatım Biçimleri (Devam).pdf_q50",
+          "question_text": "Soru İyi bir şiirin başka bir dile kusursuzca iyimserliğini bir türlü anlayamıyorum. Bence şiir ruh üflemeye çalışmak kadar imkânsız bir çabadır. tını ve asırlık çağrışım başka hiçbir dilde tam olarak olursa olsun, ortaya çıkan yeni metin orijinal şiirin bu da 50 milyar plastik şişenin denize küresel karbon emisyonunun %10'undan tek",
+          "pred": "Düşünceyi Geliştirme Yolları",
+          "pred_conf": 0.9018244743347168,
+          "second_conf": 0.013539453968405724,
+          "margin": 0.8882850203663111
         },
         {
-          "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q20",
-          "question_text": "Verilen bilgilere dayanarak hangi sonuca",
-          "pred": "Sözel Mantık",
-          "pred_conf": 0.8200405240058899,
-          "second_conf": 0.015488861128687859,
-          "margin": 0.804551662877202
+          "question_id": "Anlatım Biçimleri (Devam).pdf_q20",
+          "question_text": "Soru Bir kitabın filme uyarlanması her zaman filmin kitaptan daha etkileyici olduğunu ileri sürer. Film, yönetmenin hayal gücünün sınırlarıyla sizi kelimelerle sonsuz bir dünya sunar. Kitap okurken zihninizde siz yaratırsınız. Film ise bu yaratıcılığı Bu yüzden hiçbir uyarlama, orijinal eserin satır olduğu tespit edildi. Atıkların yeraltı sularına karıştığı laboratuvar aşağıdakilerden hangisidir?",
+          "pred": "Düşünceyi Geliştirme Yolları",
+          "pred_conf": 0.9068118333816528,
+          "second_conf": 0.012825505807995796,
+          "margin": 0.893986327573657
+        }
+      ]
+    },
+    {
+      "true": "Fiilimsiler",
+      "pred": "Cümle Türleri",
+      "count": 3,
+      "examples": [
+        {
+          "question_id": "fiiller.pdf_q2",
+          "question_text": "Aşağıdaki cümlelerin hangisin- de yüklem, yapı yönüyle diğerlerin- den farklıdır?",
+          "pred": "Cümle Türleri",
+          "pred_conf": 0.6592555642127991,
+          "second_conf": 0.18072712421417236,
+          "margin": 0.4785284399986267
+        },
+        {
+          "question_id": "Fiilimsiler.pdf_q8",
+          "question_text": "\"Oraya varır varmaz beni mutlaka ara.\" özdeşi aşağıdakilerden hangisinde vardır?",
+          "pred": "Cümle Türleri",
+          "pred_conf": 0.8846173882484436,
+          "second_conf": 0.08938672013580799,
+          "margin": 0.7952306681126357
+        },
+        {
+          "question_id": "8.-sinif-indirilebilir-testler-cumle-turleri-02-mb-.pdf_q10",
+          "question_text": "(I) Türkiye’nin küçük bir kasabasında halkın okuma alış- kanlığını artırmak amacıyla yeni bir kütüphane açıldı. (II) Açılış öncesinde yerel gönüllüler ve öğrenciler, raflara ko- nacak yüzlerce kitabı titizlikle yerleştirdi. (III) Açılış töre- ninde belediye başkanı kütüphanenin önemini vurgulayan bir konuşma yaptı ve eğitim ve kültür açısından değerini vurguladı. (IV) Törenin ardından meraklı çocuklar ve ye- tişkinler kütüphaneye girerek kitapları incelemeye başladı. Bu metinde numaralanmış cümlelerle ilgili aşağıdaki- lerden hangisi doğrudur?",
+          "pred": "Cümle Türleri",
+          "pred_conf": 0.8918043971061707,
+          "second_conf": 0.01172188762575388,
+          "margin": 0.8800825094804168
+        }
+      ]
+    },
+    {
+      "true": "Cümlede Anlam",
+      "pred": "Anlatım Bozuklukları",
+      "count": 3,
+      "examples": [
+        {
+          "question_id": "Cümlede Anlam.pdf_q58",
+          "question_text": "\"Sinemadaki o komedi filminde espriler o kadar karnımıza ağrılar girdi.\" Bu cümlede aşağıdaki",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8800157904624939,
+          "second_conf": 0.2718617580831051,
+          "margin": 0.6081540323793888
+        },
+        {
+          "question_id": "Cümlede Anlam.pdf_q5",
+          "question_text": "\"Çiçekler daha çabuk büyüsün diye onlara özel bir gübre karışımı hazırladı.\" Bu cümlede",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8882712721824646,
+          "second_conf": 0.26410612370818853,
+          "margin": 0.6241651484742761
+        },
+        {
+          "question_id": "Cümlede Anlam.pdf_q6",
+          "question_text": "\"Toplantıya hiçbir hazırlık yapmadan katıldığı için sunum sırasında epey ter döktü.\" Bu",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8929399251937866,
+          "second_conf": 0.01178639568388462,
+          "margin": 0.881153529509902
+        }
+      ]
+    },
+    {
+      "true": "Anlatım Biçimleri",
+      "pred": "Paragraf Bilgisi",
+      "count": 3,
+      "examples": [
+        {
+          "question_id": "Anlatım Biçimleri (Devam).pdf_q37",
+          "question_text": "Soru Zekânın sadece doğuştan gelen genetik geliştirilemeyeceği fikri tamamen çürütülmüş bir işlenmesi gereken verimli bir tarla gibidir. Eğer okumadığı, problem çözmediği bir ortama kapatırsanız, karşılık, normal zekâ seviyesine sahip bir çocuk tabakası son yirmi yılda tam 5 trilyon ton yıllık ortalama 3,4 milimetrelik bir Veriler, karbon salınımının 1,2 metre daha yükseleceğini bilimsel",
+          "pred": "Paragraf Bilgisi",
+          "pred_conf": 0.5307313203811646,
+          "second_conf": 0.2974046766757965,
+          "margin": 0.23332664370536804
+        },
+        {
+          "question_id": "Anlatım Biçimleri.pdf_q53",
+          "question_text": "Günümüzde pek çok insan seyahat etmenin sadece lüks otellerde kalıp havuz kenarında güneşlenmek olduğunu sanıyor. Tur acentelerinin sunduğu o hazır paketlerle gezdiğini iddia edenler asıl yolculuğu kaçırıyorlar. Gittiğiniz ülkenin arka sokaklarında kaybolmadıkça, yerel halkla iki kelime konuşmaya çabalamadıkça, bilmediğiniz sokak lezzetlerini tatmadıkça gerçekten seyahat etmiş sayılır mısınız? Bavulunuza sadece beş yıldızlı otel fotoğrafları koyarak evinize dönersiniz ama ruhunuz aynı yerde saymaya devam eder. Seyahat turist olmak değil, gezgin olmaktır.",
+          "pred": "Paragraf Bilgisi",
+          "pred_conf": 0.9214032292366028,
+          "second_conf": 0.07503131188452244,
+          "margin": 0.8463719173520803
+        },
+        {
+          "question_id": "Anlatım Biçimleri.pdf_q54",
+          "question_text": "Günümüzde pek çok insan seyahat etmenin kenarında güneşlenmek olduğunu sanıyor. paketlerle gezdiğini iddia edenler asıl yolculuğu sokaklarında kaybolmadıkça, yerel halkla bilmediğiniz sokak lezzetlerini tatmadıkça Bavulunuza sadece beş yıldızlı otel fotoğrafları çoğu zaman takdir edilecek bir özellik gibi önündeki en sinsi engeldir. Her şeyin korkusuyla ilk adımı atmaktan hep kitabı, başlatacağı projeyi sürekli çıkmaz. Kusurlu da olsa bitirilmiş bir iş, mükemmel fikirden bin kat daha değerlidir.",
+          "pred": "Paragraf Bilgisi",
+          "pred_conf": 0.8837023377418518,
+          "second_conf": 0.02868853323161602,
+          "margin": 0.8550138045102358
+        }
+      ]
+    },
+    {
+      "true": "Fiilimsiler",
+      "pred": "Fiil Çatıları",
+      "count": 2,
+      "examples": [
+        {
+          "question_id": "fiiller.pdf_q8",
+          "question_text": "Aşağıdaki cümlelerden hangi- sinin yüklemi durum fiilidir?",
+          "pred": "Fiil Çatıları",
+          "pred_conf": 0.8689097166061401,
+          "second_conf": 0.02234024368226528,
+          "margin": 0.8465694729238749
+        },
+        {
+          "question_id": "fiiller.pdf_q1",
+          "question_text": "Aşağıdaki cümlelerin hangisinde oluş anlamlı bir eylem kullanılmıştır?",
+          "pred": "Fiil Çatıları",
+          "pred_conf": 0.8787808418273926,
+          "second_conf": 0.021355727687478065,
+          "margin": 0.8574251141399145
         }
       ]
     },
     {
       "true": "Fiil Çatıları",
       "pred": "Cümle Türleri",
-      "count": 3,
+      "count": 2,
       "examples": [
         {
-          "question_id": "CIKMIS-FIIL-CATILARI-SORULARI-VE-CEVAPLARI-2.pdf_q3",
-          "question_text": "Onun geldiğini duyunca çok sevindik.",
+          "question_id": "Fiil Çatıları.pdf_q9",
+          "question_text": "\"Çocuklar bahçedeki çamurda oynarken üstlerini başlarını kirlettiler.\"",
           "pred": "Cümle Türleri",
-          "pred_conf": 0.47922244668006897,
-          "second_conf": 0.2168850153684616,
-          "margin": 0.26233743131160736
+          "pred_conf": 0.4396522045135498,
+          "second_conf": 0.14183108508586884,
+          "margin": 0.29782111942768097
         },
         {
-          "question_id": "CIKMIS-FIIL-CATILARI-SORULARI-VE-CEVAPLARI-2.pdf_q5",
-          "question_text": "Numaralanmış cümlelerle ilgili olarak aşağı­ dakilerden hangisi söylenemez?",
+          "question_id": "Fiil Çatıları.pdf_q14",
+          "question_text": "\"İki ülke arasındaki ticaret anlaşması dün imzalandı.\" cümlesindeki yüklemin",
           "pred": "Cümle Türleri",
-          "pred_conf": 0.8730652332305908,
-          "second_conf": 0.11116747573018074,
-          "margin": 0.7618977575004101
-        },
-        {
-          "question_id": "Fiil Çatıları.pdf_q3",
-          "question_text": "Aşağıdaki cümlelerden hangisi nesnesine",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.8624799251556396,
-          "second_conf": 0.08647488772869111,
-          "margin": 0.7760050374269485
+          "pred_conf": 0.8571510314941406,
+          "second_conf": 0.04015493020415306,
+          "margin": 0.8169961012899876
         }
       ]
     },
     {
-      "true": "Paragraf Bilgisi",
-      "pred": "Anlatım Biçimleri",
-      "count": 3,
+      "true": "Öge",
+      "pred": "Anlatım Bozuklukları",
+      "count": 2,
       "examples": [
         {
-          "question_id": "paragraf.pdf_q3",
-          "question_text": "İlahi Bakış Açısı Bu bakış açısında anlatıcı, olayların gelişiminden kahramanların zihnindeki düşüncelere kadar her şeyi bilir. l Yusuf, elinde dosyalarla öğretmenler odasına yöneldi. Birkaç adım attıktan sonra korkuyla olduğu yerde kaldı. Aklında öğretmeninin çalışmalarını beğen- meme düşüncesi vardı. Korkusunu yenip odanın kapısını çaldı. İçinden bir ses ‘’Umarım öğretmenler odasında başkası yoktur.’’ diyordu. Örnek Örnek Örnek Örnek Anlatıcı bakış açıları ile anlatıcı türleri karıştırılmamalıdır. Uyarı TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 72 Uygulama Aşağıda verilen metinlerin anlatım biçimlerini altlarındaki boşluklara yazınız. ( öyküleyici – betimleyici – açıklayıcı – tartışmacı ) Günümüze kadar biyolojik ortamda yönlendirilebilen az sayıda mikro sistem geliştirilmiş. Bu sistemler, genellikle vücudun dolaşım ve sindirim sistemi gibi sıvı içeren bölgelerinde kimyasal, mekanik ya da manyetik yolla itilerek hareket ettirilen yapılardan oluşuyor. Hayvanlar üzerinde gerçekleştirilen araştırmalarda, ilaç taşınmasında küçük robotların kullanılmasına ilişkin bazı kısıtlamalar tespit edilmiş. Örneğin, yaklaşık 285 μm (mikrometre) çapında ve 1800 μm uzunluktaki silindir seklinde manyetik yapılarla gerçekleştirilen araştırmalarda, gözün camsı cisim bölgesinde hareketin kısıtlandığı belirlenmiş. .………………………………………………………………………......................... Gümüş gibi parlayan bu güzel kaşağının dişlerine baktım. Çok keskin, çok sivriydi. Biraz körletmek için duvarın taşlarına sürtmeye başladım. Dişleri bozulunca tekrar denedim. Yine atların hiçbiri durmuyordu. Kızdım. Öfkemi sanki kaşağıdan çıkarmak istedim. On adım ilerdeki çeşmeye koştum. Kaşağıyı yala- ğın taşına koydum. Yerden kaldırabileceğim en ağır taşı bularak üstüne hızlı hızlı indirmeye başladım. İstanbul’dan gelen, Dadaruh’un kullanmaya kıyamadığı bu güzel kaşağıyı ezdim, parçaladım. Sonra yalağın içine attım. ………………………………………………………………………..................... İnsanlar, hiçbir bilgiye sahip olmadan doğar. Yaşamı boyunca birçok bilgi öğ- renir. Başarının sırrı da okumaktır. Okulda olduğu kadar hayatta da başarının en önde gelen şartlarından biri yine okumaktır. Her ne kadar birileri buna karşı çıksa da uygar ve kültürlü bir insan olmak için okumalıyız. Okul kitaplarıyla yetinmemeli- yiz. Uygarlık bizden önceki kuşakların biriktirdiği bilgi ve anıların bir toplamıdır. Biz, uygarlığa o kuşakların kitaplarını okumakla katılabiliriz. Hiçbir şey okumanın yerini tutmaz. ………………………………………………………………………................... Haftada birkaç kez ustası, Cihan’a ve diğer üç çırağına yeni bir vazife verirdi. Bazen tek göz bir kulübe resmetmek kadar basit olurdu ödevleri. Bazen daha çetrefilli. Bir konağın sağlamlığından feragat etmeden içindeki sütunların nasıl azaltılacağını sorardı mesela. Taşları sıkıca tutan ama zamanla kuruyup çatlayan bir harcın yerine ne kullanılabileceğini, toprağın altından ve üstünden geçen su kanallarının zamanla tıkanmasına nasıl mani olunabileceğini... Tüm bu soruları kendi başlarına cevaplamaları gerekiyordu. ………………………………………………………….................................... TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 73 KONU DEĞERLENDİRME TESTİ Burdur Gölü, pek çok kuş türüne ev sahipliği yapıyor. Dikkuyruk, ka- şıkgaga, yeşilbaş, bahri, saka, florya, kızılgerdan, tepeli toygar bu kuş tür- lerinden bazıları. Dünyadaki sıcaklık artışı bu hızla devam ederse belli bir süre sonra gölün suları çekilecek. Gö- lün kuruması hâlinde de kuşların bazı- ları kendilerine başka bir yaşam alanı arayacak, bazıları da yaşadığı yeri terk edemeden göl sularıyla birlikte toprağa karışacak.",
-          "pred": "Anlatım Biçimleri",
-          "pred_conf": 0.355532683134079,
-          "second_conf": 0.2976847290992737,
-          "margin": 0.057847954034805305
+          "question_id": "Cümlenin Ögeleri.pdf_q23",
+          "question_text": "\"Başarılı olmanın en önemli şartı, pes etmeden sürekli çalışmaktır.\" Bu cümlede",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.6779906153678894,
+          "second_conf": 0.4165613055229187,
+          "margin": 0.2614293098449707
         },
         {
-          "question_id": "paragraf.pdf_q2",
-          "question_text": "Öyküleme (Hikâye Etme) Tasarlanmış veya yaşanmış bir olayın başkalarına sözle ya da yazıyla anlatıl- dığı anlatım biçimine öyküleme (hikâye etme) denir. Öyküleyici anlatımda hikâye unsurları (kişi, yer, zaman ve olay) kullanılmakta- dır. Betimleyici anlatımdan farklı olarak olaylar hareketlilik halindedir. l Kardeşimle yatağımıza oturur, babaannemi de karşımıza alırdık. O “Bir varmış, bir yokmuş.” diye başlardı anlatmaya, hiç susmasın isterdik. Her masalın sonunda bizden “Bir tane daha, ne olur!” sesleri yükselirdi. Kel Oğlan’ı, Yaman Tilki’yi, Şeker Henry’i anlatmasını isterdik.",
-          "pred": "Anlatım Biçimleri",
-          "pred_conf": 0.7883476161956787,
-          "second_conf": 0.19623502656817438,
-          "margin": 0.5921125896275043
-        },
-        {
-          "question_id": "paragraf.pdf_q2",
-          "question_text": "Üçüncü Kişi Ağzıyla Anlatım Üçüncü kişi ağzıyla anlatımlarda yazar, genellikle duyduğu veya gördüğü şey- leri anlatır. Bu tür anlatımlarda çoğu zaman üçüncü tekil şahıs (o) veya üçüncü çoğul şahıs (onlar) ekleri kullanır. l Tahtın karşısındaki sırmalı büyük perde kımıldadı. Kocaman kavuklu, ince bir ihtiyar belirsiz bir gölge gibi içeri girdi. Gözleri yerde, saygıyla yürüdü. Tahtın basamağına diz çöktü. ANLATICI BAKIŞ TÜRLERİ",
-          "pred": "Anlatım Biçimleri",
-          "pred_conf": 0.798655092716217,
-          "second_conf": 0.04248169809579849,
-          "margin": 0.7561733946204185
+          "question_id": "Cümlenin Ögeleri.pdf_q25",
+          "question_text": "\"Bu kadar ağır bir yükün altından nasıl kalkacağını kara kara düşünüyordu.\" Bu",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8478090167045593,
+          "second_conf": 0.028574177995324135,
+          "margin": 0.8192348387092352
         }
       ]
     },
     {
-      "true": "Sözel Mantık",
+      "true": "Cümlede Anlam",
       "pred": "Görsel Okuma ve Grafik Tablo",
-      "count": 3,
+      "count": 2,
       "examples": [
         {
-          "question_id": "Sözel Mantık.pdf_q21",
-          "question_text": "kattadır. kanalında Pazartesi'den Cuma'ya kadar her Korku, Bilim Kurgu) yayınlanmıştır. önceki gün yayınlanmıştır.",
+          "question_id": "cumledeanlam.pdf_q1",
+          "question_text": "Buna göre Toprak’ın bulduğu şifre hangisidir?",
           "pred": "Görsel Okuma ve Grafik Tablo",
-          "pred_conf": 0.5025431513786316,
-          "second_conf": 0.23341019451618195,
-          "margin": 0.26913295686244965
+          "pred_conf": 0.3758757710456848,
+          "second_conf": 0.1985435038805008,
+          "margin": 0.17733226716518402
         },
         {
-          "question_id": "Sözel Mantık.pdf_q3",
-          "question_text": "L yayınevinin C standında olduğu biliniyorsa",
+          "question_id": "Cümlede Anlam.pdf_q17",
+          "question_text": "[RESIM] [RESIM] [RESIM] [RESIM] [RESIM] [RESIM] [RESIM] [RESIM] \"Uzun süredir beklediğimiz o önemli kargo, bugün öğleden sonra şirket adresimize teslim",
           "pred": "Görsel Okuma ve Grafik Tablo",
-          "pred_conf": 0.8029332160949707,
-          "second_conf": 0.03163246065378189,
-          "margin": 0.7713007554411888
+          "pred_conf": 0.7823688387870789,
+          "second_conf": 0.023414557799696922,
+          "margin": 0.7589542809873819
+        }
+      ]
+    },
+    {
+      "true": "Deyimler ve Atasözleri",
+      "pred": "Anlatım Bozuklukları",
+      "count": 2,
+      "examples": [
+        {
+          "question_id": "Deyimler ve Atasözleri.pdf_q8",
+          "question_text": "\"Bu işi başarmak istiyorsan uzaktan izlemeyi bırakmalı ve sen de ................\" Bu cümlede",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8867258429527283,
+          "second_conf": 0.2619771873578429,
+          "margin": 0.6247486555948853
         },
         {
-          "question_id": "Sözel Mantık.pdf_q23",
-          "question_text": "Muz hangi renk kutudadır?",
-          "pred": "Görsel Okuma ve Grafik Tablo",
-          "pred_conf": 0.8196839094161987,
-          "second_conf": 0.031132377684116364,
-          "margin": 0.7885515317320824
+          "question_id": "Deyimler ve Atasözleri.pdf_q20",
+          "question_text": "\"Ona güvenerek işe başladım ama beni son anda yarı yolda bıraktı.\" Bu durumu ifade",
+          "pred": "Anlatım Bozuklukları",
+          "pred_conf": 0.8584771156311035,
+          "second_conf": 0.02352862060070038,
+          "margin": 0.8349484950304031
         }
       ]
     },
     {
       "true": "Cümle Türleri",
       "pred": "Cümlede Anlam",
-      "count": 2,
+      "count": 1,
       "examples": [
         {
-          "question_id": "cumleturleri.pdf_q3",
-          "question_text": "Soru Cümlesi Soru yoluyla bilgi almayı amaçlayan yani karşılığında bir cevap beklenen cüm- lelerdir. Bu cümlelerde soru anlamı soru zamirleri, soru zarfları, soru sıfatları ve soru edatları (mı, mi, mu, mü) ile kazandırılır. Örnek l Hava yarın nasıl olacakmış? l Sevgi midir dünyayı ayakta tutan? l Bu soruyu neden bana soruyorsun? l Otobüs yarın kaçta hareket ediyor? l İnsan bir şehirde yaşadıklarını unutabilir mi? Çözümlü Soru I. Ne kendin gel ne de haber yolla. II. Sanki onu saatlerce aramadık mı? III. Ben de sizinle gelmeyecek değilim. IV. Gel de bu adama güven artık! V. Sizi bu konuda kandırıyor değilim. Numaralanmış cümlelerden hangileri biçimce olumsuz, anlamca olumludur?",
+          "question_id": "CIKMIS-CUMLE-TURLERI-SORULARI-VE-CEVAPLARI-1.pdf_q6",
+          "question_text": "Bu metinde numaralanmış cümlelerin hangi­ sinde tek yargı vardır?",
           "pred": "Cümlede Anlam",
-          "pred_conf": 0.8599596548080444,
-          "second_conf": 0.15653231739997864,
-          "margin": 0.7034273374080657
-        },
+          "pred_conf": 0.9360911512374878,
+          "second_conf": 0.02639424428343773,
+          "margin": 0.90969690695405
+        }
+      ]
+    },
+    {
+      "true": "Cümle Türleri",
+      "pred": "Paragraf Bilgisi",
+      "count": 1,
+      "examples": [
         {
-          "question_id": "Cümle Türleri.pdf_q34",
-          "question_text": "Numaralanmış cümlelerin hangisinde anlamca oldukça sade ve anlaşılırdır. II. Çocukların bahçede ki?\" cümlesi anlamına göre",
-          "pred": "Cümlede Anlam",
-          "pred_conf": 0.9696116113662719,
-          "second_conf": 0.08873388722538948,
-          "margin": 0.8808777241408825
+          "question_id": "cumleturleri.pdf_q4",
+          "question_text": "Bu parça ile ilgili olarak aşağı- dakilerden hangisi söylenemez?",
+          "pred": "Paragraf Bilgisi",
+          "pred_conf": 0.9158822894096375,
+          "second_conf": 0.01069339457899332,
+          "margin": 0.9051888948306441
+        }
+      ]
+    },
+    {
+      "true": "Cümle Türleri",
+      "pred": "Öge",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Cümle Türleri.pdf_q53",
+          "question_text": "Aşağıdaki cümlelerin hangisi öge ortaklığı",
+          "pred": "Öge",
+          "pred_conf": 0.972168095111847,
+          "second_conf": 0.010553409345448017,
+          "margin": 0.961614685766399
+        }
+      ]
+    },
+    {
+      "true": "Fiilimsiler",
+      "pred": "Sözcükte Anlam",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Fiilimsiler.pdf_q18",
+          "question_text": "\"Gelecek, her zaman umutla beklenmelidir.\" cümlesindeki altı çizili sözcüğün",
+          "pred": "Sözcükte Anlam",
+          "pred_conf": 0.7267684078216553,
+          "second_conf": 0.18332311511039734,
+          "margin": 0.543445292711258
+        }
+      ]
+    },
+    {
+      "true": "Noktalama İşaretleri",
+      "pred": "Yazım Kuralları",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Noktalama İşaretleri İşaretleri.pdf_q20",
+          "question_text": "\"Şiirlerde dize sonlarında seslerin (hecelerin) düştüğünü göstermek için kullanılır.\"",
+          "pred": "Yazım Kuralları",
+          "pred_conf": 0.444082111120224,
+          "second_conf": 0.13163280487060547,
+          "margin": 0.31244930624961853
         }
       ]
     },
     {
       "true": "Noktalama İşaretleri",
       "pred": "Fiilimsiler",
-      "count": 2,
+      "count": 1,
       "examples": [
         {
-          "question_id": "Noktalama İşaretleri İşaretleri.pdf_q25",
-          "question_text": "(I) Odanın içi oldukça sıcaktı. (II) Genç adam Kalemini eline aldı ancak ne yazacağını bir türlü göndermeli miyim diye düşündü. Numaralanmış",
+          "question_id": "Noktalama İşaretleri İşaretleri.pdf_q37",
+          "question_text": "\"Soru eki veya sözü içeren cümlelerin sonuna konur. Ancak 'mı / mi' eki cümleye 'zaman' veya 'koşul' anlamı katıyorsa (zarf-fiil görevindeyse) cümlenin sonuna soru işareti konmaz.\"",
           "pred": "Fiilimsiler",
-          "pred_conf": 0.2691483497619629,
-          "second_conf": 0.24129671573638917,
-          "margin": 0.027851634025573724
-        },
-        {
-          "question_id": "CIKMIS-NOKTALAMA-SORULARI-VE-CEVAPLARI-1.pdf_q1",
-          "question_text": "göz-lük-çü, al-ış, dur-ak",
-          "pred": "Fiilimsiler",
-          "pred_conf": 0.36217859387397766,
-          "second_conf": 0.26308760046958923,
-          "margin": 0.09909099340438843
-        }
-      ]
-    },
-    {
-      "true": "Yazım Kuralları",
-      "pred": "Noktalama İşaretleri",
-      "count": 2,
-      "examples": [
-        {
-          "question_id": "yazimkurallari.pdf_q4",
-          "question_text": "Yüzde ve binde işaretleri yazılırken sayılarla işaret arasında boşluk bı- rakılmaz: l %25, ‰50 vb.",
-          "pred": "Noktalama İşaretleri",
-          "pred_conf": 0.6688724756240845,
-          "second_conf": 0.13276323676109314,
-          "margin": 0.5361092388629913
-        },
-        {
-          "question_id": "yazimkurallari.pdf_q6",
-          "question_text": "Romen rakamları tarihî olaylarda, yüzyıllarda, hükümdar adlarında, ta- rihlerde ayların yazılışında, kitap ve dergi ciltlerinde, kitapların asıl bölümle- rinden önceki sayfaların numaralandırılmasında, maddelerin sıralandırılma- sında kullanılır: l II. Dünya Savaşı; XX. yüzyıl; III. Selim, XIV. Louis, II. Wilhelm, V. Karl, VIII. Edward; 1.XI.1928; I. Cilt; I)… II) … vb. TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 286",
-          "pred": "Noktalama İşaretleri",
-          "pred_conf": 0.9185699820518494,
-          "second_conf": 0.008427072316408157,
-          "margin": 0.9101429097354412
-        }
-      ]
-    },
-    {
-      "true": "Öge",
-      "pred": "Cümle Türleri",
-      "count": 2,
-      "examples": [
-        {
-          "question_id": "CIKMIS-OGE-SORULARI-VE-COZUMLERI.pdf_q9",
-          "question_text": "Bu metinde numaralanmış cümlelerden hangisi sadece yüklemden oluşmuştur?",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.8795735239982605,
-          "second_conf": 0.10076897606253624,
-          "margin": 0.7788045479357243
-        },
-        {
-          "question_id": "8.-sinif-indirilebilir-testler-cumlenin-ogeleri-01.pdf_q2",
-          "question_text": "Cümle",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.8866552710533142,
-          "second_conf": 0.013849431648850441,
-          "margin": 0.8728058394044638
-        }
-      ]
-    },
-    {
-      "true": "Öge",
-      "pred": "Cümlede Anlam",
-      "count": 2,
-      "examples": [
-        {
-          "question_id": "8.-sinif-indirilebilir-testler-cumlenin-ogeleri-01.pdf_q2",
-          "question_text": "Günün sonunda bütün olanları anladım. Numaralanmış cümlelerin özneleri için aşağıdakiler- den hangisi doğru olur?",
-          "pred": "Cümlede Anlam",
-          "pred_conf": 0.5862657988071441,
-          "second_conf": 0.22026549994945527,
-          "margin": 0.36600029885768887
-        },
-        {
-          "question_id": "CIKMIS-OGE-SORULARI-VE-COZUMLERI.pdf_q20",
-          "question_text": "Aşağıdaki cümlelerin hangisinde vurgu, zaman belirten ifade üzerindedir?",
-          "pred": "Cümlede Anlam",
-          "pred_conf": 0.8824713826179504,
-          "second_conf": 0.01337872352451086,
-          "margin": 0.8690926590934396
-        }
-      ]
-    },
-    {
-      "true": "Düşünceyi Geliştirme Yolları",
-      "pred": "Paragraf Bilgisi",
-      "count": 2,
-      "examples": [
-        {
-          "question_id": "Düşünceyi Geliştirme Yolları.pdf_q39",
-          "question_text": "Dünya edebiyatı, yazarların kendi yaşadıkları acıları ölümsüzleştirdikleri başyapıtlarla doludur. derinden hisseden yazarlar, bu acıları kâğıda dökerek yapması, hiçbir kural tanımaması veya demek değildir. Özgürlük, kişinin kendi saygı göstererek bencilce isteklerine Rousseau, \"İnsanın gerçek özgürlüğü, eğmesindedir.\" diyerek özgürlüğün aslında bir derinlikle ifade etmiştir. Bu",
-          "pred": "Paragraf Bilgisi",
-          "pred_conf": 0.6624427437782288,
-          "second_conf": 0.1401151716709137,
-          "margin": 0.5223275721073151
-        },
-        {
-          "question_id": "Düşünceyi Geliştirme Yolları.pdf_q26",
-          "question_text": "Giyim sektöründe kullanılan kumaşların türü, doğrudan etkiler. Pamuk, keten veya ipek gibi doğal nefes almasını sağlar, terlemeyi önler ve ciltte alerjik düşüktür. Buna karşın, petrol ürünlerinden sentetik kumaşlar, hava geçirgenliğinden tamamen yoksundur. dengesizleşmesine ve terin ciltte hapsolmasına neden bir deneyim sunarken sentetikler ucuz olmalarına düşünceyi geliştirme yollarından hangisine başvurulmuştur?",
-          "pred": "Paragraf Bilgisi",
-          "pred_conf": 0.9191349148750305,
-          "second_conf": 0.08023740228265525,
-          "margin": 0.8388975125923752
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Anlatım Bozuklukları",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "CIKMIS-CUMLE-TURLERI-SORULARI-VE-CEVAPLARI-1.pdf_q2",
-          "question_text": "Bu davranışının birçok nedeni varmış.",
-          "pred": "Anlatım Bozuklukları",
-          "pred_conf": 0.771031379699707,
-          "second_conf": 0.022880002856254578,
-          "margin": 0.7481513768434525
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Fiil Çatıları",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "CIKMIS-CUMLE-TURLERI-SORULARI-VE-CEVAPLARI-1.pdf_q3",
-          "question_text": "Yorucu bir günün sonunda derin bir uykuya daldı.",
-          "pred": "Fiil Çatıları",
-          "pred_conf": 0.5226501822471619,
-          "second_conf": 0.18273773789405823,
-          "margin": 0.33991244435310364
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Fiilimsiler",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "8.-sinif-indirilebilir-testler-cumle-turleri-03.pdf_q12",
-          "question_text": "Aşağıdakilerden hangisi içinde fiilimsi bulunan bir cümledir?",
-          "pred": "Fiilimsiler",
-          "pred_conf": 0.9382660460472108,
-          "second_conf": 0.01155836321413517,
-          "margin": 0.9267076828330756
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Öge",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "cumleturleri.pdf_q1",
-          "question_text": "Ankara’dan gelen haberlerin hep- si birbirinden iyi.",
-          "pred": "Öge",
-          "pred_conf": 0.4450720250606537,
-          "second_conf": 0.17747735977172852,
-          "margin": 0.26759466528892517
-        }
-      ]
-    },
-    {
-      "true": "Cümle Türleri",
-      "pred": "Metin Türleri",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "cumleturleri.pdf_q9",
-          "question_text": "Bu parçada aşağıdakilerden hangisi yoktur?",
-          "pred": "Metin Türleri",
-          "pred_conf": 0.2843972146511078,
-          "second_conf": 0.2689426839351654,
-          "margin": 0.015454530715942383
-        }
-      ]
-    },
-    {
-      "true": "Fiilimsiler",
-      "pred": "Öge",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "CIKMIS-FIILIMSI-SORULARI-VE-CEVAPLARI-1.pdf_q2",
-          "question_text": "Yaşlandıkça huyu değişti.",
-          "pred": "Öge",
-          "pred_conf": 0.24253223836421967,
-          "second_conf": 0.1290062814950943,
-          "margin": 0.11352595686912537
-        }
-      ]
-    },
-    {
-      "true": "Fiilimsiler",
-      "pred": "Noktalama İşaretleri",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "CIKMIS-FIILIMSI-SORULARI-VE-CEVAPLARI-1.pdf_q3",
-          "question_text": "O, kendine yakışan kıyafeti bilir.",
-          "pred": "Noktalama İşaretleri",
-          "pred_conf": 0.606503427028656,
-          "second_conf": 0.10074446350336075,
-          "margin": 0.5057589635252953
-        }
-      ]
-    },
-    {
-      "true": "Fiilimsiler",
-      "pred": "Fiil Çatıları",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "CIKMIS-FIILIMSI-SORULARI-VE-CEVAPLARI-1.pdf_q4",
-          "question_text": "Topu tutup yukarı fırlattı.",
-          "pred": "Fiil Çatıları",
-          "pred_conf": 0.4793945550918579,
-          "second_conf": 0.12096821516752243,
-          "margin": 0.3584263399243355
+          "pred_conf": 0.4748949182033539,
+          "second_conf": 0.4525545608997345,
+          "margin": 0.022340357303619385
         }
       ]
     },
     {
       "true": "Fiil Çatıları",
-      "pred": "Fiilimsiler",
+      "pred": "Öge",
       "count": 1,
       "examples": [
         {
-          "question_id": "fiildecati.pdf_q5",
-          "question_text": "Aşağıdakilerin hangisinde bu kurala örnek bir kullanım vardır?",
-          "pred": "Fiilimsiler",
-          "pred_conf": 0.7970165610313416,
-          "second_conf": 0.11199473395943642,
-          "margin": 0.6850218270719052
+          "question_id": "Fiil Çatıları.pdf_q15",
+          "question_text": "Aşağıdaki cümlelerin hangisinde yüklem komik hareketleri odadaki herkesi güldürdü.",
+          "pred": "Öge",
+          "pred_conf": 0.8074035120010377,
+          "second_conf": 0.05600186437368393,
+          "margin": 0.7514016476273537
         }
       ]
     },
     {
-      "true": "Söz Sanatları",
+      "true": "Yazım Kuralları",
       "pred": "Fiilimsiler",
       "count": 1,
       "examples": [
         {
-          "question_id": "CIKMIS-SOZ-SANATLARI-SORULARI-VE-CEVAPLARI-1.pdf_q18",
-          "question_text": "Bu dörtlükteki “kişileştirilmeler”, aşağı­ dakilerin hangisinde birlikte verilmiştir?",
+          "question_id": "Yazım Kuralları.pdf_q6",
+          "question_text": "Aşağıdakilerin hangisinde \"ki\" bağlacı kalıplaştığı",
           "pred": "Fiilimsiler",
-          "pred_conf": 0.30923569202423096,
-          "second_conf": 0.20059791207313538,
-          "margin": 0.10863777995109558
+          "pred_conf": 0.4340045750141144,
+          "second_conf": 0.18320786952972412,
+          "margin": 0.25079670548439026
+        }
+      ]
+    },
+    {
+      "true": "Yazım Kuralları",
+      "pred": "Cümle Türleri",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Yazım Kuralları.pdf_q9",
+          "question_text": "Aşağıdaki cümlelerin hangisinde birleşik kelimelerin",
+          "pred": "Cümle Türleri",
+          "pred_conf": 0.3700786828994751,
+          "second_conf": 0.19773772358894348,
+          "margin": 0.17234095931053162
+        }
+      ]
+    },
+    {
+      "true": "Metin Türleri",
+      "pred": "Anlatım Biçimleri",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "8.-sinif-indirilebilir-test-metin-turleri-01-mb.pdf_q12",
+          "question_text": "Meteoroloji, hava durumunu tahmin etmek için atmos- ferdeki değişkenleri analiz eder. Hava istasyonları, uydu görüntüleri ve radarlarla sıcaklık, nem, rüzgar ve basınç verileri toplanır. Bu veriler, gelişmiş bilgisayar modellerin- de işlenerek hava olaylarının olası senaryoları oluşturulur. Uzmanlar, bu modelleri değerlendirip bölgesel ve kısa va- deli tahminler sunar. Teknoloji, doğruluğu artırır. Bu metnin türü aşağıdakilerden hangisidir?",
+          "pred": "Anlatım Biçimleri",
+          "pred_conf": 0.8837851285934448,
+          "second_conf": 0.08074375677853823,
+          "margin": 0.8030413718149065
         }
       ]
     },
@@ -889,42 +892,27 @@
       "count": 1,
       "examples": [
         {
-          "question_id": "sozsanatlari.pdf_q1",
-          "question_text": "Aşağıdaki atasözlerinin han- gisinde karşıt anlamlı sözcükler bir arada kullanılmıştır?",
+          "question_id": "sozsanatlari.pdf_q3",
+          "question_text": "Bu parçada “atasözü” aşağıda- kilerden hangisine benzetilmiştir?",
           "pred": "Sözcükte Anlam",
-          "pred_conf": 0.8727213144302368,
-          "second_conf": 0.014217031188309193,
-          "margin": 0.8585042832419276
+          "pred_conf": 0.7968621850013733,
+          "second_conf": 0.05362726375460625,
+          "margin": 0.743234921246767
         }
       ]
     },
     {
       "true": "Öge",
-      "pred": "Noktalama İşaretleri",
+      "pred": "Geçiş ve Bağlantı İfadeleri",
       "count": 1,
       "examples": [
         {
-          "question_id": "CIKMIS-OGE-SORULARI-VE-COZUMLERI.pdf_q12",
-          "question_text": "Bu cümlede üç nokta ile belirtilen yere aşağıdakilerden hangisi getirilirse cümle, yer tamlayıcısı kazanmış olur?",
-          "pred": "Noktalama İşaretleri",
-          "pred_conf": 0.9864598655700684,
-          "second_conf": 0.15000000000000002,
-          "margin": 0.8364598655700684
-        }
-      ]
-    },
-    {
-      "true": "Öge",
-      "pred": "Fiilimsiler",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "8.-sinif-indirilebilir-testler-cumlenin-ogeleri-mb-03.pdf_q11",
-          "question_text": "Ali: Kardeşim, annemi göremeyince hüngür hüngür ağladı. Kâmil: Her gün paketli gıdalar yediğin için sağlığın çabuk bozuluyor. Ayşe: Bu söylediklerinle beni çok şaşırttın. İlayda: Bütün bu notları arkadaşlarımın defterlerinden top- ladım. Bu öğrencilerin hangisinin cümlesinde zarf tamlayıcısı kullanılmamıştır?",
-          "pred": "Fiilimsiler",
-          "pred_conf": 0.3735506236553192,
-          "second_conf": 0.2913808226585388,
-          "margin": 0.0821698009967804
+          "question_id": "Cümlenin Ögeleri.pdf_q26",
+          "question_text": "\"Olayın gerçek yüzünü aylar sonra tesadüfen öğrendik.\" Bu cümlede altı çizili bölüm",
+          "pred": "Geçiş ve Bağlantı İfadeleri",
+          "pred_conf": 0.4667755365371704,
+          "second_conf": 0.15795928239822388,
+          "margin": 0.30881625413894653
         }
       ]
     },
@@ -934,57 +922,102 @@
       "count": 1,
       "examples": [
         {
-          "question_id": "8.-sinif-indirilebilir-testler-sozcukte-anlam-03.pdf_q10",
-          "question_text": "Mustafa Kutlu, hikâyelerinde zaman yolculuğu yapmayı çok tercih etmiyor. Onun hikâyelerinde kolunuzdaki saat- le aynı zamanı gösteren konularla karşılaşıyorsunuz. Bu metinlerdeki mekânlarla, nesnelerle ve kişilerle başınızı kaldırdığınız her an karşılaşabiliyorsunuz. Bu metindeki altı çizili sözle aşağıdakilerden hangisi anlatılmak istenmiştir?",
+          "question_id": "sozcukteanlam.pdf_q4",
+          "question_text": "Aşağıdaki atasözlerinin han- gisinde karşıt anlamlı sözcükler bir arada kullanılmıştır?",
           "pred": "Söz Sanatları",
-          "pred_conf": 0.45888370275497437,
-          "second_conf": 0.230946347117424,
-          "margin": 0.22793735563755035
+          "pred_conf": 0.818744957447052,
+          "second_conf": 0.08209126692265273,
+          "margin": 0.7366536905243992
+        }
+      ]
+    },
+    {
+      "true": "Sözcükte Anlam",
+      "pred": "Cümlede Anlam",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "sozcukteanlam.pdf_q1",
+          "question_text": "Bu cümlede geçen “süte su katma- mak” sözünün cümleye kattığı anlam aşağıdakilerin hangisidir?",
+          "pred": "Cümlede Anlam",
+          "pred_conf": 1.0,
+          "second_conf": 0.018585393205285072,
+          "margin": 0.9814146067947149
         }
       ]
     },
     {
       "true": "Cümlede Anlam",
-      "pred": "Fiilimsiler",
+      "pred": "Anlatım Biçimleri",
       "count": 1,
       "examples": [
         {
-          "question_id": "cumledeanlam.pdf_q3",
-          "question_text": "yardım etmez",
-          "pred": "Fiilimsiler",
-          "pred_conf": 0.77660071849823,
-          "second_conf": 0.03156745061278343,
-          "margin": 0.7450332678854465
+          "question_id": "8.-sinif-indirilebilir-testler-cumlede-anlam-04.pdf_q10",
+          "question_text": "Akşam, tüm yıldızlarla kucaklaştıktan sonra uykuya daldım. Gerekli ihtiyaçları için liste hazırlayıp dışarı çıkacağız. Bebeklerin hangi bezi kullanacağı değişiklik gösterebilir. Dün gece gördüğüm rüyanın etkisinden hala kurtulamadım. Hangi renk kutucukta hayal ürünü bir ifade kullanıl- mıştır?",
+          "pred": "Anlatım Biçimleri",
+          "pred_conf": 0.7180761694908142,
+          "second_conf": 0.09041099779307843,
+          "margin": 0.6276651716977357
         }
       ]
     },
     {
       "true": "Cümlede Anlam",
-      "pred": "Cümle Türleri",
+      "pred": "Öge",
       "count": 1,
       "examples": [
         {
-          "question_id": "cumledeanlam.pdf_q2",
-          "question_text": "[ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] Nesnel Yargı Doğruluğu kanıtlanabilen ve herkesçe kabul edilen, kişisel görüş içermeyen yargılara nesnel yargı denir. Nesnel yargılar; kesinlik taşır, doğruluğu ya da yan- lışlığı kanıtlanır ve kişiden kişiye değişmez. l Yakup Kadri Karaosmanoğlu Yaban romanında Kurtuluş Savaşı yıllarını işlemiştir. l İki çocuğunu her sabah okula arabayla bırakırdı. l Yazar eserinde oldukça uzun cümleler kullanmıştır. Uygulama Aşağıdaki cümleleri “nesnel” ya da “öznel” olma durumlarına göre değerlendiriniz. Kitap okumayanlar konuşkan olmazlar. Ana renklerden biri de kırmızıdır. Hareketli şarkılar herkesi etkisi altına alır. Roman, üç bölüm halinde sinemaya uyarlanmış. Beyaz kıyafetler insanlara yakışıyor. Örnek Örnek TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 50 Uygulama Aşağıdaki metinlerde geçen ‘‘nesnel’’ ve ‘‘öznel’’ cümlelerin numaralarını verilen alana yazınız. (ı) İlçenin 2800 metre yüksek- liğinde iki krater gölü ve Dik- men çevresinde üç adet küçük gölü vardır. (II) İlçe, Artvin’in Karadeniz’e kıyısı bulunan iki ilçesinden biri olup kıyı uzun- luğu 14 km’dir. (III) Dağlarla kaplı bir bölgede kurulduğu için tarım alanları sınırlıdır. (IV) 1950 yılından sonra çay yarımı yapılmaya başlanmıştır. (V) Az miktarda ama çok lezzetli narenciye yetiştirilmektedir. Öznel Cümle (ı) Atatürk ‘‘Türk dili, dillerin en zenginlerindendir. Yeter ki bu dil şuurla işlensin.’’ dediği güzel Türkçemiz bir tedbir alın- mazsa yok olup gidecek. (II) Pek yazık ki insanımız sahip olduğu hazinenin farkında de- ğil. (III) Oysaki Türkçe yaklaşık 83 milyon konuşuru ile dünya- da en çok konuşulan 20. dildir. (IV) Ama her gün, insanları- mızın duygu ve düşüncelerini güzel kelimelerimizle değil, emojilerler ve kısaltmalarla dile getirdiğine şahit oluyorum. (V) Bir milletin bağımsızlık simge- lerinden biri olan dilin bu şekil- de bozulması içimi acıtıyor. Nesnel Cümle Çözümlü Soru Minaresi, renkli(I) sır tekniği kullanılarak süslenmiş(II) olan İznik Yeşil(III) Cami, Osmanlıdan günümüze(IV) kalan görkemli(V) yapılardan biridir. Numaralanmış sözcüklerden hangisi bu cümlenin kişisel düşünce ifade etmesini sağlamıştır?",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.865790605545044,
-          "second_conf": 0.11514848858118057,
-          "margin": 0.7506421169638634
+          "question_id": "Cümlede Anlam.pdf_q16",
+          "question_text": "\"Gerçek bir sanatçı, halkın dertlerine ve sevinçlerine ayna tutmadıkça geleceğe kalıcı bir",
+          "pred": "Öge",
+          "pred_conf": 0.8190171718597412,
+          "second_conf": 0.04452911764383316,
+          "margin": 0.774488054215908
         }
       ]
     },
     {
-      "true": "Paragraf Bilgisi",
-      "pred": "Sözcükte Anlam",
+      "true": "Anlatım Bozuklukları",
+      "pred": "Öge",
       "count": 1,
       "examples": [
         {
-          "question_id": "paragraf.pdf_q3",
-          "question_text": "Bu parçada boş bırakılan yere aşağıdaki sözcüklerden hangisi ge- tirilirse parçanın anlam akışı bozu- lur?",
-          "pred": "Sözcükte Anlam",
-          "pred_conf": 0.7842038869857788,
-          "second_conf": 0.02663356438279152,
-          "margin": 0.7575703226029873
+          "question_id": "Anlatım Bozuklukları.pdf_q3",
+          "question_text": "\"İki eski dost, yıllar sonra karşılaşıp saatlerce karşılıklı mektuplaştıkları günleri andılar.\"",
+          "pred": "Öge",
+          "pred_conf": 0.8815686702728271,
+          "second_conf": 0.08258130092173815,
+          "margin": 0.7989873693510889
+        }
+      ]
+    },
+    {
+      "true": "Görsel Okuma ve Grafik Tablo",
+      "pred": "Sözel Mantık",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q70",
+          "question_text": "Burak, Fen Bilimleri çalışmasına başladığında",
+          "pred": "Sözel Mantık",
+          "pred_conf": 0.892590343952179,
+          "second_conf": 0.013720990158617496,
+          "margin": 0.8788693537935615
+        }
+      ]
+    },
+    {
+      "true": "Sözel Mantık",
+      "pred": "Görsel Okuma ve Grafik Tablo",
+      "count": 1,
+      "examples": [
+        {
+          "question_id": "Sözel Mantık (Devam).pdf_q45",
+          "question_text": "Bir kütüphane rafında roman, şiir, anı, gezi göre en üstte (5. sıra) hangi kasa vardır?",
+          "pred": "Görsel Okuma ve Grafik Tablo",
+          "pred_conf": 0.8910647034645081,
+          "second_conf": 0.15000000000000002,
+          "margin": 0.741064703464508
         }
       ]
     },
@@ -994,336 +1027,204 @@
       "count": 1,
       "examples": [
         {
-          "question_id": "paragraf.pdf_q4",
-          "question_text": "Bu parçanın ana düşüncesi nu- maralanmış cümlelerden hangisin- de verilmiştir?",
+          "question_id": "paragraf.pdf_q5",
+          "question_text": "[ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] Paragrafın Akışını Bozan Cümle Elinizde bir avuç kırmızı boncuğun olduğunu ve bu kırmızı boncukların içinde bir tane beyaz boncuğun olduğunu düşünün. Düşüncenin akışını bozan cümle kırmızı boncukların içindeki beyaz boncuk gibidir. Paragrafı oluşturan cümlelerin hepsi konunun aynı yönünü anlatır ve kendinden önce gelen cümlenin açıklayı- cısı durumundadır. Konunun farklı yönünü anlatan ya da farklı bir şeyden bahse- den cümle paragrafın bütünlüğünü bozuyor demektir. Çözümlü Soru (I) İnsan, bilinçaltının şekillendirdiği duygularının etkisindedir. (II) Bilinçaltına bağlı duygular; insanın tüm kararlarında etkili olur, onu bu duygular yönlendirir. (III) Ancak yaşam sizin duygularınıza göre değişiklik göstermez. (IV) Duyguları- mız özneldir ve bu öznellik bize ait kararların merkezinde yer alır. (V) Karar ver- mede sizi zorlayan duygularınız elbette olacaktır. (VI) Ancak doğru karar vermek için duygularınızın esiri olmamalısınız. Bu parçada numaralanmış cümlelerden hangisinin çıkarılması parçanın anlamında daralmaya neden olmaz?",
           "pred": "Cümlede Anlam",
-          "pred_conf": 0.764294445514679,
-          "second_conf": 0.05254948139190674,
-          "margin": 0.7117449641227722
+          "pred_conf": 0.9650854134559631,
+          "second_conf": 0.15580350100994111,
+          "margin": 0.809281912446022
         }
       ]
     },
     {
       "true": "Paragraf Bilgisi",
-      "pred": "Fiil Çatıları",
+      "pred": "Anlatım Biçimleri",
       "count": 1,
       "examples": [
         {
-          "question_id": "paragraf.pdf_q4",
-          "question_text": "Biraz sonra yanına genç bir balık- çı geldi.",
-          "pred": "Fiil Çatıları",
-          "pred_conf": 0.154380664229393,
-          "second_conf": 0.13364721834659576,
-          "margin": 0.02073344588279724
+          "question_id": "Paragraf Bilgisi (Yardımcı Fikir).pdf_q52",
+          "question_text": "Camın doğada bulunan kum, soda ve kireç üretildiği bilinen bir gerçektir. Ancak camın atıkların bile yüksek hızları nedeniyle devam etmesi hâlinde dünyadaki",
+          "pred": "Anlatım Biçimleri",
+          "pred_conf": 0.8152831196784973,
+          "second_conf": 0.03573988005518913,
+          "margin": 0.7795432396233082
         }
       ]
     },
     {
-      "true": "Noktalama İşaretleri",
-      "pred": "Sözcükte Anlam",
+      "true": "Düşünceyi Geliştirme Yolları",
+      "pred": "Paragraf Bilgisi",
       "count": 1,
       "examples": [
         {
-          "question_id": "Noktalama İşaretleri İşaretleri.pdf_q5",
-          "question_text": "Aşağıdaki cümlelerin hangisinde yay ayraç anlamlı kelimeler (anlamdaş) dilimizin zenginliğidir. Karaosmanoğlu) Servetifünun dönemine aittir.",
-          "pred": "Sözcükte Anlam",
-          "pred_conf": 0.9300269055366516,
-          "second_conf": 0.020553680136799812,
-          "margin": 0.9094732253998518
+          "question_id": "Düşünceyi Geliştirme Yolları.pdf_q4",
+          "question_text": "Büyük şehirlerde hayat, durmaksızın işleyen ve insanı sürekli bir yere yetişmeye zorlayan devasa bir makineye benzer. Sokaklarda hep bir aciliyet, yüzlerde hep bir asabiyet ve yorgunluk hâkimdir. Oysa kırsal kesimlerde zaman çok daha ağır, telaşsız ve şefkatli akar. İnsanlar kol saatlerine değil, güneşin doğuşuna ve batışına göre hareket eder. Metropollerin o sağır edici gürültüsü ve karmaşası, yerini köylerde tabiatın o dinlendirici fısıltısına bırakır. Bu",
+          "pred": "Paragraf Bilgisi",
+          "pred_conf": 0.8930650353431702,
+          "second_conf": 0.025316106155514717,
+          "margin": 0.8677489291876554
         }
       ]
     },
     {
-      "true": "Deyimler ve Atasözleri",
-      "pred": "Cümlede Anlam",
+      "true": "Düşünceyi Geliştirme Yolları",
+      "pred": "Anlatım Biçimleri",
       "count": 1,
       "examples": [
         {
-          "question_id": "Deyimler ve Atasözleri.pdf_q7",
-          "question_text": "\"Ahmet, her zaman olduğu gibi bu olayda da işlerini halletti.\" Bu cümlede Ahmet'in tavrını takdirini kazanmış, âdeta ................\" Bu hangisinin getirilmesi en uygundur?",
-          "pred": "Cümlede Anlam",
-          "pred_conf": 0.4026249498128891,
-          "second_conf": 0.26933759450912476,
-          "margin": 0.13328735530376434
+          "question_id": "Düşünceyi Geliştirme Yolları (Devam).pdf_q24",
+          "question_text": "Soru Yürüyüş yapmak, kalp ritmini yavaş ve daha fazla oksijen almasını sağlayan hafif bir egzersizdir. sistemine daha fazla yük bindiren, anlık enerji tüketimini aktivitedir. Yürüyüş her yaş grubundan insanın bir kondisyon ve eklem sağlığı gerektirir. farklı olan düşüncelere, inançlara veya Kendi fikrini zorla kabul ettirmeye inanmaktır. Bir toplumda hoşgörü ve huzursuzluklar da o ölçüde azalır. yollarından hangisine",
+          "pred": "Anlatım Biçimleri",
+          "pred_conf": 0.7961734533309937,
+          "second_conf": 0.05784698575735092,
+          "margin": 0.7383264675736427
         }
       ]
     },
     {
-      "true": "Deyimler ve Atasözleri",
-      "pred": "Cümle Türleri",
+      "true": "Geçiş ve Bağlantı İfadeleri",
+      "pred": "Deyimler ve Atasözleri",
       "count": 1,
       "examples": [
         {
-          "question_id": "Deyimler ve Atasözleri.pdf_q31",
-          "question_text": "\"Çocuk o kadar yaramazdı ki öğretmenine ................\" anlar yaşatmak, uğraştırmak\" anlamında hangi (veya ecel teri döktürdü / yaka silktirdi) Şıklar:",
-          "pred": "Cümle Türleri",
-          "pred_conf": 0.6854780912399292,
-          "second_conf": 0.07186427712440491,
-          "margin": 0.6136138141155243
-        }
-      ]
-    },
-    {
-      "true": "Anlatım Biçimleri",
-      "pred": "Metin Türleri",
-      "count": 1,
-      "examples": [
-        {
-          "question_id": "Anlatım Biçimleri.pdf_q15",
-          "question_text": "Pazar yeri, renklerin ve seslerin birbirine Tezgâhların üzerindeki kıpkırmızı domatesler, hangisine başvurulmuştur?",
-          "pred": "Metin Türleri",
-          "pred_conf": 0.16057303547859192,
-          "second_conf": 0.12980696558952332,
-          "margin": 0.030766069889068604
+          "question_id": "GEÇİŞ VE BAĞLANTI İFADELERİ.pdf_q25",
+          "question_text": "\"Pikniğe gitmek için tüm hazırlıkları yaptık, planlarımızı bozdu.\" Bu cümlede altı çizili ifade",
+          "pred": "Deyimler ve Atasözleri",
+          "pred_conf": 0.5967082381248474,
+          "second_conf": 0.27067666687071323,
+          "margin": 0.3260315712541342
         }
       ]
     }
   ],
   "low_confidence_examples": [
     {
-      "question_id": "paragraf.pdf_q4",
-      "true_label": "Paragraf Bilgisi",
-      "pred": "Fiil Çatıları",
-      "pred_conf": 0.154380664229393,
-      "second_conf": 0.13364721834659576,
-      "margin": 0.02073344588279724,
-      "question_text": "Biraz sonra yanına genç bir balık- çı geldi."
-    },
-    {
-      "question_id": "Anlatım Biçimleri.pdf_q15",
-      "true_label": "Anlatım Biçimleri",
-      "pred": "Metin Türleri",
-      "pred_conf": 0.16057303547859192,
-      "second_conf": 0.12980696558952332,
-      "margin": 0.030766069889068604,
-      "question_text": "Pazar yeri, renklerin ve seslerin birbirine Tezgâhların üzerindeki kıpkırmızı domatesler, hangisine başvurulmuştur?"
-    },
-    {
-      "question_id": "CIKMIS-FIILIMSI-SORULARI-VE-CEVAPLARI-1.pdf_q2",
-      "true_label": "Fiilimsiler",
-      "pred": "Öge",
-      "pred_conf": 0.24253223836421967,
-      "second_conf": 0.1290062814950943,
-      "margin": 0.11352595686912537,
-      "question_text": "Yaşlandıkça huyu değişti."
-    },
-    {
-      "question_id": "Noktalama İşaretleri İşaretleri.pdf_q25",
-      "true_label": "Noktalama İşaretleri",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.2691483497619629,
-      "second_conf": 0.24129671573638917,
-      "margin": 0.027851634025573724,
-      "question_text": "(I) Odanın içi oldukça sıcaktı. (II) Genç adam Kalemini eline aldı ancak ne yazacağını bir türlü göndermeli miyim diye düşündü. Numaralanmış"
-    },
-    {
-      "question_id": "cumleturleri.pdf_q9",
-      "true_label": "Cümle Türleri",
-      "pred": "Metin Türleri",
-      "pred_conf": 0.2843972146511078,
-      "second_conf": 0.2689426839351654,
-      "margin": 0.015454530715942383,
-      "question_text": "Bu parçada aşağıdakilerden hangisi yoktur?"
-    },
-    {
-      "question_id": "CIKMIS-SOZ-SANATLARI-SORULARI-VE-CEVAPLARI-1.pdf_q18",
-      "true_label": "Söz Sanatları",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.30923569202423096,
-      "second_conf": 0.20059791207313538,
-      "margin": 0.10863777995109558,
-      "question_text": "Bu dörtlükteki “kişileştirilmeler”, aşağı­ dakilerin hangisinde birlikte verilmiştir?"
-    },
-    {
-      "question_id": "CIKMIS-SOZ-SANATLARI-SORULARI-VE-CEVAPLARI-1.pdf_q19",
-      "true_label": "Söz Sanatları",
-      "pred": "Söz Sanatları",
-      "pred_conf": 0.3152905708551407,
-      "second_conf": 0.2531132102012634,
-      "margin": 0.062177360653877245,
-      "question_text": "Bu parçada numaralanmış cümlelerin hangisinde kişileştirme vardır? A.1 B.2 C.3 D.4 2018 Bursluluk “Irmağın suyu kulağıma tatlı bir ninni fısıldı­ yordu.”"
-    },
-    {
-      "question_id": "paragraf.pdf_q3",
-      "true_label": "Paragraf Bilgisi",
-      "pred": "Anlatım Biçimleri",
-      "pred_conf": 0.355532683134079,
-      "second_conf": 0.2976847290992737,
-      "margin": 0.057847954034805305,
-      "question_text": "İlahi Bakış Açısı Bu bakış açısında anlatıcı, olayların gelişiminden kahramanların zihnindeki düşüncelere kadar her şeyi bilir. l Yusuf, elinde dosyalarla öğretmenler odasına yöneldi. Birkaç adım attıktan sonra korkuyla olduğu yerde kaldı. Aklında öğretmeninin çalışmalarını beğen- meme düşüncesi vardı. Korkusunu yenip odanın kapısını çaldı. İçinden bir ses ‘’Umarım öğretmenler odasında başkası yoktur.’’ diyordu. Örnek Örnek Örnek Örnek Anlatıcı bakış açıları ile anlatıcı türleri karıştırılmamalıdır. Uyarı TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 72 Uygulama Aşağıda verilen metinlerin anlatım biçimlerini altlarındaki boşluklara yazınız. ( öyküleyici – betimleyici – açıklayıcı – tartışmacı ) Günümüze kadar biyolojik ortamda yönlendirilebilen az sayıda mikro sistem geliştirilmiş. Bu sistemler, genellikle vücudun dolaşım ve sindirim sistemi gibi sıvı içeren bölgelerinde kimyasal, mekanik ya da manyetik yolla itilerek hareket ettirilen yapılardan oluşuyor. Hayvanlar üzerinde gerçekleştirilen araştırmalarda, ilaç taşınmasında küçük robotların kullanılmasına ilişkin bazı kısıtlamalar tespit edilmiş. Örneğin, yaklaşık 285 μm (mikrometre) çapında ve 1800 μm uzunluktaki silindir seklinde manyetik yapılarla gerçekleştirilen araştırmalarda, gözün camsı cisim bölgesinde hareketin kısıtlandığı belirlenmiş. .………………………………………………………………………......................... Gümüş gibi parlayan bu güzel kaşağının dişlerine baktım. Çok keskin, çok sivriydi. Biraz körletmek için duvarın taşlarına sürtmeye başladım. Dişleri bozulunca tekrar denedim. Yine atların hiçbiri durmuyordu. Kızdım. Öfkemi sanki kaşağıdan çıkarmak istedim. On adım ilerdeki çeşmeye koştum. Kaşağıyı yala- ğın taşına koydum. Yerden kaldırabileceğim en ağır taşı bularak üstüne hızlı hızlı indirmeye başladım. İstanbul’dan gelen, Dadaruh’un kullanmaya kıyamadığı bu güzel kaşağıyı ezdim, parçaladım. Sonra yalağın içine attım. ………………………………………………………………………..................... İnsanlar, hiçbir bilgiye sahip olmadan doğar. Yaşamı boyunca birçok bilgi öğ- renir. Başarının sırrı da okumaktır. Okulda olduğu kadar hayatta da başarının en önde gelen şartlarından biri yine okumaktır. Her ne kadar birileri buna karşı çıksa da uygar ve kültürlü bir insan olmak için okumalıyız. Okul kitaplarıyla yetinmemeli- yiz. Uygarlık bizden önceki kuşakların biriktirdiği bilgi ve anıların bir toplamıdır. Biz, uygarlığa o kuşakların kitaplarını okumakla katılabiliriz. Hiçbir şey okumanın yerini tutmaz. ………………………………………………………………………................... Haftada birkaç kez ustası, Cihan’a ve diğer üç çırağına yeni bir vazife verirdi. Bazen tek göz bir kulübe resmetmek kadar basit olurdu ödevleri. Bazen daha çetrefilli. Bir konağın sağlamlığından feragat etmeden içindeki sütunların nasıl azaltılacağını sorardı mesela. Taşları sıkıca tutan ama zamanla kuruyup çatlayan bir harcın yerine ne kullanılabileceğini, toprağın altından ve üstünden geçen su kanallarının zamanla tıkanmasına nasıl mani olunabileceğini... Tüm bu soruları kendi başlarına cevaplamaları gerekiyordu. ………………………………………………………….................................... TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 73 KONU DEĞERLENDİRME TESTİ Burdur Gölü, pek çok kuş türüne ev sahipliği yapıyor. Dikkuyruk, ka- şıkgaga, yeşilbaş, bahri, saka, florya, kızılgerdan, tepeli toygar bu kuş tür- lerinden bazıları. Dünyadaki sıcaklık artışı bu hızla devam ederse belli bir süre sonra gölün suları çekilecek. Gö- lün kuruması hâlinde de kuşların bazı- ları kendilerine başka bir yaşam alanı arayacak, bazıları da yaşadığı yeri terk edemeden göl sularıyla birlikte toprağa karışacak."
-    },
-    {
-      "question_id": "CIKMIS-NOKTALAMA-SORULARI-VE-CEVAPLARI-1.pdf_q1",
-      "true_label": "Noktalama İşaretleri",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.36217859387397766,
-      "second_conf": 0.26308760046958923,
-      "margin": 0.09909099340438843,
-      "question_text": "göz-lük-çü, al-ış, dur-ak"
+      "question_id": "Yazım Kuralları.pdf_q9",
+      "true_label": "Yazım Kuralları",
+      "pred": "Cümle Türleri",
+      "pred_conf": 0.3700786828994751,
+      "second_conf": 0.19773772358894348,
+      "margin": 0.17234095931053162,
+      "question_text": "Aşağıdaki cümlelerin hangisinde birleşik kelimelerin"
     },
     {
       "question_id": "cumledeanlam.pdf_q1",
       "true_label": "Cümlede Anlam",
+      "pred": "Görsel Okuma ve Grafik Tablo",
+      "pred_conf": 0.3758757710456848,
+      "second_conf": 0.1985435038805008,
+      "margin": 0.17733226716518402,
+      "question_text": "Buna göre Toprak’ın bulduğu şifre hangisidir?"
+    },
+    {
+      "question_id": "paragraf.pdf_q6",
+      "true_label": "Paragraf Bilgisi",
+      "pred": "Paragraf Bilgisi",
+      "pred_conf": 0.3807857036590576,
+      "second_conf": 0.3660067021846771,
+      "margin": 0.014779001474380493,
+      "question_text": "Bu metinde fındık ağaçlarıyla ilgili aşağıdakilerden hangisine değinilmemiştir?"
+    },
+    {
+      "question_id": "Cümlede Anlam.pdf_q22",
+      "true_label": "Cümlede Anlam",
       "pred": "Cümlede Anlam",
-      "pred_conf": 0.36368346214294434,
-      "second_conf": 0.22232986986637115,
-      "margin": 0.14135359227657318,
-      "question_text": "Öznel Yargı Kişiden kişiye değişen ve herkesçe kabul edilmeyen yargılara öznel yargılar denir. Öznel yargılar değişebilir ve başkaları tarafından onaylanmayabilir. l Pazartesi benim hiç sevmediğim bir gündü. l Yazar romanında oldukça içten, sıcak bir anlatıma başvurmuş. l Korkularımızdan kurtulmamız çok zordur."
+      "pred_conf": 0.4030756950378418,
+      "second_conf": 0.3551129400730133,
+      "margin": 0.04796275496482849,
+      "question_text": "\"Gecenin zifiri karanlığını yırtan şimşekler, gökyüzünde âdeta altından parlayan damarlar"
     },
     {
-      "question_id": "8.-sinif-indirilebilir-testler-cumlenin-ogeleri-mb-03.pdf_q11",
-      "true_label": "Öge",
+      "question_id": "Anlatım Bozuklukları.pdf_q39",
+      "true_label": "Anlatım Bozuklukları",
+      "pred": "Anlatım Bozuklukları",
+      "pred_conf": 0.41933882236480713,
+      "second_conf": 0.2538279592990875,
+      "margin": 0.1655108630657196,
+      "question_text": "\"O kadar çalışkandı ki okula nadiren, hatta her gün giderek hiç devamsızlık yapmazdı.\""
+    },
+    {
+      "question_id": "Noktalama İşaretleri İşaretleri.pdf_q23",
+      "true_label": "Noktalama İşaretleri",
+      "pred": "Noktalama İşaretleri",
+      "pred_conf": 0.4318156313896179,
+      "second_conf": 0.21426165103912354,
+      "margin": 0.2175539803504944,
+      "question_text": "Aşağıdaki cümlelerin hangisinde soru işareti"
+    },
+    {
+      "question_id": "Yazım Kuralları.pdf_q6",
+      "true_label": "Yazım Kuralları",
       "pred": "Fiilimsiler",
-      "pred_conf": 0.3735506236553192,
-      "second_conf": 0.2913808226585388,
-      "margin": 0.0821698009967804,
-      "question_text": "Ali: Kardeşim, annemi göremeyince hüngür hüngür ağladı. Kâmil: Her gün paketli gıdalar yediğin için sağlığın çabuk bozuluyor. Ayşe: Bu söylediklerinle beni çok şaşırttın. İlayda: Bütün bu notları arkadaşlarımın defterlerinden top- ladım. Bu öğrencilerin hangisinin cümlesinde zarf tamlayıcısı kullanılmamıştır?"
+      "pred_conf": 0.4340045750141144,
+      "second_conf": 0.18320786952972412,
+      "margin": 0.25079670548439026,
+      "question_text": "Aşağıdakilerin hangisinde \"ki\" bağlacı kalıplaştığı"
     },
     {
-      "question_id": "8.-sinif-indirilebilir-testler-fiilimsiler-01.pdf_q12",
-      "true_label": "Fiilimsiler",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.3864149224758148,
-      "second_conf": 0.2046002596616745,
-      "margin": 0.18181466281414033,
-      "question_text": "İlim ilim bilmektir, İlim kendin bilmektir, Sen kendini bilmezsin, Ya nice okumaktır? Bu dörtlük ile ilgili, I. “ilim” sözcüğü isimdir. II. “bilmezsin” sözcüğü kalıcı addır. III. “bilmektir” sözcüğü fiilimsidir. IV. “okumaktır” sözcüğü çekimli eylemdir. numaralanmış ifadelerden hangileri söylenebilir?"
-    },
-    {
-      "question_id": "fiilimsiler.pdf_q3",
-      "true_label": "Fiilimsiler",
+      "question_id": "Fiil Çatıları.pdf_q9",
+      "true_label": "Fiil Çatıları",
       "pred": "Cümle Türleri",
-      "pred_conf": 0.39372721314430237,
-      "second_conf": 0.12047857791185379,
-      "margin": 0.2732486352324486,
-      "question_text": "ÇIKIŞ Uygulama TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 205 ÜNİTE DEĞERLENDİRME TESTİ"
+      "pred_conf": 0.4396522045135498,
+      "second_conf": 0.14183108508586884,
+      "margin": 0.29782111942768097,
+      "question_text": "\"Çocuklar bahçedeki çamurda oynarken üstlerini başlarını kirlettiler.\""
     },
     {
-      "question_id": "Deyimler ve Atasözleri.pdf_q7",
-      "true_label": "Deyimler ve Atasözleri",
-      "pred": "Cümlede Anlam",
-      "pred_conf": 0.4026249498128891,
-      "second_conf": 0.26933759450912476,
-      "margin": 0.13328735530376434,
-      "question_text": "\"Ahmet, her zaman olduğu gibi bu olayda da işlerini halletti.\" Bu cümlede Ahmet'in tavrını takdirini kazanmış, âdeta ................\" Bu hangisinin getirilmesi en uygundur?"
-    },
-    {
-      "question_id": "cumleninogeleri.pdf_q2",
-      "true_label": "Öge",
-      "pred": "Öge",
-      "pred_conf": 0.42097198963165283,
-      "second_conf": 0.19267615675926208,
-      "margin": 0.22829583287239075,
-      "question_text": "Haftalardır beklediğim tenis maçını bu sefer izleyebildim."
-    },
-    {
-      "question_id": "Görsel Okuma ve Grafik : Tablo.pdf_q32",
-      "true_label": "Görsel Okuma ve Grafik Tablo",
-      "pred": "Sözel Mantık",
-      "pred_conf": 0.43183618783950806,
-      "second_conf": 0.25098177790641785,
-      "margin": 0.1808544099330902,
-      "question_text": "Bu verilere göre Ahmet'in telefonunun hangileridir?"
-    },
-    {
-      "question_id": "cumleturleri.pdf_q1",
-      "true_label": "Cümle Türleri",
-      "pred": "Öge",
-      "pred_conf": 0.4450720250606537,
-      "second_conf": 0.17747735977172852,
-      "margin": 0.26759466528892517,
-      "question_text": "Ankara’dan gelen haberlerin hep- si birbirinden iyi."
+      "question_id": "Noktalama İşaretleri İşaretleri.pdf_q20",
+      "true_label": "Noktalama İşaretleri",
+      "pred": "Yazım Kuralları",
+      "pred_conf": 0.444082111120224,
+      "second_conf": 0.13163280487060547,
+      "margin": 0.31244930624961853,
+      "question_text": "\"Şiirlerde dize sonlarında seslerin (hecelerin) düştüğünü göstermek için kullanılır.\""
     }
   ],
   "low_margin_examples": [
     {
-      "question_id": "cumleturleri.pdf_q9",
-      "true_label": "Cümle Türleri",
-      "pred": "Metin Türleri",
-      "pred_conf": 0.2843972146511078,
-      "second_conf": 0.2689426839351654,
-      "margin": 0.015454530715942383,
-      "question_text": "Bu parçada aşağıdakilerden hangisi yoktur?"
-    },
-    {
-      "question_id": "paragraf.pdf_q4",
+      "question_id": "paragraf.pdf_q6",
       "true_label": "Paragraf Bilgisi",
-      "pred": "Fiil Çatıları",
-      "pred_conf": 0.154380664229393,
-      "second_conf": 0.13364721834659576,
-      "margin": 0.02073344588279724,
-      "question_text": "Biraz sonra yanına genç bir balık- çı geldi."
+      "pred": "Paragraf Bilgisi",
+      "pred_conf": 0.3807857036590576,
+      "second_conf": 0.3660067021846771,
+      "margin": 0.014779001474380493,
+      "question_text": "Bu metinde fındık ağaçlarıyla ilgili aşağıdakilerden hangisine değinilmemiştir?"
     },
     {
-      "question_id": "Noktalama İşaretleri İşaretleri.pdf_q25",
+      "question_id": "Noktalama İşaretleri İşaretleri.pdf_q37",
       "true_label": "Noktalama İşaretleri",
       "pred": "Fiilimsiler",
-      "pred_conf": 0.2691483497619629,
-      "second_conf": 0.24129671573638917,
-      "margin": 0.027851634025573724,
-      "question_text": "(I) Odanın içi oldukça sıcaktı. (II) Genç adam Kalemini eline aldı ancak ne yazacağını bir türlü göndermeli miyim diye düşündü. Numaralanmış"
+      "pred_conf": 0.4748949182033539,
+      "second_conf": 0.4525545608997345,
+      "margin": 0.022340357303619385,
+      "question_text": "\"Soru eki veya sözü içeren cümlelerin sonuna konur. Ancak 'mı / mi' eki cümleye 'zaman' veya 'koşul' anlamı katıyorsa (zarf-fiil görevindeyse) cümlenin sonuna soru işareti konmaz.\""
     },
     {
-      "question_id": "Anlatım Biçimleri.pdf_q15",
-      "true_label": "Anlatım Biçimleri",
-      "pred": "Metin Türleri",
-      "pred_conf": 0.16057303547859192,
-      "second_conf": 0.12980696558952332,
-      "margin": 0.030766069889068604,
-      "question_text": "Pazar yeri, renklerin ve seslerin birbirine Tezgâhların üzerindeki kıpkırmızı domatesler, hangisine başvurulmuştur?"
+      "question_id": "Cümlede Anlam.pdf_q22",
+      "true_label": "Cümlede Anlam",
+      "pred": "Cümlede Anlam",
+      "pred_conf": 0.4030756950378418,
+      "second_conf": 0.3551129400730133,
+      "margin": 0.04796275496482849,
+      "question_text": "\"Gecenin zifiri karanlığını yırtan şimşekler, gökyüzünde âdeta altından parlayan damarlar"
     },
     {
-      "question_id": "paragraf.pdf_q3",
-      "true_label": "Paragraf Bilgisi",
-      "pred": "Anlatım Biçimleri",
-      "pred_conf": 0.355532683134079,
-      "second_conf": 0.2976847290992737,
-      "margin": 0.057847954034805305,
-      "question_text": "İlahi Bakış Açısı Bu bakış açısında anlatıcı, olayların gelişiminden kahramanların zihnindeki düşüncelere kadar her şeyi bilir. l Yusuf, elinde dosyalarla öğretmenler odasına yöneldi. Birkaç adım attıktan sonra korkuyla olduğu yerde kaldı. Aklında öğretmeninin çalışmalarını beğen- meme düşüncesi vardı. Korkusunu yenip odanın kapısını çaldı. İçinden bir ses ‘’Umarım öğretmenler odasında başkası yoktur.’’ diyordu. Örnek Örnek Örnek Örnek Anlatıcı bakış açıları ile anlatıcı türleri karıştırılmamalıdır. Uyarı TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 72 Uygulama Aşağıda verilen metinlerin anlatım biçimlerini altlarındaki boşluklara yazınız. ( öyküleyici – betimleyici – açıklayıcı – tartışmacı ) Günümüze kadar biyolojik ortamda yönlendirilebilen az sayıda mikro sistem geliştirilmiş. Bu sistemler, genellikle vücudun dolaşım ve sindirim sistemi gibi sıvı içeren bölgelerinde kimyasal, mekanik ya da manyetik yolla itilerek hareket ettirilen yapılardan oluşuyor. Hayvanlar üzerinde gerçekleştirilen araştırmalarda, ilaç taşınmasında küçük robotların kullanılmasına ilişkin bazı kısıtlamalar tespit edilmiş. Örneğin, yaklaşık 285 μm (mikrometre) çapında ve 1800 μm uzunluktaki silindir seklinde manyetik yapılarla gerçekleştirilen araştırmalarda, gözün camsı cisim bölgesinde hareketin kısıtlandığı belirlenmiş. .………………………………………………………………………......................... Gümüş gibi parlayan bu güzel kaşağının dişlerine baktım. Çok keskin, çok sivriydi. Biraz körletmek için duvarın taşlarına sürtmeye başladım. Dişleri bozulunca tekrar denedim. Yine atların hiçbiri durmuyordu. Kızdım. Öfkemi sanki kaşağıdan çıkarmak istedim. On adım ilerdeki çeşmeye koştum. Kaşağıyı yala- ğın taşına koydum. Yerden kaldırabileceğim en ağır taşı bularak üstüne hızlı hızlı indirmeye başladım. İstanbul’dan gelen, Dadaruh’un kullanmaya kıyamadığı bu güzel kaşağıyı ezdim, parçaladım. Sonra yalağın içine attım. ………………………………………………………………………..................... İnsanlar, hiçbir bilgiye sahip olmadan doğar. Yaşamı boyunca birçok bilgi öğ- renir. Başarının sırrı da okumaktır. Okulda olduğu kadar hayatta da başarının en önde gelen şartlarından biri yine okumaktır. Her ne kadar birileri buna karşı çıksa da uygar ve kültürlü bir insan olmak için okumalıyız. Okul kitaplarıyla yetinmemeli- yiz. Uygarlık bizden önceki kuşakların biriktirdiği bilgi ve anıların bir toplamıdır. Biz, uygarlığa o kuşakların kitaplarını okumakla katılabiliriz. Hiçbir şey okumanın yerini tutmaz. ………………………………………………………………………................... Haftada birkaç kez ustası, Cihan’a ve diğer üç çırağına yeni bir vazife verirdi. Bazen tek göz bir kulübe resmetmek kadar basit olurdu ödevleri. Bazen daha çetrefilli. Bir konağın sağlamlığından feragat etmeden içindeki sütunların nasıl azaltılacağını sorardı mesela. Taşları sıkıca tutan ama zamanla kuruyup çatlayan bir harcın yerine ne kullanılabileceğini, toprağın altından ve üstünden geçen su kanallarının zamanla tıkanmasına nasıl mani olunabileceğini... Tüm bu soruları kendi başlarına cevaplamaları gerekiyordu. ………………………………………………………….................................... TÜRKÇE ÖZEL EĞİTİM VE REHBERLİK HİZMETLERİ GENEL MÜDÜRLÜĞÜ 73 KONU DEĞERLENDİRME TESTİ Burdur Gölü, pek çok kuş türüne ev sahipliği yapıyor. Dikkuyruk, ka- şıkgaga, yeşilbaş, bahri, saka, florya, kızılgerdan, tepeli toygar bu kuş tür- lerinden bazıları. Dünyadaki sıcaklık artışı bu hızla devam ederse belli bir süre sonra gölün suları çekilecek. Gö- lün kuruması hâlinde de kuşların bazı- ları kendilerine başka bir yaşam alanı arayacak, bazıları da yaşadığı yeri terk edemeden göl sularıyla birlikte toprağa karışacak."
+      "question_id": "Düşünceyi Geliştirme Yolları.pdf_q24",
+      "true_label": "Düşünceyi Geliştirme Yolları",
+      "pred": "Düşünceyi Geliştirme Yolları",
+      "pred_conf": 0.520010508298874,
+      "second_conf": 0.4380923879146576,
+      "margin": 0.08191812038421636,
+      "question_text": "[ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] Dijital oyunlar çocuklara anlık ve yüksek dozda bir heyecan sunarak onları ekran başına kilitler; bu oyunlarda her şey saniyeler içinde olup biter ve kurallar bilgisayar tarafından önceden katı bir şekilde yazılmıştır. Oysa sokak oyunlarında kuralları çocuklar o an kendileri koyar, anlaşmazlıkları tartışarak kendileri çözerler. Ekran başındaki çocuk sadece el ve göz koordinasyonunu kullanıp zihnen yorulurken, sokakta saklambaç oynayan bir çocuk bütün kas gruplarını çalıştırır ve gerçek bir sosyalleşme yaşar. Bu parçada düşünceyi geliştirme"
     },
     {
-      "question_id": "CIKMIS-SOZ-SANATLARI-SORULARI-VE-CEVAPLARI-1.pdf_q19",
-      "true_label": "Söz Sanatları",
-      "pred": "Söz Sanatları",
-      "pred_conf": 0.3152905708551407,
-      "second_conf": 0.2531132102012634,
-      "margin": 0.062177360653877245,
-      "question_text": "Bu parçada numaralanmış cümlelerin hangisinde kişileştirme vardır? A.1 B.2 C.3 D.4 2018 Bursluluk “Irmağın suyu kulağıma tatlı bir ninni fısıldı­ yordu.”"
-    },
-    {
-      "question_id": "8.-sinif-indirilebilir-testler-cumlenin-ogeleri-mb-03.pdf_q11",
-      "true_label": "Öge",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.3735506236553192,
-      "second_conf": 0.2913808226585388,
-      "margin": 0.0821698009967804,
-      "question_text": "Ali: Kardeşim, annemi göremeyince hüngür hüngür ağladı. Kâmil: Her gün paketli gıdalar yediğin için sağlığın çabuk bozuluyor. Ayşe: Bu söylediklerinle beni çok şaşırttın. İlayda: Bütün bu notları arkadaşlarımın defterlerinden top- ladım. Bu öğrencilerin hangisinin cümlesinde zarf tamlayıcısı kullanılmamıştır?"
-    },
-    {
-      "question_id": "CIKMIS-NOKTALAMA-SORULARI-VE-CEVAPLARI-1.pdf_q1",
-      "true_label": "Noktalama İşaretleri",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.36217859387397766,
-      "second_conf": 0.26308760046958923,
-      "margin": 0.09909099340438843,
-      "question_text": "göz-lük-çü, al-ış, dur-ak"
-    },
-    {
-      "question_id": "CIKMIS-SOZ-SANATLARI-SORULARI-VE-CEVAPLARI-1.pdf_q18",
-      "true_label": "Söz Sanatları",
-      "pred": "Fiilimsiler",
-      "pred_conf": 0.30923569202423096,
-      "second_conf": 0.20059791207313538,
-      "margin": 0.10863777995109558,
-      "question_text": "Bu dörtlükteki “kişileştirilmeler”, aşağı­ dakilerin hangisinde birlikte verilmiştir?"
-    },
-    {
-      "question_id": "CIKMIS-FIILIMSI-SORULARI-VE-CEVAPLARI-1.pdf_q2",
-      "true_label": "Fiilimsiler",
-      "pred": "Öge",
-      "pred_conf": 0.24253223836421967,
-      "second_conf": 0.1290062814950943,
-      "margin": 0.11352595686912537,
-      "question_text": "Yaşlandıkça huyu değişti."
+      "question_id": "Görsel Okuma ve Grafik Tablo.pdf_q18",
+      "true_label": "Görsel Okuma ve Grafik Tablo",
+      "pred": "Görsel Okuma ve Grafik Tablo",
+      "pred_conf": 0.45078861713409424,
+      "second_conf": 0.34310293197631836,
+      "margin": 0.10768568515777588,
+      "question_text": "[ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] [ŞEKIL] Trafikte seyreden bir aracın gösterge panelinde uyarı ışığı \"içinde ünlem (!) işareti bulunan, kesiti)\" şeklindedir. Bu sembolün anlamı davranış aşağıdakilerden hangisinde verilmiştir?"
     }
   ]
 }

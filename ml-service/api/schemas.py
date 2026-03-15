@@ -80,6 +80,7 @@ class QuestionAnalysisResult(BaseModel):
     subject: List[PredictionItem] = Field(..., description="Subject predictions")
     topic: List[PredictionItem] = Field(..., description="Topic predictions")
     has_visual: bool = Field(default=False, description="Whether question contains visual content")
+    quality_warning: Optional[str] = Field(None, description="Extraction quality warning if applicable")
 
 
 class PDFAnalysisResponse(BaseModel):
