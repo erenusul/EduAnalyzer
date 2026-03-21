@@ -60,7 +60,7 @@ release_port() {
   fi
 }
 
-for port in 5131 8000 5173 5174; do
+for port in 5131 8000 5173 5174 8081 8082 8083; do
   release_port "$port"
 done
 
@@ -80,6 +80,15 @@ if command -v pkill >/dev/null 2>&1; then
   if pkill -f "uvicorn.*8000" 2>/dev/null; then
     stopped_any=1
   fi
+  if pkill -f "expo start" 2>/dev/null; then
+    stopped_any=1
+  fi
+  if pkill -f "@expo/cli" 2>/dev/null; then
+    stopped_any=1
+  fi
+  if pkill -f "metro" 2>/dev/null; then
+    stopped_any=1
+  fi
 fi
 
 sleep 1
@@ -88,7 +97,7 @@ if [ $WAIT_SECONDS -gt 0 ]; then
   pending=1
   while [ "$elapsed" -lt "$WAIT_SECONDS" ] && [ "$pending" -eq 1 ]; do
     pending=0
-    for port in 5131 8000 5173 5174; do
+    for port in 5131 8000 5173 5174 8081 8082 8083; do
       if command -v lsof >/dev/null 2>&1; then
         pids="$(lsof -iTCP:"$port" -sTCP:LISTEN -n -P -t 2>/dev/null || true)"
         if [ -n "$pids" ]; then
@@ -106,7 +115,7 @@ if [ $WAIT_SECONDS -gt 0 ]; then
   done
 
   if [ "$pending" -eq 1 ] && command -v lsof >/dev/null 2>&1; then
-    for port in 5131 8000 5173 5174; do
+    for port in 5131 8000 5173 5174 8081 8082 8083; do
       pids="$(lsof -iTCP:"$port" -sTCP:LISTEN -n -P -t 2>/dev/null || true)"
       if [ -n "$pids" ]; then
         echo "  Uyarı: Port $port kapatılamadı -> $pids"

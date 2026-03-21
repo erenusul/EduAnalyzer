@@ -36,7 +36,7 @@ EduAnalyzer/
 ### Tüm Servisleri Çalıştır (Önerilen)
 
 ```bash
-# Tek komutla Backend + ML + Frontend başlat
+# Tek komutla Backend + ML + Frontend + Student App baslat
 ./start-all.sh
 
 # Durdurmak için
@@ -45,9 +45,25 @@ EduAnalyzer/
 
 - **Frontend:** http://localhost:5173
 - **Backend:** http://localhost:5131
+- **ML API:** http://localhost:8000
+- **Student App (Expo):** varsayilan Metro portu `8081`
 - **Demo giriş:** ogretmen@demo.com / demo123
 
 İlk çalıştırmada: `cd backend && dotnet restore`, `cd viewer-app && npm install` ve `cd ml-service && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt` gerekebilir.
+
+### Student App (Expo)
+
+`./start-all.sh` komutu artik mobil uygulamayi da baslatir. Ayrica tek basina calistirmak istersen:
+
+```bash
+cd student-app
+npm install
+npx expo start
+```
+
+- Fiziksel cihazda `EXPO_PUBLIC_BACKEND_URL=http://<yerel-ip>:5131` kullanın veya `.env` dosyasini bos birakip otomatik algilamayi deneyin.
+- Android emulator icin `http://10.0.2.2:5131`, iOS simulator icin `http://localhost:5131` kullanin.
+- Expo Go surumu, projedeki Expo SDK surumu ile uyumlu olmali.
 
 ## Özellikler
 

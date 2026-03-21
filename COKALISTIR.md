@@ -7,7 +7,7 @@ cd /Users/erenusul/Desktop/EduAnalyzer
 ./start-all.sh
 ```
 
-Bu komut **Backend + ML + Frontend** üçünü birden başlatır.
+Bu komut **Backend + ML + Frontend + Student App** dordunu birden baslatir.
 
 ---
 
@@ -38,8 +38,11 @@ dotnet run --project src/EduAnalyzer.Api
 | Frontend | 5173 | http://localhost:5173    |
 | Backend  | 5131 | http://localhost:5131    |
 | ML API   | 8000 | http://localhost:8000    |
+| Student App | 8081 | exp://<yerel-ip>:8081 |
 
 **Demo giriş:** ogretmen@demo.com / demo123
+
+Student App icin telefonunda Expo Go guncel olmali. Gercek cihazda backend erisimi icin `student-app/.env` icinde `EXPO_PUBLIC_BACKEND_URL=http://<yerel-ip>:5131` tanimlayabilir veya otomatik algilamayi kullanabilirsin.
 
 ---
 

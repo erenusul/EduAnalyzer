@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { getStoredSession } from '../storage/sessionStorage';
 
 export interface ApiError {
@@ -11,7 +11,37 @@ const DEFAULT_BASE_URL = Platform.select({
   default: 'http://localhost:5131',
 });
 
-const API_BASE_URL = (process.env.EXPO_PUBLIC_BACKEND_URL || DEFAULT_BASE_URL || '').replace(/\/$/, '');
+function normalizeBaseUrl(value?: string | null): string | null {
+  const normalized = value?.trim().replace(/\/$/, '');
+  return normalized ? normalized : null;
+}
+
+function getExpoDevServerHost(): string | null {
+  const sourceCode = (NativeModules as { SourceCode?: { scriptURL?: string } }).SourceCode;
+  const scriptUrl = sourceCode?.scriptURL;
+  if (!scriptUrl) {
+    return null;
+  }
+
+  const match = scriptUrl.match(/^https?:\/\/([^/:]+)/i);
+  return match?.[1] ?? null;
+}
+
+function resolveApiBaseUrl(): string {
+  const envBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_BACKEND_URL);
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
+
+  const expoHost = getExpoDevServerHost();
+  if (expoHost && expoHost !== 'localhost' && expoHost !== '127.0.0.1') {
+    return `http://${expoHost}:5131`;
+  }
+
+  return DEFAULT_BASE_URL || 'http://localhost:5131';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 function buildUrl(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;

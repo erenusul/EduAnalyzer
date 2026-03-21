@@ -25,13 +25,16 @@ HEALTH_CHECK_STEP_SECONDS=2
 BACKEND_READY=0
 ML_READY=0
 FRONTEND_READY=0
+STUDENT_APP_READY=0
 BACKEND_PID=""
 ML_PID=""
 FRONTEND_PID=""
-BACKEND_BUILD_CONFIG="Release"
+STUDENT_APP_PID=""
+BACKEND_BUILD_CONFIG="${BACKEND_BUILD_CONFIG:-Debug}"
 BACKEND_OUTPUT_DIR="$ROOT/backend/src/EduAnalyzer.Api/bin/$BACKEND_BUILD_CONFIG/net8.0"
 BACKEND_APPHOST="$BACKEND_OUTPUT_DIR/EduAnalyzer.Api"
 BACKEND_DLL="$BACKEND_OUTPUT_DIR/EduAnalyzer.Api.dll"
+STUDENT_APP_PORT="${STUDENT_APP_PORT:-8081}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -59,6 +62,19 @@ verify_http_ready() {
   fi
 
   echo "HATA: $service_name istenen sürede hazır olmadı."
+  return 1
+}
+
+verify_port_ready() {
+  local service_name="$1"
+  local port="$2"
+
+  if wait_for_port "$port" "$HEALTH_TIMEOUT_SECONDS"; then
+    echo "     $service_name hazır."
+    return 0
+  fi
+
+  echo "HATA: $service_name istenen sürede port dinlemeye başlamadı."
   return 1
 }
 
@@ -106,6 +122,32 @@ start_frontend_service() {
   cd "$ROOT"
 }
 
+start_student_app_service() {
+  echo "     Student app başlatılıyor (port $STUDENT_APP_PORT)..."
+  cd "$ROOT/student-app"
+  if [ -d "node_modules" ]; then
+    release_port "$STUDENT_APP_PORT" "Student App"
+    CI=false EXPO_NO_TELEMETRY=1 "$NPM_CMD" run start -- --port "$STUDENT_APP_PORT" --host lan &
+    STUDENT_APP_PID=$!
+    if [ -z "$STUDENT_APP_PID" ] || ! kill -0 "$STUDENT_APP_PID" 2>/dev/null; then
+      fail_and_stop_all "HATA: Student app başlatılamadı."
+    fi
+  else
+    echo "     student-app node_modules yok, npm install çalıştırılıyor..."
+    if [ -f "package-lock.json" ]; then
+      "$NPM_CMD" ci --no-audit --no-fund >/dev/null
+    else
+      "$NPM_CMD" install --no-audit --no-fund >/dev/null
+    fi
+    CI=false EXPO_NO_TELEMETRY=1 "$NPM_CMD" run start -- --port "$STUDENT_APP_PORT" --host lan &
+    STUDENT_APP_PID=$!
+    if [ -z "$STUDENT_APP_PID" ] || ! kill -0 "$STUDENT_APP_PID" 2>/dev/null; then
+      fail_and_stop_all "HATA: Student app başlatılamadı."
+    fi
+  fi
+  cd "$ROOT"
+}
+
 start_backend_service() {
   echo "     Backend başlatılıyor (port 5131)..."
 
@@ -132,6 +174,7 @@ start_backend_service() {
 }
 
 echo "=== EduAnalyzer Servisleri Başlatılıyor ==="
+echo "Backend build konfigurasyonu: $BACKEND_BUILD_CONFIG"
 
 wait_for_http() {
   local url="$1"
@@ -144,6 +187,26 @@ wait_for_http() {
     local code
     code="$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "000")"
     if echo "$code" | grep -Eq "^($expected_codes)$"; then
+      return 0
+    fi
+    sleep "$step"
+    elapsed=$((elapsed + step))
+  done
+  return 1
+}
+
+wait_for_port() {
+  local port="$1"
+  local max_seconds="${2:-$HEALTH_TIMEOUT_SECONDS}"
+  local step="$HEALTH_CHECK_STEP_SECONDS"
+  local elapsed=0
+
+  while [ "$elapsed" -lt "$max_seconds" ]; do
+    if command -v lsof >/dev/null 2>&1; then
+      if lsof -iTCP:"$port" -sTCP:LISTEN -n -P >/dev/null 2>&1; then
+        return 0
+      fi
+    else
       return 0
     fi
     sleep "$step"
@@ -213,12 +276,14 @@ fi
 # 1. Önce tüm eski servisleri temizle
 echo "[0/4] Eski servisler durduruluyor..."
 "$ROOT/stop-all.sh" 2>/dev/null || {
-  for port in 5131 8000 5173 5174; do
+  for port in 5131 8000 5173 5174 8081 8082 8083; do
     lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null || true
   done
   pkill -f "dotnet.*EduAnalyzer" 2>/dev/null || true
   pkill -f "vite" 2>/dev/null || true
   pkill -f "uvicorn.*8000" 2>/dev/null || true
+  pkill -f "expo start" 2>/dev/null || true
+  pkill -f "@expo/cli" 2>/dev/null || true
   sleep 2
 }
 
@@ -230,7 +295,7 @@ restore_status=0
 backend_built=0
 if [ -f "src/EduAnalyzer.Api/obj/project.assets.json" ]; then
   echo "     Mevcut restore var, doğrudan --no-restore build deneniyor..."
-  if dotnet build "$BACKEND_PROJECT" -c Release --no-restore --verbosity minimal; then
+  if dotnet build "$BACKEND_PROJECT" -c "$BACKEND_BUILD_CONFIG" --no-restore --verbosity minimal; then
     restore_status=0
     backend_built=1
   else
@@ -288,9 +353,10 @@ if [ $restore_status -eq 0 ]; then
 fi
 
 # 3/4 Servisleri paralel başlat
-echo "[2/4] ML ve Frontend paralel başlatılıyor..."
+echo "[2/4] ML, Frontend ve Student app paralel başlatılıyor..."
 start_ml_service
 start_frontend_service
+start_student_app_service
 
 if verify_http_ready "ML API" "http://localhost:8000/health" "200|405"; then
   ML_READY=1
@@ -304,10 +370,16 @@ else
   fail_and_stop_all "HATA: Frontend sağlıklı başlamadı."
 fi
 
+if verify_port_ready "Student App" "$STUDENT_APP_PORT"; then
+  STUDENT_APP_READY=1
+else
+  fail_and_stop_all "HATA: Student app sağlıklı başlamadı."
+fi
+
 echo ""
 echo "[4/4] == Tüm servisler başlatıldı ==="
 echo ""
-if [ $BACKEND_READY -eq 1 ] && [ $ML_READY -eq 1 ] && [ $FRONTEND_READY -eq 1 ]; then
+if [ $BACKEND_READY -eq 1 ] && [ $ML_READY -eq 1 ] && [ $FRONTEND_READY -eq 1 ] && [ $STUDENT_APP_READY -eq 1 ]; then
   echo "  Durum: Tam başarı"
 else
   fail_and_stop_all "HATA: Bazı servisler hazır olamadı."
@@ -315,6 +387,7 @@ fi
 echo "  Frontend:  http://localhost:5173"
 echo "  Backend:   http://localhost:5131"
 echo "  ML API:    http://localhost:8000"
+echo "  Student:   exp://<yerel-ip>:$STUDENT_APP_PORT"
 echo ""
 echo "  Demo giriş: ogretmen@demo.com / demo123"
 echo ""
