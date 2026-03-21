@@ -20,6 +20,7 @@ public interface IMlServiceClient
     Task<OpticalScanResultDto> ScanOpticalFormAsync(
         Stream imageStream,
         int questionCount = 20,
+        int? optionCount = null,
         CancellationToken ct = default);
 }
 

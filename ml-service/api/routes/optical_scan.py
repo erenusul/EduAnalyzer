@@ -15,7 +15,14 @@ from ml_service.utils.logger import logger
 
 router = APIRouter()
 
-OPTIONS = ["A", "B", "C", "D", "E"]
+OPTIONS_5 = ["A", "B", "C", "D", "E"]
+OPTIONS_4 = ["A", "B", "C", "D"]
+
+
+def _get_options(option_count: int) -> List[str]:
+    if option_count == 4:
+        return OPTIONS_4
+    return OPTIONS_5
 
 
 def _prepare_binary(gray_image):
@@ -152,9 +159,14 @@ def _warp_from_markers(gray_image, markers):
     return cv2.warpPerspective(gray_image, transform, (max_width, max_height))
 
 
-def _detect_answers_from_template(form_image, question_count: int) -> List[str]:
+def _detect_answers_from_template(
+    form_image, question_count: int, option_count: int = 5
+) -> List[str]:
     import numpy as np
     import cv2
+
+    option_count = max(4, min(5, option_count))
+    options = _get_options(option_count)
 
     binary = _prepare_binary(form_image)
     height, width = binary.shape
@@ -166,12 +178,12 @@ def _detect_answers_from_template(form_image, question_count: int) -> List[str]:
     grid_width = max(grid_right - grid_left, 1)
     grid_height = max(grid_bottom - grid_top, 1)
     row_height = grid_height / rows
-    col_width = grid_width / 5.0
+    col_width = grid_width / float(option_count)
     answers = []
 
     for row in range(rows):
         option_scores = []
-        for col in range(5):
+        for col in range(option_count):
             center_x = int(grid_left + (col + 0.5) * col_width)
             center_y = int(grid_top + (row + 0.5) * row_height)
             radius = max(6, int(min(col_width, row_height) * 0.16))
@@ -205,14 +217,16 @@ def _detect_answers_from_template(form_image, question_count: int) -> List[str]:
         is_dominant = best_score >= max(second_score * 1.35, second_score + 0.05)
 
         if is_marked and is_dominant:
-            answers.append(OPTIONS[best_index])
+            answers.append(options[best_index])
         else:
             answers.append("")
 
     return answers[:question_count]
 
 
-def _detect_answers_from_image(image_bytes: bytes, question_count: int = 20) -> List[str]:
+def _detect_answers_from_image(
+    image_bytes: bytes, question_count: int = 20, option_count: int = 5
+) -> List[str]:
     """
     Optik form görüntüsünden işaretleri tespit et.
 
@@ -239,12 +253,15 @@ def _detect_answers_from_image(image_bytes: bytes, question_count: int = 20) -> 
         binary = _prepare_binary(img)
         markers = _find_corner_markers(binary)
         working_image = _warp_from_markers(img, markers) if markers else img
-        answers = _detect_answers_from_template(working_image, question_count)
+        answers = _detect_answers_from_template(
+            working_image, question_count, option_count
+        )
 
         logger.info(
             "Optik form işlendi",
             extra={
                 "question_count": question_count,
+                "option_count": option_count,
                 "markers_detected": bool(markers),
                 "detected_answers": len(answers),
             },
@@ -259,10 +276,12 @@ def _detect_answers_from_image(image_bytes: bytes, question_count: int = 20) -> 
 async def optical_scan(
     file: UploadFile = File(..., description="Optik form fotoğrafı"),
     question_count: int = Form(20),
+    option_count: int = Form(5),
 ):
     """
     Optik form fotoğrafından işaretleri oku.
     question_count: soru sayısı (varsayılan 20)
+    option_count: şık sayısı 4 veya 5 (varsayılan 5, Türkçe için 4)
     Döner: { "answers": ["A","B","C",...], "questionCount": 20 }
     """
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -272,5 +291,8 @@ async def optical_scan(
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "Dosya boyutu 10MB'dan küçük olmalı")
 
-    answers = _detect_answers_from_image(content, question_count=question_count)
+    option_count = max(4, min(5, option_count))
+    answers = _detect_answers_from_image(
+        content, question_count=question_count, option_count=option_count
+    )
     return {"answers": answers, "questionCount": len(answers)}

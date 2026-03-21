@@ -9,7 +9,7 @@ import { examsApi } from '../services/backendApi';
 import { useToast } from '../contexts/ToastContext';
 import { CameraCapture } from '../components/CameraCapture';
 
-const OPTIONS = ['A', 'B', 'C', 'D', 'E'];
+const OPTIONS = ['A', 'B', 'C', 'D'];
 
 export function OpticScan() {
   const { exams, students, refresh } = useTeacherData();

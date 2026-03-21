@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
 
-const OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const;
+const OPTIONS = ['A', 'B', 'C', 'D'] as const;
 
 interface AnswerKeyEditorProps {
   questionCount: number;
@@ -50,7 +50,7 @@ export function AnswerKeyEditor({
     }
     const invalid = parsed.filter((a) => !OPTIONS.includes(a as (typeof OPTIONS)[number]));
     if (invalid.length > 0) {
-      setPasteError('Geçersiz karakter var. Sadece A, B, C, D, E kullanın.');
+      setPasteError('Geçersiz karakter var. Sadece A, B, C, D kullanın.');
       return;
     }
     setPasteError(null);
@@ -68,7 +68,7 @@ export function AnswerKeyEditor({
         <Form.Control
           as="textarea"
           rows={2}
-          placeholder="A,B,C,D,A,B,E,... (virgül veya boşlukla ayırın)"
+          placeholder="A,B,C,D,A,B,C,... (virgül veya boşlukla ayırın)"
           value={pasteText}
           onChange={(e) => {
             setPasteText(e.target.value);

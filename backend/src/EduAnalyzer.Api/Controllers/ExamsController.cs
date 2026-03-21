@@ -73,6 +73,7 @@ public class ExamsController : ControllerBase
         [FromForm] Guid studentId,
         [FromForm] IFormFile file,
         [FromForm] int? questionCount,
+        [FromForm] int? optionCount,
         CancellationToken ct)
     {
         if (file == null || file.Length == 0)
@@ -83,7 +84,7 @@ public class ExamsController : ControllerBase
         var count = questionCount ?? exam.AnswerKey?.Count ?? 20;
 
         await using var stream = file.OpenReadStream();
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(stream, count, ct);
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(stream, count, optionCount, ct);
 
         var request = new ScanExamRequest(studentId, ocrResult.Answers);
         var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);

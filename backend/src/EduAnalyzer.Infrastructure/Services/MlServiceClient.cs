@@ -76,15 +76,20 @@ public class MlServiceClient : IMlServiceClient
     public async Task<OpticalScanResultDto> ScanOpticalFormAsync(
         Stream imageStream,
         int questionCount = 20,
+        int? optionCount = null,
         CancellationToken ct = default)
     {
         await using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms, ct);
         var bytes = ms.ToArray();
 
+        var optCount = optionCount ?? 5;
+        optCount = Math.Clamp(optCount, 4, 5);
+
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent(bytes), "file", "optical-form.jpg");
-        content.Add(new StringContent(questionCount.ToString()), "question_count"); // Python FastAPI Form expects snake_case
+        content.Add(new StringContent(questionCount.ToString()), "question_count");
+        content.Add(new StringContent(optCount.ToString()), "option_count");
 
         var response = await _httpClient.PostAsync("api/optical-scan", content, ct);
         var json = await response.Content.ReadAsStringAsync(ct);

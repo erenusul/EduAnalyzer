@@ -82,7 +82,7 @@ export function PdfExamAnalysis() {
   const handlePrepareExam = useCallback(async () => {
     if (!lastAnalysisId || selectedIndices.size !== MAX_SELECTED_QUESTIONS) return;
     const filled = answerKey.filter((a) =>
-      ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || '')
+      ['A', 'B', 'C', 'D'].includes(a?.trim().toUpperCase() || '')
     );
     if (filled.length !== MAX_SELECTED_QUESTIONS) return;
     const analysis = analyses.find((a) => a.id === lastAnalysisId);
@@ -112,7 +112,7 @@ export function PdfExamAnalysis() {
 
   const isAnswerKeyComplete =
     answerKey.length === MAX_SELECTED_QUESTIONS &&
-    answerKey.every((a) => ['A', 'B', 'C', 'D', 'E'].includes(a?.trim().toUpperCase() || ''));
+    answerKey.every((a) => ['A', 'B', 'C', 'D'].includes(a?.trim().toUpperCase() || ''));
 
   useEffect(() => {
     if (selectedIndices.size !== MAX_SELECTED_QUESTIONS) setAnswerKey([]);

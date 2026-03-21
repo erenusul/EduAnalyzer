@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { submitScan } from '../../services/api/examsApi';
+import { getOptionCountFromAnswerKey, submitScan } from '../../services/api/examsApi';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
 
@@ -26,12 +26,25 @@ export function ScanScreen({ route }: ScanScreenProps) {
 
     setSubmitting(true);
     try {
-      const result = await submitScan(exam.id, photoUri, exam.answerKey?.length);
+      const questionCount = exam.answerKey?.length;
+      const optionCount = getOptionCountFromAnswerKey(exam.answerKey);
+      const result = await submitScan(exam.id, photoUri, questionCount, optionCount);
       setScanResult(result);
       Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Optik tarama gönderilemedi.';
-      Alert.alert('Hata', message);
+      const rawMessage =
+        (err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: unknown }).message ?? '')
+          : '') || (err instanceof Error ? err.message : '') || 'Optik tarama gönderilemedi.';
+      let userMessage = rawMessage;
+      if (rawMessage.includes('401') || rawMessage.includes('Oturum süresi doldu')) {
+        userMessage = 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
+      } else if (rawMessage.includes('403') || rawMessage.includes('yetkiniz')) {
+        userMessage = 'Bu sınava erişim yetkiniz bulunmuyor.';
+      } else if (rawMessage.includes('Network') || rawMessage.includes('fetch') || rawMessage.includes('Bağlantı')) {
+        userMessage = 'Bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.';
+      }
+      Alert.alert('Hata', userMessage);
     } finally {
       setSubmitting(false);
     }
@@ -76,7 +89,14 @@ export function ScanScreen({ route }: ScanScreenProps) {
               <Text style={styles.secondaryButtonText}>Tekrar Çek</Text>
             </Pressable>
             <Pressable style={[styles.primaryButton, submitting && styles.buttonDisabled]} onPress={() => void handleSubmit()} disabled={submitting}>
-              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Gönder ve Oku</Text>}
+              {submitting ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.primaryButtonText}>İşleniyor...</Text>
+                </View>
+              ) : (
+                <Text style={styles.primaryButtonText}>Gönder ve Oku</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -221,6 +241,11 @@ const styles = StyleSheet.create({
   },
   previewActions: {
     gap: 12,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   primaryButton: {
     backgroundColor: '#0d6efd',

@@ -14,7 +14,7 @@ public interface IExamService
     Task<IReadOnlyList<ExamDto>> GetExamsAvailableForStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<ExamDto?> UpdateAnswerKeyAsync(Guid examId, Guid teacherId, IReadOnlyList<string> answerKey, CancellationToken ct = default);
     Task<ScanExamResponse> ScanAndSaveResultAsync(Guid examId, Guid teacherId, ScanExamRequest request, CancellationToken ct = default);
-    Task<ScanExamResponse> SubmitScanForStudentAsync(Guid examId, Guid studentId, Stream imageStream, int? questionCount, CancellationToken ct = default);
+    Task<ScanExamResponse> SubmitScanForStudentAsync(Guid examId, Guid studentId, Stream imageStream, int? questionCount, int? optionCount, CancellationToken ct = default);
     Task<ExamResultDto> AddExamResultAsync(Guid teacherId, CreateExamResultRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
@@ -154,7 +154,7 @@ public class ExamService : IExamService
         var exam = await _examRepo.GetByIdAsync(examId, ct);
         if (exam == null || exam.TeacherId != teacherId) return null;
 
-        var validAnswers = new[] { "A", "B", "C", "D", "E" };
+        var validAnswers = new[] { "A", "B", "C", "D" };
         var normalized = answerKey
             .Select(a =>
             {
@@ -254,6 +254,7 @@ public class ExamService : IExamService
         Guid studentId,
         Stream imageStream,
         int? questionCount,
+        int? optionCount,
         CancellationToken ct = default)
     {
         var student = await _studentRepo.GetByIdAsync(studentId, ct)
@@ -283,7 +284,7 @@ public class ExamService : IExamService
         if (count <= 0)
             count = 20;
 
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, ct);
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, optionCount, ct);
         return await ScanAndSaveResultAsync(
             examId,
             exam.TeacherId,

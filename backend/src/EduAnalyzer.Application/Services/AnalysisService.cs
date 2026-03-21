@@ -139,7 +139,7 @@ public class AnalysisService : IAnalysisService
         string? answerKeyJson = null;
         if (answerKey is { Count: 20 })
         {
-            var valid = new[] { "A", "B", "C", "D", "E" };
+            var valid = new[] { "A", "B", "C", "D" };
             var normalized = answerKey
                 .Select(x => (x?.Trim().ToUpperInvariant() ?? "").FirstOrDefault().ToString())
                 .Select(x => valid.Contains(x) ? x : "")

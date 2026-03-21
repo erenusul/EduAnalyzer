@@ -54,6 +54,7 @@ public class MeController : ControllerBase
         Guid id,
         [FromForm] IFormFile file,
         [FromForm] int? questionCount,
+        [FromForm] int? optionCount,
         CancellationToken ct)
     {
         var studentId = StudentIdOrNull;
@@ -69,6 +70,7 @@ public class MeController : ControllerBase
             studentId.Value,
             stream,
             questionCount,
+            optionCount,
             ct
         );
         return Ok(response);
