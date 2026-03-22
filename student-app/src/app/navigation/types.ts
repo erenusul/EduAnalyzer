@@ -13,9 +13,14 @@ export type ScanStackParamList = {
   ScanExam: { exam: AvailableExam };
 };
 
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+};
+
 export type StudentTabParamList = {
   ResultsTab: NavigatorScreenParams<ResultsStackParamList>;
   ScanTab: NavigatorScreenParams<ScanStackParamList>;
+  ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 export type AuthStackParamList = {
@@ -26,5 +31,7 @@ export type ResultsScreenProps = NativeStackScreenProps<ResultsStackParamList, '
 export type ResultDetailScreenProps = NativeStackScreenProps<ResultsStackParamList, 'ResultDetail'>;
 export type AvailableExamsScreenProps = NativeStackScreenProps<ScanStackParamList, 'AvailableExams'>;
 export type ScanScreenProps = NativeStackScreenProps<ScanStackParamList, 'ScanExam'>;
+export type ProfileScreenProps = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'>;
 export type ResultsTabScreenProps = BottomTabScreenProps<StudentTabParamList, 'ResultsTab'>;
 export type ScanTabScreenProps = BottomTabScreenProps<StudentTabParamList, 'ScanTab'>;
+export type ProfileTabScreenProps = BottomTabScreenProps<StudentTabParamList, 'ProfileTab'>;

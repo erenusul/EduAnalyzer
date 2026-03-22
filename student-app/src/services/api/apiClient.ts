@@ -43,6 +43,10 @@ function resolveApiBaseUrl(): string {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
 function buildUrl(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalized}`;

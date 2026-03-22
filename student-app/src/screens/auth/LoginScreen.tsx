@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import type { ApiError } from '../../services/api/apiClient';
+import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -18,7 +18,9 @@ export function LoginScreen() {
       await login(email.trim(), password);
     } catch (err) {
       const apiError = err as ApiError | Error;
-      setError(apiError.message || 'Giriş yapılamadı.');
+      const msg = apiError.message || 'Giriş yapılamadı.';
+      const isNetwork = /network|fetch|bağlantı|failed/i.test(msg);
+      setError(isNetwork ? `${msg}\n\nBackend: ${getApiBaseUrl()}\n• Backend çalışıyor mu? (./start-all.sh)\n• Ayarlar > Expo Go > Yerel Ağ: Açık` : msg);
     } finally {
       setSubmitting(false);
     }
@@ -30,7 +32,8 @@ export function LoginScreen() {
       style={styles.container}
     >
       <View style={styles.card}>
-        <Text style={styles.brand}>EduAnalyzer</Text>
+        <Image source={require('../../../assets/logo.png')} style={styles.brandLogo} resizeMode="contain" />
+        
         <Text style={styles.title}>Öğrenci Mobil Uygulaması</Text>
         <Text style={styles.subtitle}>Sonuçlarını görüntülemek ve optik kağıdını okutmak için giriş yap.</Text>
 
@@ -42,7 +45,7 @@ export function LoginScreen() {
           keyboardType="email-address"
           style={styles.input}
           placeholder="ogrenci@demo.com"
-          placeholderTextColor="#a1a5b7"
+          placeholderTextColor="#737373"
         />
 
         <Text style={styles.label}>Şifre</Text>
@@ -52,7 +55,7 @@ export function LoginScreen() {
           secureTextEntry
           style={styles.input}
           placeholder="Şifrenizi girin"
-          placeholderTextColor="#a1a5b7"
+          placeholderTextColor="#737373"
         />
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -74,63 +77,76 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
+    elevation: 8,
   },
-  brand: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0d6efd',
-    marginBottom: 8,
+  brandLogo: {
+    height: 56,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#181c32',
+    textAlign: 'center',
   },
   subtitle: {
     marginTop: 8,
-    marginBottom: 24,
-    color: '#5e6278',
-    lineHeight: 20,
+    marginBottom: 28,
+    color: '#737373',
+    lineHeight: 22,
+    textAlign: 'center',
+    fontSize: 15,
   },
   label: {
     color: '#3f4254',
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
     marginTop: 12,
+    fontSize: 14,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#d8dbe6',
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: '#e4e6ef',
+    borderRadius: 14,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     color: '#181c32',
     backgroundColor: '#ffffff',
+    fontSize: 16,
   },
   errorText: {
     marginTop: 12,
     color: '#d9214e',
+    fontSize: 14,
+    textAlign: 'center',
   },
   button: {
-    marginTop: 20,
-    borderRadius: 12,
-    backgroundColor: '#0d6efd',
-    paddingVertical: 14,
+    marginTop: 24,
+    borderRadius: 14,
+    backgroundColor: '#5ce1e6',
+    paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

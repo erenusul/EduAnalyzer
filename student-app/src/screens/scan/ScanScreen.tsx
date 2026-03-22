@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import { getOptionCountFromAnswerKey, submitScan } from '../../services/api/examsApi';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
@@ -53,7 +54,7 @@ export function ScanScreen({ route }: ScanScreenProps) {
   if (!permission) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0d6efd" />
+        <ActivityIndicator size="large" color="#5ce1e6" />
       </View>
     );
   }
@@ -61,9 +62,13 @@ export function ScanScreen({ route }: ScanScreenProps) {
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
+        <View style={styles.permissionIconCircle}>
+          <Ionicons name="camera-outline" size={48} color="#5ce1e6" />
+        </View>
         <Text style={styles.permissionTitle}>Kamera izni gerekli</Text>
         <Text style={styles.permissionText}>Optik kağıdını tarayabilmek için kamera erişimine izin ver.</Text>
         <Pressable style={styles.primaryButton} onPress={() => void requestPermission()}>
+          <Ionicons name="shield-checkmark-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
           <Text style={styles.primaryButtonText}>Kamera İzni Ver</Text>
         </Pressable>
       </View>
@@ -73,12 +78,34 @@ export function ScanScreen({ route }: ScanScreenProps) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.infoCard}>
-        <Text style={styles.examTitle}>{exam.title}</Text>
-        <Text style={styles.examMeta}>{exam.weekLabel || 'Haftalık sınav'}</Text>
-        <Text style={styles.instructionsTitle}>Çekim rehberi</Text>
-        <Text style={styles.instructionsText}>1. Kağıdı çerçevenin içine tam yerleştir.</Text>
-        <Text style={styles.instructionsText}>2. Dört köşe marker görünür olsun.</Text>
-        <Text style={styles.instructionsText}>3. Telefonu kağıda paralel tut ve gölge yapma.</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <View style={styles.examIconBox}>
+            <Ionicons name="scan-outline" size={24} color="#5ce1e6" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.examTitle}>{exam.title}</Text>
+            <Text style={styles.examMeta}>{exam.weekLabel || 'Haftalık sınav'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.instructionsContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Ionicons name="bulb-outline" size={20} color="#181c32" style={{ marginRight: 8 }} />
+            <Text style={styles.instructionsTitle}>Çekim rehberi</Text>
+          </View>
+          <View style={styles.instructionRow}>
+            <Ionicons name="chevron-forward" size={16} color="#5ce1e6" />
+            <Text style={styles.instructionsText}>Kağıdı çerçevenin içine tam yerleştir.</Text>
+          </View>
+          <View style={styles.instructionRow}>
+            <Ionicons name="chevron-forward" size={16} color="#5ce1e6" />
+            <Text style={styles.instructionsText}>Dört köşe marker görünür olsun.</Text>
+          </View>
+          <View style={styles.instructionRow}>
+            <Ionicons name="chevron-forward" size={16} color="#5ce1e6" />
+            <Text style={styles.instructionsText}>Telefonu kağıda paralel tut ve gölge yapma.</Text>
+          </View>
+        </View>
       </View>
 
       {photoUri ? (
@@ -86,6 +113,7 @@ export function ScanScreen({ route }: ScanScreenProps) {
           <Image source={{ uri: photoUri }} style={styles.previewImage} />
           <View style={styles.previewActions}>
             <Pressable style={styles.secondaryButton} onPress={() => setPhotoUri(null)}>
+              <Ionicons name="refresh-outline" size={20} color="#5ce1e6" style={{ marginRight: 8 }} />
               <Text style={styles.secondaryButtonText}>Tekrar Çek</Text>
             </Pressable>
             <Pressable style={[styles.primaryButton, submitting && styles.buttonDisabled]} onPress={() => void handleSubmit()} disabled={submitting}>
@@ -95,7 +123,10 @@ export function ScanScreen({ route }: ScanScreenProps) {
                   <Text style={styles.primaryButtonText}>İşleniyor...</Text>
                 </View>
               ) : (
-                <Text style={styles.primaryButtonText}>Gönder ve Oku</Text>
+                <>
+                  <Ionicons name="cloud-upload-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+                  <Text style={styles.primaryButtonText}>Gönder ve Oku</Text>
+                </>
               )}
             </Pressable>
           </View>
@@ -106,10 +137,14 @@ export function ScanScreen({ route }: ScanScreenProps) {
             <CameraView ref={cameraRef} style={styles.camera} facing="back" />
             <View pointerEvents="none" style={styles.overlay}>
               <View style={styles.overlayFrame} />
-              <Text style={styles.overlayText}>Optik formu çerçeveye hizala</Text>
+              <View style={styles.overlayTextContainer}>
+                <Ionicons name="aperture-outline" size={20} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.overlayText}>Optik formu çerçeveye hizala</Text>
+              </View>
             </View>
           </View>
           <Pressable style={styles.primaryButton} onPress={() => void handleCapture()}>
+            <Ionicons name="camera" size={24} color="#ffffff" style={{ marginRight: 8 }} />
             <Text style={styles.primaryButtonText}>Fotoğraf Çek</Text>
           </Pressable>
         </View>
@@ -117,12 +152,42 @@ export function ScanScreen({ route }: ScanScreenProps) {
 
       {scanResult ? (
         <View style={styles.resultCard}>
-          <Text style={styles.resultTitle}>Tarama Özeti</Text>
-          <Text style={styles.resultText}>Doğru: {scanResult.correctCount}</Text>
-          <Text style={styles.resultText}>Yanlış: {scanResult.wrongCount}</Text>
-          <Text style={styles.resultText}>Toplam: {scanResult.totalCount}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="analytics" size={24} color="#181c32" style={{ marginRight: 8 }} />
+            <Text style={styles.resultTitle}>Tarama Özeti</Text>
+          </View>
+
+          <View style={styles.resultRow}>
+            <View style={styles.resultIconBoxSuccess}>
+              <Ionicons name="checkmark" size={16} color="#7ed957" />
+            </View>
+            <Text style={styles.resultTextLabel}>Doğru:</Text>
+            <Text style={[styles.resultTextValue, { color: '#7ed957' }]}>{scanResult.correctCount}</Text>
+          </View>
+
+          <View style={styles.resultRow}>
+            <View style={styles.resultIconBoxDanger}>
+              <Ionicons name="close" size={16} color="#d9214e" />
+            </View>
+            <Text style={styles.resultTextLabel}>Yanlış:</Text>
+            <Text style={[styles.resultTextValue, { color: '#d9214e' }]}>{scanResult.wrongCount}</Text>
+          </View>
+
+          <View style={styles.resultRow}>
+            <View style={styles.resultIconBoxInfo}>
+              <Ionicons name="list" size={16} color="#5ce1e6" />
+            </View>
+            <Text style={styles.resultTextLabel}>Toplam:</Text>
+            <Text style={styles.resultTextValue}>{scanResult.totalCount}</Text>
+          </View>
+
           {scanResult.wrongTopics.length > 0 ? (
-            <Text style={styles.resultTopics}>Zayıf konular: {scanResult.wrongTopics.map((item) => `${item.topic} (${item.count})`).join(', ')}</Text>
+            <View style={styles.resultTopicsContainer}>
+              <Ionicons name="warning-outline" size={20} color="#d9214e" style={{ marginRight: 8, marginTop: 2 }} />
+              <Text style={styles.resultTopics}>
+                <Text style={{ fontWeight: '800' }}>Zayıf konular:</Text> {scanResult.wrongTopics.map((item) => `${item.topic} (${item.count})`).join(', ')}
+              </Text>
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -152,52 +217,96 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: '#f5f8fa',
   },
+  permissionIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(92,225,230,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
   permissionTitle: {
     color: '#181c32',
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     marginBottom: 12,
   },
   permissionText: {
-    color: '#5e6278',
+    color: '#737373',
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
+    marginBottom: 32,
+    lineHeight: 22,
+    fontSize: 16,
   },
   infoCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  examIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(92,225,230,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
   examTitle: {
     color: '#181c32',
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 4,
   },
   examMeta: {
-    color: '#5e6278',
-    marginBottom: 14,
+    color: '#737373',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  instructionsContainer: {
+    backgroundColor: '#f5f8fa',
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 8,
   },
   instructionsTitle: {
-    color: '#3f4254',
-    fontWeight: '700',
+    color: '#181c32',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 8,
   },
   instructionsText: {
-    color: '#5e6278',
+    color: '#737373',
     lineHeight: 20,
-    marginBottom: 4,
+    fontSize: 14,
+    marginLeft: 6,
+    flex: 1,
+    fontWeight: '500',
   },
   cameraCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 16,
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   cameraWrapper: {
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: 'hidden',
-    height: 420,
+    height: 440,
     backgroundColor: '#000',
     marginBottom: 16,
   },
@@ -210,86 +319,164 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overlayFrame: {
-    width: '82%',
-    height: '72%',
+    width: '85%',
+    height: '75%',
     borderWidth: 3,
-    borderColor: '#0d6efd',
-    borderRadius: 18,
-    backgroundColor: 'rgba(13,110,253,0.08)',
+    borderColor: '#5ce1e6',
+    borderRadius: 24,
+    backgroundColor: 'rgba(92,225,230,0.1)',
   },
-  overlayText: {
+  overlayTextContainer: {
     position: 'absolute',
     bottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  overlayText: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    fontWeight: '800',
   },
   previewCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 16,
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   previewImage: {
     width: '100%',
-    height: 420,
-    borderRadius: 18,
+    height: 440,
+    borderRadius: 20,
     marginBottom: 16,
   },
   previewActions: {
+    flexDirection: 'row',
     gap: 12,
   },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
   },
   primaryButton: {
-    backgroundColor: '#0d6efd',
-    borderRadius: 14,
-    paddingVertical: 14,
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: '#5ce1e6',
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
     backgroundColor: '#eef3ff',
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   secondaryButtonText: {
-    color: '#0d6efd',
+    color: '#5ce1e6',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   resultCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#5ce1e6',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 32,
   },
   resultTitle: {
     color: '#181c32',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '800',
   },
-  resultText: {
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e4e6ef',
+  },
+  resultIconBoxSuccess: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(126, 217, 87, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  resultIconBoxDanger: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(217, 33, 78, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  resultIconBoxInfo: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  resultTextLabel: {
+    flex: 1,
     color: '#3f4254',
-    marginBottom: 6,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  resultTextValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#181c32',
+  },
+  resultTopicsContainer: {
+    flexDirection: 'row',
+    marginTop: 16,
+    backgroundColor: 'rgba(217, 33, 78, 0.05)',
+    padding: 16,
+    borderRadius: 16,
   },
   resultTopics: {
-    marginTop: 10,
-    color: '#5e6278',
-    lineHeight: 20,
+    flex: 1,
+    color: '#d9214e',
+    lineHeight: 22,
+    fontSize: 14,
   },
 });
