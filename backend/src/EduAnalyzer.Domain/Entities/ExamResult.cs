@@ -12,6 +12,8 @@ public class ExamResult
     public int CorrectCount { get; set; }
     public int WrongCount { get; set; }
     public string WrongTopicsJson { get; set; } = "[]";
+    /// <summary>Soru bazlı yanlışlar (JSON). Optik/manuel taramada doldurulur.</summary>
+    public string WrongQuestionsJson { get; set; } = "[]";
     public string? Source { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

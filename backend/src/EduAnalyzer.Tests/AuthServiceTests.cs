@@ -97,6 +97,31 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_ReturnsNull_WhenStudentRoleButNoStudentRecord()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "orphan@demo.com",
+            DisplayName = "Yetim",
+            PasswordHash = CreateAuthService().HashPassword("demo123"),
+            Role = UserRole.Student,
+            Student = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var userRepo = new Mock<IUserRepository>();
+        userRepo.Setup(x => x.GetByEmailAsync(user.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var teacherRepo = new Mock<ITeacherRepository>();
+        var service = CreateAuthService(userRepo: userRepo, teacherRepo: teacherRepo);
+        var result = await service.LoginAsync(new LoginRequest(user.Email, "demo123"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task LoginAsync_ReturnsToken_WhenCredentialsValid()
     {
         var user = new User

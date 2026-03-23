@@ -48,6 +48,9 @@ public class AuthService : IAuthService
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
             return null;
 
+        if (user.Role == UserRole.Student && user.Student == null)
+            return null;
+
         var teacher = await _teacherRepo.GetByUserIdAsync(user.Id, ct);
         if (user.Role == UserRole.Teacher && teacher == null)
             return null;

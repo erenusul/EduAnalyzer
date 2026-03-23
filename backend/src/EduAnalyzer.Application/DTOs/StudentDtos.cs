@@ -10,7 +10,8 @@ public record StudentDto(
     string? Email,
     string? Phone,
     string? Notes,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    bool HasAppAccount
 );
 
 public record CreateStudentRequest(
@@ -20,7 +21,8 @@ public record CreateStudentRequest(
     Guid? ClassId,
     string? Email,
     string? Phone,
-    string? Notes
+    string? Notes,
+    string? Password
 );
 
 public record UpdateStudentRequest(
@@ -30,5 +32,6 @@ public record UpdateStudentRequest(
     Guid? ClassId,
     string? Email,
     string? Phone,
-    string? Notes
+    string? Notes,
+    string? Password
 );

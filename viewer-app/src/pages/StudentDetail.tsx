@@ -2,7 +2,7 @@
  * Öğrenci detay sayfası - bilgiler, sınav sonuçları, konu hataları, haftalık grafik
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, Form, Button, Badge, Row, Col, Table } from 'react-bootstrap';
 import {
@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { useToast } from '../contexts/ToastContext';
+import type { ApiError } from '../services/apiClient';
 
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,7 @@ export function StudentDetail() {
     getResultsByStudent,
   } = useTeacherData();
   const { showToast } = useToast();
+  const [mobilePassword, setMobilePassword] = useState('');
 
   const student = id ? getStudentById(id) : null;
 
@@ -215,6 +217,60 @@ export function StudentDetail() {
                   placeholder="Öğrenci hakkında notlar..."
                 />
               </Form.Group>
+              <hr className="my-3" />
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <h6 className="fw-semibold mb-0 small">Mobil uygulama</h6>
+                {student.hasAppAccount ? (
+                  <Badge bg="success">Giriş aktif</Badge>
+                ) : (
+                  <Badge bg="secondary">Hesap yok</Badge>
+                )}
+              </div>
+              <p className="small text-muted mb-2">
+                Öğrenci mobilde aynı e-posta ve burada belirlediğiniz şifre ile giriş yapar (en az 6 karakter).
+              </p>
+              <Form.Group className="mb-2">
+                <Form.Label htmlFor="student-mobile-password" className="small text-muted">
+                  {student.hasAppAccount ? 'Yeni şifre' : 'Şifre belirle'}
+                </Form.Label>
+                <Form.Control
+                  id="student-mobile-password"
+                  type="password"
+                  value={mobilePassword}
+                  onChange={(e) => setMobilePassword(e.target.value)}
+                  placeholder="En az 6 karakter"
+                  autoComplete="new-password"
+                  aria-label="Mobil uygulama şifresi"
+                />
+              </Form.Group>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                disabled={mobilePassword.trim().length < 6 || !student.email?.trim()}
+                onClick={async () => {
+                  const pwd = mobilePassword.trim();
+                  if (pwd.length < 6) return;
+                  if (!student.email?.trim()) {
+                    showToast('Önce e-posta girin.', 'danger');
+                    return;
+                  }
+                  try {
+                    await updateStudent(student.id, { initialPassword: pwd });
+                    setMobilePassword('');
+                    showToast(
+                      student.hasAppAccount ? 'Şifre güncellendi.' : 'Mobil giriş etkinleştirildi.'
+                    );
+                  } catch (err) {
+                    const msg =
+                      err && typeof err === 'object' && 'message' in err
+                        ? String((err as ApiError).message)
+                        : 'İşlem başarısız.';
+                    showToast(msg, 'danger');
+                  }
+                }}
+              >
+                Şifreyi kaydet
+              </Button>
             </Card.Body>
           </Card>
         </Col>

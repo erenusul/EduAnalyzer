@@ -17,7 +17,9 @@ public class StudentServiceTests
             .ReturnsAsync(new List<Student>());
 
         var classRepo = new Mock<IClassRepository>();
-        var service = new StudentService(repo.Object, classRepo.Object);
+        var userRepo = new Mock<IUserRepository>();
+        var auth = new Mock<IAuthService>();
+        var service = new StudentService(repo.Object, classRepo.Object, userRepo.Object, auth.Object);
 
         var result = await service.GetByTeacherAsync(teacherId);
 
@@ -45,7 +47,9 @@ public class StudentServiceTests
             .ReturnsAsync(new List<Student> { student });
 
         var classRepo = new Mock<IClassRepository>();
-        var service = new StudentService(repo.Object, classRepo.Object);
+        var userRepo = new Mock<IUserRepository>();
+        var auth = new Mock<IAuthService>();
+        var service = new StudentService(repo.Object, classRepo.Object, userRepo.Object, auth.Object);
 
         var result = await service.GetByTeacherAsync(teacherId);
 
@@ -54,5 +58,6 @@ public class StudentServiceTests
         Assert.Equal("1001", result[0].StudentNo);
         Assert.Equal("Ahmet", result[0].FirstName);
         Assert.Equal("Yılmaz", result[0].LastName);
+        Assert.False(result[0].HasAppAccount);
     }
 }

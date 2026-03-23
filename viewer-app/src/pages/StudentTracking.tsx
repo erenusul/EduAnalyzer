@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { Table, Form, Button, Card, Badge, InputGroup, Modal } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { useToast } from '../contexts/ToastContext';
+import type { ApiError } from '../services/apiClient';
 
 export function StudentTracking() {
   const { students, classes, getClassById, addStudent, deleteStudent } = useTeacherData();
@@ -20,6 +21,7 @@ export function StudentTracking() {
     lastName: '',
     classId: null as string | null,
     email: '',
+    initialPassword: '',
   });
 
   const filteredStudents = useMemo(() => {
@@ -45,15 +47,35 @@ export function StudentTracking() {
     if (!newStudent.firstName.trim() || !newStudent.lastName.trim() || !newStudent.studentNo.trim())
       return;
     try {
+      const pwd = newStudent.initialPassword.trim();
+      if (pwd && !newStudent.email.trim()) {
+        showToast('Mobil giriş için e-posta zorunludur.', 'danger');
+        return;
+      }
       await addStudent({
-        ...newStudent,
+        studentNo: newStudent.studentNo.trim(),
+        firstName: newStudent.firstName.trim(),
+        lastName: newStudent.lastName.trim(),
         classId: newStudent.classId || null,
+        email: newStudent.email.trim() || undefined,
+        initialPassword: pwd || undefined,
       });
-      setNewStudent({ studentNo: '', firstName: '', lastName: '', classId: null, email: '' });
+      setNewStudent({
+        studentNo: '',
+        firstName: '',
+        lastName: '',
+        classId: null,
+        email: '',
+        initialPassword: '',
+      });
       setShowAddModal(false);
       showToast('Öğrenci başarıyla eklendi.');
-    } catch {
-      showToast('Öğrenci eklenirken bir hata oluştu.', 'danger');
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as ApiError).message)
+          : 'Öğrenci eklenirken bir hata oluştu.';
+      showToast(msg, 'danger');
     }
   };
 
@@ -124,13 +146,14 @@ export function StudentTracking() {
                 <th>Ad Soyad</th>
                 <th>Sınıf</th>
                 <th>E-posta</th>
+                <th>Mobil</th>
                 <th className="text-end">İşlemler</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-5 text-muted">
+                  <td colSpan={6} className="text-center py-5 text-muted">
                     <i className="bi bi-person-x fs-1 d-block mb-2" />
                     Öğrenci bulunamadı
                   </td>
@@ -159,6 +182,19 @@ export function StudentTracking() {
                         )}
                       </td>
                       <td className="small">{s.email || '—'}</td>
+                      <td>
+                        {s.hasAppAccount ? (
+                          <Badge bg="success" className="fw-normal">
+                            Aktif
+                          </Badge>
+                        ) : s.email?.trim() ? (
+                          <Badge bg="warning" text="dark" className="fw-normal">
+                            Şifre gerekli
+                          </Badge>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
                       <td className="text-end">
                         <Link to={`/dashboard/ogrenci/${s.id}`}>
                           <Button variant="outline-primary" size="sm" className="me-1">
@@ -236,7 +272,23 @@ export function StudentTracking() {
                 value={newStudent.email}
                 onChange={(e) => setNewStudent((p) => ({ ...p, email: e.target.value }))}
                 placeholder="ornek@email.com"
+                autoComplete="off"
               />
+              <Form.Text className="text-muted">
+                Mobil uygulamada giriş için e-posta ve aşağıdaki şifreyi birlikte kullanın.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mobil uygulama şifresi</Form.Label>
+              <Form.Control
+                type="password"
+                value={newStudent.initialPassword}
+                onChange={(e) => setNewStudent((p) => ({ ...p, initialPassword: e.target.value }))}
+                placeholder="En az 6 karakter (isteğe bağlı)"
+                autoComplete="new-password"
+                aria-label="Mobil uygulama şifresi"
+              />
+              <Form.Text className="text-muted">Boş bırakılırsa yalnızca kayıt oluşturulur; şifreyi sonra ekleyebilirsiniz.</Form.Text>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>

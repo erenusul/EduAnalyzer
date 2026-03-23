@@ -17,12 +17,19 @@
         {
           "cameraPermission": "Optik formu taramak için kamera erişimi gerekiyor."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6FCFD",
         "foregroundImage": "./assets/android-icon-foreground.png",

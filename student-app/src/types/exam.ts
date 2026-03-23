@@ -17,6 +17,7 @@ export interface ExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics: WrongTopic[];
+  wrongQuestions?: WrongQuestion[];
   source?: string | null;
   createdAt: string;
 }

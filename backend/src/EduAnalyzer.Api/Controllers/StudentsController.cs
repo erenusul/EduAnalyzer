@@ -47,16 +47,30 @@ public class StudentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<StudentDto>> Create([FromBody] CreateStudentRequest request, CancellationToken ct)
     {
-        var dto = await _service.CreateAsync(TeacherId, request, ct);
-        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        try
+        {
+            var dto = await _service.CreateAsync(TeacherId, request, ct);
+            return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<StudentDto>> Update(Guid id, [FromBody] UpdateStudentRequest request, CancellationToken ct)
     {
-        var dto = await _service.UpdateAsync(id, TeacherId, request, ct);
-        if (dto == null) return NotFound();
-        return Ok(dto);
+        try
+        {
+            var dto = await _service.UpdateAsync(id, TeacherId, request, ct);
+            if (dto == null) return NotFound();
+            return Ok(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id:guid}")]

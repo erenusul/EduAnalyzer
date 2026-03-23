@@ -3,7 +3,7 @@
  */
 
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut, apiUpload, apiUploadFormData } from './apiClient';
-import type { Student, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
+import type { Student, NewStudentPayload, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
 
 export interface LoginResponse {
   accessToken: string;
@@ -23,6 +23,7 @@ export interface BackendStudent {
   phone?: string | null;
   notes?: string | null;
   createdAt: string;
+  hasAppAccount?: boolean;
 }
 
 export interface BackendClass {
@@ -69,6 +70,7 @@ export interface BackendExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics: { topic: string; count: number }[];
+  wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
   source?: string | null;
   createdAt: string;
 }
@@ -92,6 +94,7 @@ function toStudent(d: BackendStudent): Student {
     phone: d.phone ?? undefined,
     notes: d.notes ?? undefined,
     createdAt: d.createdAt,
+    hasAppAccount: d.hasAppAccount ?? false,
   };
 }
 
@@ -184,6 +187,7 @@ function toExamResult(d: BackendExamResult): ExamResult {
     correctCount: d.correctCount,
     wrongCount: d.wrongCount,
     wrongTopics: d.wrongTopics,
+    wrongQuestions: d.wrongQuestions,
     createdAt: d.createdAt,
   };
 }
@@ -207,7 +211,7 @@ export const studentsApi = {
   getAll: () => apiGet<BackendStudent[]>('/api/students'),
   getById: (id: string) => apiGet<BackendStudent>(`/api/students/${id}`),
   getByClass: (classId: string) => apiGet<BackendStudent[]>(`/api/students/class/${classId}`),
-  create: (data: Omit<Student, 'id' | 'createdAt'>) =>
+  create: (data: NewStudentPayload) =>
     apiPost<BackendStudent>('/api/students', {
       studentNo: data.studentNo,
       firstName: data.firstName,
@@ -216,17 +220,20 @@ export const studentsApi = {
       email: data.email ?? null,
       phone: data.phone ?? null,
       notes: data.notes ?? null,
+      password: data.initialPassword?.trim() ? data.initialPassword : undefined,
     }),
-  update: (id: string, data: Partial<Student>) =>
-    apiPut<BackendStudent>(`/api/students/${id}`, {
-      studentNo: data.studentNo,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      classId: data.classId ?? null,
-      email: data.email,
-      phone: data.phone,
-      notes: data.notes,
-    }),
+  update: (id: string, data: Partial<Student> & { initialPassword?: string }) => {
+    const body: Record<string, unknown> = {};
+    if (data.studentNo !== undefined) body.studentNo = data.studentNo;
+    if (data.firstName !== undefined) body.firstName = data.firstName;
+    if (data.lastName !== undefined) body.lastName = data.lastName;
+    if (data.classId !== undefined) body.classId = data.classId;
+    if (data.email !== undefined) body.email = data.email;
+    if (data.phone !== undefined) body.phone = data.phone;
+    if (data.notes !== undefined) body.notes = data.notes;
+    if (data.initialPassword?.trim()) body.password = data.initialPassword;
+    return apiPut<BackendStudent>(`/api/students/${id}`, body);
+  },
   delete: (id: string) => apiDelete(`/api/students/${id}`),
   assignClass: (id: string, classId: string | null) =>
     apiPatch(`/api/students/${id}/class`, { classId }),

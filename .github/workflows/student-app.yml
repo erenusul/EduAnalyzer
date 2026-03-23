@@ -1,0 +1,29 @@
+name: student-app CI
+
+on:
+  push:
+    paths:
+      - 'student-app/**'
+      - '.github/workflows/student-app.yml'
+  pull_request:
+    paths:
+      - 'student-app/**'
+      - '.github/workflows/student-app.yml'
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: student-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: student-app/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck

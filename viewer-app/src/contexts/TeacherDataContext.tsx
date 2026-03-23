@@ -4,7 +4,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import type { Student, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
+import type { Student, NewStudentPayload, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
 import { studentsApi, classesApi, analysesApi, examsApi, mappers } from '../services/backendApi';
 import { analyzePDF } from '../services/predictionApi';
 
@@ -18,8 +18,8 @@ interface TeacherDataContextValue {
   error: string | null;
   clearError: () => void;
   refresh: () => Promise<void>;
-  addStudent: (student: Omit<Student, 'id' | 'createdAt'>) => Promise<Student>;
-  updateStudent: (id: string, data: Partial<Student>) => Promise<void>;
+  addStudent: (student: NewStudentPayload) => Promise<Student>;
+  updateStudent: (id: string, data: Partial<Student> & { initialPassword?: string }) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
   addClass: (cls: Omit<Class, 'id' | 'createdAt' | 'studentIds'>) => Promise<Class>;
   updateClass: (id: string, data: Partial<Class>) => Promise<void>;
@@ -115,7 +115,7 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const addStudent = useCallback(
-    async (data: Omit<Student, 'id' | 'createdAt'>) => {
+    async (data: NewStudentPayload) => {
       const res = await studentsApi.create(data);
       const student = mappers.toStudent(res);
       await refresh();

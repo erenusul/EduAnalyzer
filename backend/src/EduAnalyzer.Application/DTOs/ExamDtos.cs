@@ -36,6 +36,7 @@ public record ExamResultDto(
     int CorrectCount,
     int WrongCount,
     IReadOnlyList<WrongTopicDto> WrongTopics,
+    IReadOnlyList<WrongQuestionDto> WrongQuestions,
     string? Source,
     DateTime CreatedAt
 );

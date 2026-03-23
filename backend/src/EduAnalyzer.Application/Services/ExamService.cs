@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Interfaces;
 using EduAnalyzer.Domain.Entities;
@@ -25,6 +26,13 @@ public interface IExamService
 
 public class ExamService : IExamService
 {
+    private static readonly JsonSerializerOptions JsonStoreOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly IExamRepository _examRepo;
     private readonly IExamResultRepository _resultRepo;
     private readonly IStudentRepository _studentRepo;
@@ -99,6 +107,7 @@ public class ExamService : IExamService
             CorrectCount = request.CorrectCount,
             WrongCount = request.WrongCount,
             WrongTopicsJson = wrongTopicsJson,
+            WrongQuestionsJson = "[]",
             Source = request.Source ?? "manual",
             CreatedAt = DateTime.UtcNow
         };
@@ -226,6 +235,7 @@ public class ExamService : IExamService
 
         var wrongTopics = topicCounts.Select(kv => new WrongTopicDto(kv.Key, kv.Value)).ToList();
         var wrongTopicsJson = JsonSerializer.Serialize(wrongTopics.Select(w => new { w.Topic, w.Count }));
+        var wrongQuestionsJson = JsonSerializer.Serialize(wrongQuestions, JsonStoreOptions);
 
         var entity = new ExamResult
         {
@@ -235,6 +245,7 @@ public class ExamService : IExamService
             CorrectCount = correctCount,
             WrongCount = wrongCount,
             WrongTopicsJson = wrongTopicsJson,
+            WrongQuestionsJson = wrongQuestionsJson,
             Source = "optical",
             CreatedAt = DateTime.UtcNow
         };
@@ -318,6 +329,9 @@ public class ExamService : IExamService
     {
         var topics = JsonSerializer.Deserialize<List<WrongTopicDto>>(r.WrongTopicsJson)
             ?? new List<WrongTopicDto>();
+        var wrongQuestions = string.IsNullOrEmpty(r.WrongQuestionsJson)
+            ? new List<WrongQuestionDto>()
+            : JsonSerializer.Deserialize<List<WrongQuestionDto>>(r.WrongQuestionsJson, JsonStoreOptions) ?? new List<WrongQuestionDto>();
         return new ExamResultDto(
             r.Id,
             r.StudentId,
@@ -328,6 +342,7 @@ public class ExamService : IExamService
             r.CorrectCount,
             r.WrongCount,
             topics,
+            wrongQuestions,
             r.Source,
             r.CreatedAt
         );

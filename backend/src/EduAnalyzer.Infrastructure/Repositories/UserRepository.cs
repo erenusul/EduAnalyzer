@@ -31,4 +31,21 @@ public class UserRepository : IUserRepository
         await _context.SaveChangesAsync(ct);
         return entity;
     }
+
+    public async Task UpdateAsync(User entity, CancellationToken ct = default)
+    {
+        entity.UpdatedAt = DateTime.UtcNow;
+        _context.Users.Update(entity);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var entity = await _context.Users.FindAsync([id], ct);
+        if (entity != null)
+        {
+            _context.Users.Remove(entity);
+            await _context.SaveChangesAsync(ct);
+        }
+    }
 }

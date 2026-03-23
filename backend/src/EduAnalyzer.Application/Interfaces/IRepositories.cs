@@ -5,10 +5,12 @@ namespace EduAnalyzer.Application.Interfaces;
 public interface IStudentRepository
 {
     Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    /// <summary>Mobil User bağlı olmayan öğrenci (e-posta ile giriş bekleyen).</summary>
+    Task<Student?> GetByEmailWithoutUserAsync(string email, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByClassIdAsync(Guid classId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByParentIdAsync(Guid parentId, CancellationToken ct = default);
-    Task<Student> AddAsync(Student entity, CancellationToken ct = default);
+    Task<Student> AddAsync(Student entity, User? appUser = null, CancellationToken ct = default);
     Task UpdateAsync(Student entity, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
 }
@@ -55,6 +57,8 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<User> AddAsync(User entity, CancellationToken ct = default);
+    Task UpdateAsync(User entity, CancellationToken ct = default);
+    Task DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
 public interface ITeacherRepository

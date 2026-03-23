@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { login as loginRequest } from '../../services/api/authApi';
+import { setUnauthorizedHandler } from '../../services/api/unauthorizedHandler';
 import { clearStoredSession, getStoredSession, storeSession } from '../../services/storage/sessionStorage';
 import type { Session, User } from '../../types/auth';
 
@@ -35,6 +36,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      await clearStoredSession();
+      setSession(null);
+    });
+    return () => {
+      setUnauthorizedHandler(null);
     };
   }, []);
 

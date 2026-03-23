@@ -12,7 +12,14 @@ export interface Student {
   phone?: string;
   notes?: string;
   createdAt: string;
+  /** Mobil uygulama için hesap (User) bağlı mı */
+  hasAppAccount?: boolean;
 }
+
+/** Yeni öğrenci eklerken; şifre verilirse backend öğrenci kullanıcısı oluşturur. */
+export type NewStudentPayload = Omit<Student, 'id' | 'createdAt' | 'hasAppAccount'> & {
+  initialPassword?: string;
+};
 
 export interface Class {
   id: string;
@@ -54,6 +61,12 @@ export interface WrongTopic {
   count: number;
 }
 
+export interface WrongQuestion {
+  questionIndex: number;
+  studentAnswer: string;
+  topic: string;
+}
+
 export interface ExamResult {
   id: string;
   studentId: string;
@@ -61,5 +74,6 @@ export interface ExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics: WrongTopic[];
+  wrongQuestions?: WrongQuestion[];
   createdAt: string;
 }

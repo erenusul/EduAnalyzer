@@ -16,6 +16,19 @@ public class StudentRepository : IStudentRepository
             .Include(s => s.Class)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    public async Task<Student?> GetByEmailWithoutUserAsync(string email, CancellationToken ct = default)
+    {
+        var normalized = email.Trim();
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        return await _context.Students
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                s => s.UserId == null && s.Email != null && s.Email.ToLower() == normalized.ToLower(),
+                ct);
+    }
+
     public async Task<IReadOnlyList<Student>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default) =>
         await _context.Students
             .Include(s => s.Class)
@@ -41,8 +54,15 @@ public class StudentRepository : IStudentRepository
         return pairs.Select(sp => sp.Student).OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList();
     }
 
-    public async Task<Student> AddAsync(Student entity, CancellationToken ct = default)
+    public async Task<Student> AddAsync(Student entity, User? appUser = null, CancellationToken ct = default)
     {
+        if (appUser != null)
+        {
+            if (entity.UserId != appUser.Id)
+                throw new ArgumentException("Öğrenci UserId, uygulama kullanıcısı Id ile eşleşmelidir.", nameof(entity));
+            _context.Users.Add(appUser);
+        }
+
         _context.Students.Add(entity);
         await _context.SaveChangesAsync(ct);
         return entity;
