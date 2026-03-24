@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using EduAnalyzer.Application.DTOs;
@@ -77,6 +78,7 @@ public class MlServiceClient : IMlServiceClient
         Stream imageStream,
         int questionCount = 20,
         int? optionCount = null,
+        string? imageContentType = null,
         CancellationToken ct = default)
     {
         await using var ms = new MemoryStream();
@@ -86,8 +88,15 @@ public class MlServiceClient : IMlServiceClient
         var optCount = optionCount ?? 5;
         optCount = Math.Clamp(optCount, 4, 5);
 
+        var partMedia = NormalizeOpticalImageMediaType(imageContentType);
+        var fileName = partMedia.Contains("png", StringComparison.OrdinalIgnoreCase)
+            ? "optical-form.png"
+            : "optical-form.jpg";
+
         using var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent(bytes), "file", "optical-form.jpg");
+        var imagePart = new ByteArrayContent(bytes);
+        imagePart.Headers.ContentType = new MediaTypeHeaderValue(partMedia);
+        content.Add(imagePart, "file", fileName);
         content.Add(new StringContent(questionCount.ToString()), "question_count");
         content.Add(new StringContent(optCount.ToString()), "option_count");
 
@@ -120,6 +129,23 @@ public class MlServiceClient : IMlServiceClient
         var raw = JsonSerializer.Deserialize<MlHealthResponse>(json, JsonOptions)
             ?? throw new InvalidOperationException("ML servisi geçersiz yanıt döndü.");
         return new HealthCheckDto(raw.Status, raw.ModelLoaded, raw.Message);
+    }
+
+    /// <summary>
+    /// ML API (FastAPI) multipart parçasında image/* Content-Type bekler; boş bırakılırsa istek reddedilir.
+    /// </summary>
+    private static string NormalizeOpticalImageMediaType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+            return "image/jpeg";
+
+        var main = contentType.Split(';', 2)[0].Trim().ToLowerInvariant();
+        if (main is "image/jpg" or "image/pjpeg")
+            return "image/jpeg";
+        if (main.StartsWith("image/", StringComparison.Ordinal) && main.Length > "image/".Length)
+            return main;
+
+        return "image/jpeg";
     }
 
     private static PdfAnalysisResponseDto MapToDto(MlPdfAnalysisResponse raw)

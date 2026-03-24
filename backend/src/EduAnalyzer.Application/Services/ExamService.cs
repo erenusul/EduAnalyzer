@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EduAnalyzer.Application.DTOs;
@@ -15,13 +16,22 @@ public interface IExamService
     Task<IReadOnlyList<ExamDto>> GetExamsAvailableForStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<ExamDto?> UpdateAnswerKeyAsync(Guid examId, Guid teacherId, IReadOnlyList<string> answerKey, CancellationToken ct = default);
     Task<ScanExamResponse> ScanAndSaveResultAsync(Guid examId, Guid teacherId, ScanExamRequest request, CancellationToken ct = default);
-    Task<ScanExamResponse> SubmitScanForStudentAsync(Guid examId, Guid studentId, Stream imageStream, int? questionCount, int? optionCount, CancellationToken ct = default);
+    Task<ScanExamResponse> SubmitScanForStudentAsync(
+        Guid examId,
+        Guid studentId,
+        Stream imageStream,
+        int? questionCount,
+        int? optionCount,
+        string? imageContentType = null,
+        CancellationToken ct = default);
     Task<ExamResultDto> AddExamResultAsync(Guid teacherId, CreateExamResultRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByTeacherAsync(Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentForSelfAsync(Guid studentId, CancellationToken ct = default);
     Task<IReadOnlyList<StudentWithResultsDto>> GetStudentsWithResultsForParentAsync(Guid parentId, CancellationToken ct = default);
+    Task DeleteExamResultAsync(Guid resultId, Guid teacherId, CancellationToken ct = default);
+    Task<ExamResultDto> UpdateExamResultAsync(Guid resultId, Guid teacherId, UpdateExamResultRequest request, CancellationToken ct = default);
 }
 
 public class ExamService : IExamService
@@ -113,6 +123,53 @@ public class ExamService : IExamService
         };
         var added = await _resultRepo.AddAsync(entity, ct);
         return MapResultToDto(added, student, exam);
+    }
+
+    public async Task DeleteExamResultAsync(Guid resultId, Guid teacherId, CancellationToken ct = default)
+    {
+        var entity = await _resultRepo.GetByIdAsync(resultId, ct);
+        if (entity == null)
+            throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+
+        var exam = await _examRepo.GetByIdAsync(entity.ExamId, ct);
+        if (exam == null || exam.TeacherId != teacherId)
+            throw new UnauthorizedAccessException("Bu sonucu silme yetkiniz yok.");
+
+        var deleted = await _resultRepo.DeleteAsync(resultId, ct);
+        if (!deleted)
+            throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+    }
+
+    public async Task<ExamResultDto> UpdateExamResultAsync(
+        Guid resultId,
+        Guid teacherId,
+        UpdateExamResultRequest request,
+        CancellationToken ct = default)
+    {
+        if (request.CorrectCount < 0 || request.WrongCount < 0)
+            throw new ArgumentException("Doğru ve yanlış sayıları negatif olamaz.");
+
+        var entity = await _resultRepo.GetByIdAsync(resultId, ct);
+        if (entity == null)
+            throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+
+        var exam = await _examRepo.GetByIdAsync(entity.ExamId, ct);
+        if (exam == null || exam.TeacherId != teacherId)
+            throw new UnauthorizedAccessException("Bu sonucu güncelleme yetkiniz yok.");
+
+        var student = await _studentRepo.GetByIdAsync(entity.StudentId, ct);
+        if (student == null || student.TeacherId != teacherId)
+            throw new UnauthorizedAccessException("Öğrenci bulunamadı veya yetkiniz yok.");
+
+        var topics = request.WrongTopics ?? [];
+        entity.CorrectCount = request.CorrectCount;
+        entity.WrongCount = request.WrongCount;
+        entity.WrongTopicsJson = JsonSerializer.Serialize(topics.Select(w => new { w.Topic, w.Count }));
+        entity.WrongQuestionsJson = "[]";
+        entity.Source = "manual";
+        await _resultRepo.UpdateAsync(entity, ct);
+
+        return MapResultToDto(entity, student, exam);
     }
 
     public async Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default)
@@ -227,7 +284,10 @@ public class ExamService : IExamService
             else
             {
                 wrongCount++;
-                var topic = i < results.Count && results[i].Topic.Count > 0 ? results[i].Topic[0].Label : "Bilinmiyor";
+                var rawTopic = i < results.Count && results[i].Topic.Count > 0
+                    ? results[i].Topic[0].Label
+                    : null;
+                var topic = string.IsNullOrWhiteSpace(rawTopic) ? "Bilinmiyor" : rawTopic!;
                 wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topic));
                 topicCounts[topic] = topicCounts.GetValueOrDefault(topic, 0) + 1;
             }
@@ -266,6 +326,7 @@ public class ExamService : IExamService
         Stream imageStream,
         int? questionCount,
         int? optionCount,
+        string? imageContentType = null,
         CancellationToken ct = default)
     {
         var student = await _studentRepo.GetByIdAsync(studentId, ct)
@@ -295,7 +356,7 @@ public class ExamService : IExamService
         if (count <= 0)
             count = 20;
 
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, optionCount, ct);
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, optionCount, imageContentType, ct);
         return await ScanAndSaveResultAsync(
             examId,
             exam.TeacherId,
@@ -327,8 +388,12 @@ public class ExamService : IExamService
 
     private static ExamResultDto MapResultToDto(ExamResult r, Student s, Exam e)
     {
-        var topics = JsonSerializer.Deserialize<List<WrongTopicDto>>(r.WrongTopicsJson)
-            ?? new List<WrongTopicDto>();
+        var topics = (JsonSerializer.Deserialize<List<WrongTopicDto>>(r.WrongTopicsJson)
+                ?? new List<WrongTopicDto>())
+            .Select(t => new WrongTopicDto(
+                string.IsNullOrWhiteSpace(t.Topic) ? "Bilinmiyor" : t.Topic,
+                t.Count))
+            .ToList();
         var wrongQuestions = string.IsNullOrEmpty(r.WrongQuestionsJson)
             ? new List<WrongQuestionDto>()
             : JsonSerializer.Deserialize<List<WrongQuestionDto>>(r.WrongQuestionsJson, JsonStoreOptions) ?? new List<WrongQuestionDto>();

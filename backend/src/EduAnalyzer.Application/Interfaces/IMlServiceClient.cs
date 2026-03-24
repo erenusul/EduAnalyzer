@@ -21,6 +21,7 @@ public interface IMlServiceClient
         Stream imageStream,
         int questionCount = 20,
         int? optionCount = null,
+        string? imageContentType = null,
         CancellationToken ct = default);
 }
 

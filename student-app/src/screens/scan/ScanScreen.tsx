@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { getOptionCountFromAnswerKey, submitScan } from '../../services/api/examsApi';
+import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
 import { useAppTheme } from '../../theme/AppThemeContext';
@@ -321,13 +322,27 @@ export function ScanScreen({ route }: ScanScreenProps) {
         (err && typeof err === 'object' && 'message' in err
           ? String((err as { message?: unknown }).message ?? '')
           : '') || (err instanceof Error ? err.message : '') || 'Optik tarama gönderilemedi.';
+      const status =
+        err && typeof err === 'object' && 'status' in err && typeof (err as ApiError).status === 'number'
+          ? (err as ApiError).status
+          : undefined;
+
+      /** Sunucuya ulaşılamadı / zaman aşımı: apiClient zaten açıklayıcı metin üretir; bunu saklamayın. */
+      if (status === 0) {
+        Alert.alert('Hata', `${rawMessage}\n\nKullanılan API: ${getApiBaseUrl()}`);
+        return;
+      }
+
       let userMessage = rawMessage;
       if (rawMessage.includes('401') || rawMessage.includes('Oturum süresi doldu')) {
         userMessage = 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
       } else if (rawMessage.includes('403') || rawMessage.includes('yetkiniz')) {
         userMessage = 'Bu sınava erişim yetkiniz bulunmuyor.';
-      } else if (rawMessage.includes('Network') || rawMessage.includes('fetch') || rawMessage.includes('Bağlantı')) {
-        userMessage = 'Bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.';
+      } else if (
+        rawMessage.includes('Network request failed') ||
+        (rawMessage.includes('fetch') && !rawMessage.includes('5131'))
+      ) {
+        userMessage = `Bağlantı kurulamadı. İnternet veya yerel ağ ayarlarınızı kontrol edin.\n\nKullanılan API: ${getApiBaseUrl()}`;
       }
       Alert.alert('Hata', userMessage);
     } finally {

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -145,8 +146,17 @@ function buildStyles(colors: AppThemeColors) {
       backgroundColor: colors.card,
       borderRadius: 24,
       padding: 20,
-      borderWidth: StyleSheet.hairlineWidth,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 2,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
       borderColor: colors.border,
+    },
+    resultCardPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.98 }],
     },
     badgeRow: {
       flexDirection: 'row',
@@ -180,36 +190,51 @@ function buildStyles(colors: AppThemeColors) {
       color: colors.textPrimary,
       marginBottom: 0,
     },
-    summaryRow: {
+    scoreContainer: {
       flexDirection: 'row',
-      gap: 12,
+      justifyContent: 'space-between',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 16,
+      padding: 16,
       marginBottom: 16,
     },
-    summaryBadgeSuccess: {
-      flexDirection: 'row',
+    scoreItem: {
+      flex: 1,
       alignItems: 'center',
-      backgroundColor: 'rgba(126, 217, 87, 0.12)',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 10,
     },
-    summaryTextSuccess: {
+    scoreValue: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    scoreLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    successText: {
       color: colors.success,
-      fontWeight: '700',
-      fontSize: 14,
     },
-    summaryBadgeDanger: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.errorBackground,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 10,
-    },
-    summaryTextDanger: {
+    dangerText: {
       color: colors.danger,
-      fontWeight: '700',
-      fontSize: 14,
+    },
+    netBox: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingVertical: 4,
+      paddingHorizontal: 12,
+      marginTop: 8,
+      alignItems: 'center',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 1,
     },
     topicContainer: {
       flexDirection: 'row',
@@ -361,43 +386,61 @@ export function ResultsScreen({ navigation }: ResultsScreenProps) {
             ) : null}
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable style={styles.resultCard} onPress={() => navigation.navigate('ResultDetail', { result: item })}>
-            <View style={styles.badgeRow}>
-              <View style={styles.dateBadgeContainer}>
-                <Ionicons name="calendar-outline" size={14} color={colors.accent} style={{ marginRight: 4 }} />
-                <Text style={styles.dateBadge}>{new Date(item.createdAt).toLocaleDateString('tr-TR')}</Text>
+        renderItem={({ item }) => {
+          const net = item.correctCount - item.wrongCount / 4;
+          return (
+            <Pressable 
+              style={({ pressed }) => [styles.resultCard, pressed && styles.resultCardPressed]} 
+              onPress={() => navigation.navigate('ResultDetail', { result: item })}
+            >
+              <View style={styles.badgeRow}>
+                <View style={styles.dateBadgeContainer}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.accent} style={{ marginRight: 4 }} />
+                  <Text style={styles.dateBadge}>
+                    {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+                <Text style={styles.sourceBadge}>{item.source === 'optical' ? 'Optik' : 'Manuel'}</Text>
               </View>
-              <Text style={styles.sourceBadge}>{item.source === 'optical' ? 'Optik' : 'Manuel'}</Text>
-            </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <Ionicons name="school-outline" size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
-              <Text style={styles.resultTitle}>{item.examTitle || 'Sınav Sonucu'}</Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Ionicons name="school-outline" size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={styles.resultTitle} numberOfLines={1}>{item.examTitle || 'Sınav Sonucu'}</Text>
+              </View>
 
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryBadgeSuccess}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success} style={{ marginRight: 4 }} />
-                <Text style={styles.summaryTextSuccess}>{item.correctCount} Doğru</Text>
+              <View style={styles.scoreContainer}>
+                <View style={styles.scoreItem}>
+                  <Text style={[styles.scoreValue, styles.successText]}>{item.correctCount}</Text>
+                  <Text style={styles.scoreLabel}>Doğru</Text>
+                </View>
+                <View style={styles.scoreItem}>
+                  <Text style={[styles.scoreValue, styles.dangerText]}>{item.wrongCount}</Text>
+                  <Text style={styles.scoreLabel}>Yanlış</Text>
+                </View>
+                <View style={styles.scoreItem}>
+                  <View style={styles.netBox}>
+                    <Text style={styles.scoreValue}>{net > 0 ? net.toFixed(2) : '0'}</Text>
+                    <Text style={styles.scoreLabel}>Net</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.summaryBadgeDanger}>
-                <Ionicons name="close-circle" size={16} color={colors.danger} style={{ marginRight: 4 }} />
-                <Text style={styles.summaryTextDanger}>{item.wrongCount} Yanlış</Text>
-              </View>
-            </View>
 
-            {item.wrongTopics.length > 0 ? (
-              <View style={styles.topicContainer}>
-                <Ionicons name="warning-outline" size={16} color={colors.warning} style={{ marginRight: 6, marginTop: 2 }} />
-                <Text style={styles.topicText} numberOfLines={2}>
-                  <Text style={{ fontWeight: '700' }}>Zayıf konular:</Text>{' '}
-                  {item.wrongTopics.map((topic) => `${topic.topic} (${topic.count})`).join(', ')}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        )}
+              {item.wrongTopics.length > 0 ? (
+                <View style={styles.topicContainer}>
+                  <Ionicons name="warning-outline" size={16} color={colors.warning} style={{ marginRight: 6, marginTop: 2 }} />
+                  <Text style={styles.topicText} numberOfLines={2}>
+                    <Text style={{ fontWeight: '700' }}>Zayıf konular:</Text>{' '}
+                    {item.wrongTopics.map((topic) => `${topic.topic} (${topic.count})`).join(', ')}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        }}
       />
     </View>
   );

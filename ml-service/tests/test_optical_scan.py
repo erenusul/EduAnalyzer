@@ -5,8 +5,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cv2
 import numpy as np
+import pytest
 
-from ml_service.api.routes.optical_scan import _detect_answers_from_image
+from ml_service.api.routes.optical_scan import OpticalScanRejected, _detect_answers_from_image
 
 
 def _build_synthetic_optical_form(
@@ -85,6 +86,15 @@ def test_optical_scan_detects_answers_with_markers_and_perspective():
     detected = _detect_answers_from_image(image_bytes, question_count=len(answers))
 
     assert detected == answers
+
+
+def test_black_image_rejected_no_fake_scores():
+    """Siyah/düz görüntüde gürültüden sahte işaret üretilmesin."""
+    black = np.zeros((800, 600), dtype=np.uint8)
+    ok, buf = cv2.imencode(".jpg", black, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+    assert ok
+    with pytest.raises(OpticalScanRejected):
+        _detect_answers_from_image(buf.tobytes(), question_count=20, option_count=5)
 
 
 def test_optical_scan_detects_answers_4_options_turkce():

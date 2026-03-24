@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMyAvailableExams } from '../../services/api/meApi';
@@ -25,21 +25,26 @@ function buildStyles(colors: AppThemeColors) {
       flexDirection: 'row',
       backgroundColor: colors.card,
       marginHorizontal: 16,
-      marginBottom: 16,
-      padding: 16,
-      borderRadius: 16,
+      marginBottom: 20,
+      padding: 20,
+      borderRadius: 20,
       alignItems: 'center',
-      borderWidth: StyleSheet.hairlineWidth,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 2,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
       borderColor: colors.border,
     },
     infoIcon: {
-      marginRight: 12,
+      marginRight: 16,
     },
     description: {
       flex: 1,
-      color: colors.textMuted,
-      lineHeight: 22,
-      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 24,
+      fontSize: 15,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -47,13 +52,13 @@ function buildStyles(colors: AppThemeColors) {
       backgroundColor: colors.errorBackground,
       marginHorizontal: 16,
       marginBottom: 16,
-      padding: 12,
-      borderRadius: 12,
+      padding: 14,
+      borderRadius: 16,
     },
     errorText: {
       color: colors.danger,
-      marginLeft: 8,
-      fontWeight: '600',
+      marginLeft: 10,
+      fontWeight: '700',
       fontSize: 14,
       flex: 1,
     },
@@ -70,78 +75,92 @@ function buildStyles(colors: AppThemeColors) {
     emptyCard: {
       backgroundColor: colors.card,
       borderRadius: 24,
-      padding: 32,
+      padding: 40,
       alignItems: 'center',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.05,
+      shadowRadius: 16,
+      elevation: 2,
     },
     emptyIconCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: 88,
+      height: 88,
+      borderRadius: 44,
       backgroundColor: colors.accentMuted,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 16,
+      marginBottom: 20,
     },
     emptyTitle: {
       color: colors.textPrimary,
-      fontSize: 20,
-      fontWeight: '800',
-      marginBottom: 10,
+      fontSize: 22,
+      fontWeight: '900',
+      marginBottom: 12,
       textAlign: 'center',
+      letterSpacing: -0.5,
     },
     emptyText: {
       color: colors.textMuted,
       textAlign: 'center',
-      lineHeight: 22,
-      fontSize: 15,
+      lineHeight: 24,
+      fontSize: 16,
     },
     examCard: {
       backgroundColor: colors.card,
       borderRadius: 24,
       padding: 20,
-      borderWidth: StyleSheet.hairlineWidth,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 2,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
       borderColor: colors.border,
     },
+    examCardPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.98 }],
+    },
     examIconBox: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
+      width: 48,
+      height: 48,
+      borderRadius: 16,
       backgroundColor: colors.accentMuted,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: 12,
+      marginRight: 16,
     },
     examTitle: {
       flex: 1,
       color: colors.textPrimary,
-      fontSize: 18,
+      fontSize: 19,
       fontWeight: '800',
+      lineHeight: 26,
     },
     examMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 16,
-      marginLeft: 52,
+      marginBottom: 20,
+      marginLeft: 64,
     },
     examMeta: {
       color: colors.textMuted,
       fontSize: 14,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     actionRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: colors.inputBackground,
-      padding: 14,
-      borderRadius: 14,
+      padding: 16,
+      borderRadius: 16,
     },
     examAction: {
       color: colors.accent,
       fontWeight: '800',
-      fontSize: 15,
+      fontSize: 16,
     },
   });
 }
@@ -219,7 +238,10 @@ export function AvailableExamsScreen({ navigation }: AvailableExamsScreenProps) 
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.examCard} onPress={() => navigation.navigate('ScanExam', { exam: item })}>
+          <Pressable
+            style={({ pressed }) => [styles.examCard, pressed && styles.examCardPressed]}
+            onPress={() => navigation.navigate('ScanExam', { exam: item })}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <View style={styles.examIconBox}>
                 <Ionicons name="book-outline" size={20} color={colors.accent} />

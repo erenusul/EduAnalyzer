@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Security.Claims;
 using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Services;
@@ -64,16 +65,24 @@ public class MeController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest("Görsel dosyası gerekli.");
 
-        await using var stream = file.OpenReadStream();
-        var response = await _examService.SubmitScanForStudentAsync(
-            id,
-            studentId.Value,
-            stream,
-            questionCount,
-            optionCount,
-            ct
-        );
-        return Ok(response);
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var response = await _examService.SubmitScanForStudentAsync(
+                id,
+                studentId.Value,
+                stream,
+                questionCount,
+                optionCount,
+                file.ContentType,
+                ct
+            );
+            return Ok(response);
+        }
+        catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("children")]

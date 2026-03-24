@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ResultDetailScreenProps } from '../../app/navigation/types';
 import { useAppTheme } from '../../theme/AppThemeContext';
@@ -13,13 +13,19 @@ function buildStyles(colors: AppThemeColors) {
     },
     content: {
       padding: 16,
-      gap: 16,
+      gap: 20,
+      paddingBottom: 40,
     },
     summaryCard: {
       backgroundColor: colors.card,
       borderRadius: 24,
       padding: 24,
-      borderWidth: StyleSheet.hairlineWidth,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      elevation: 3,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
       borderColor: colors.border,
     },
     dateBadgeContainer: {
@@ -27,10 +33,10 @@ function buildStyles(colors: AppThemeColors) {
       alignItems: 'center',
       backgroundColor: colors.inputBackground,
       paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingVertical: 8,
       borderRadius: 12,
       alignSelf: 'flex-start',
-      marginBottom: 12,
+      marginBottom: 16,
     },
     dateText: {
       color: colors.textMuted,
@@ -39,9 +45,10 @@ function buildStyles(colors: AppThemeColors) {
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: '800',
-      marginBottom: 20,
+      fontSize: 26,
+      fontWeight: '900',
+      marginBottom: 24,
+      letterSpacing: -0.5,
     },
     scoreRow: {
       flexDirection: 'row',
@@ -50,7 +57,7 @@ function buildStyles(colors: AppThemeColors) {
     scoreBox: {
       flex: 1,
       backgroundColor: colors.inputBackground,
-      borderRadius: 16,
+      borderRadius: 20,
       padding: 16,
       alignItems: 'center',
     },
@@ -68,7 +75,7 @@ function buildStyles(colors: AppThemeColors) {
     },
     scoreValue: {
       color: colors.textPrimary,
-      fontSize: 28,
+      fontSize: 32,
       fontWeight: '800',
     },
     success: {
@@ -81,13 +88,16 @@ function buildStyles(colors: AppThemeColors) {
       backgroundColor: colors.card,
       borderRadius: 24,
       padding: 24,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 2,
     },
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 20,
     },
     sectionTitle: {
       color: colors.textPrimary,
@@ -97,36 +107,35 @@ function buildStyles(colors: AppThemeColors) {
     emptyTopicBox: {
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      padding: 32,
       backgroundColor: colors.inputBackground,
-      borderRadius: 16,
-      marginTop: 8,
+      borderRadius: 20,
     },
     emptyText: {
       color: colors.textMuted,
       fontSize: 15,
-      lineHeight: 22,
+      lineHeight: 24,
       textAlign: 'center',
       fontWeight: '500',
     },
     topicRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 14,
+      paddingVertical: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     topicIconBox: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: 44,
+      height: 44,
+      borderRadius: 14,
       backgroundColor: 'rgba(246, 192, 0, 0.12)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: 12,
+      marginRight: 16,
     },
     topicName: {
-      color: colors.textSecondary,
+      color: colors.textPrimary,
       flex: 1,
       paddingRight: 12,
       fontSize: 16,
@@ -134,35 +143,35 @@ function buildStyles(colors: AppThemeColors) {
     },
     topicCountBadge: {
       backgroundColor: colors.errorBackground,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 14,
     },
     topicCount: {
       color: colors.danger,
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 15,
     },
     wrongQRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      paddingVertical: 12,
+      paddingVertical: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     wrongQIndex: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
+      width: 36,
+      height: 36,
+      borderRadius: 10,
       backgroundColor: colors.accentMuted,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: 12,
+      marginRight: 16,
     },
     wrongQIndexText: {
       color: colors.accent,
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 15,
     },
     wrongQBody: {
       flex: 1,
@@ -170,12 +179,13 @@ function buildStyles(colors: AppThemeColors) {
     wrongQTopic: {
       color: colors.textPrimary,
       fontWeight: '700',
-      fontSize: 15,
+      fontSize: 16,
+      marginBottom: 4,
     },
     wrongQMeta: {
       color: colors.textMuted,
-      fontSize: 13,
-      marginTop: 4,
+      fontSize: 14,
+      fontWeight: '500',
     },
   });
 }

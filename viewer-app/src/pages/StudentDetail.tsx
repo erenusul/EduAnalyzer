@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Card, Form, Button, Badge, Row, Col, Table } from 'react-bootstrap';
+import { Card, Form, Button, Badge, Row, Col, Table, Modal, Alert } from 'react-bootstrap';
 import {
   LineChart,
   Line,
@@ -18,6 +18,7 @@ import {
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { useToast } from '../contexts/ToastContext';
 import type { ApiError } from '../services/apiClient';
+import type { ExamResult } from '../types/teacher';
 
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,9 +30,17 @@ export function StudentDetail() {
     assignStudentToClass,
     exams,
     getResultsByStudent,
+    updateExamResult,
+    deleteExamResult,
   } = useTeacherData();
   const { showToast } = useToast();
   const [mobilePassword, setMobilePassword] = useState('');
+  const [editTarget, setEditTarget] = useState<ExamResult | null>(null);
+  const [editCorrect, setEditCorrect] = useState(0);
+  const [editWrong, setEditWrong] = useState(0);
+  const [editKeepTopics, setEditKeepTopics] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [resultActionLoading, setResultActionLoading] = useState(false);
 
   const student = id ? getStudentById(id) : null;
 
@@ -45,15 +54,18 @@ export function StudentDetail() {
     for (const result of studentResults) {
       const exam = exams.find((e) => e.id === result.examId);
       const week = exam?.weekLabel ?? '';
-      for (const wt of result.wrongTopics) {
-        const existing = map.get(wt.topic);
+      for (const wt of result.wrongTopics ?? []) {
+        const label =
+          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
+        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+        const existing = map.get(label);
         if (existing) {
-          existing.count += wt.count;
+          existing.count += n;
           if (week && (!existing.lastExamWeek || week > existing.lastExamWeek)) {
             existing.lastExamWeek = week;
           }
         } else {
-          map.set(wt.topic, { count: wt.count, lastExamWeek: week });
+          map.set(label, { count: n, lastExamWeek: week });
         }
       }
     }
@@ -297,21 +309,46 @@ export function StudentDetail() {
                     return (
                       <div
                         key={r.id}
-                        className="d-flex justify-content-between align-items-center p-2 rounded bg-light"
+                        className="d-flex justify-content-between align-items-center gap-2 flex-wrap p-2 rounded bg-light"
                       >
-                        <div>
+                        <div className="flex-grow-1 min-w-0">
                           <div className="fw-medium small">{exam?.title ?? 'Sınav'}</div>
                           <div className="text-muted small">
                             {exam?.weekLabel ?? ''} · {r.correctCount} doğru / {r.wrongCount} yanlış
                           </div>
                         </div>
-                        <Badge
-                          bg={
-                            r.wrongCount > 5 ? 'danger' : r.wrongCount > 2 ? 'warning' : 'success'
-                          }
-                        >
-                          {r.correctCount + r.wrongCount} soru
-                        </Badge>
+                        <div className="d-flex align-items-center gap-1 flex-shrink-0">
+                          <Badge
+                            bg={
+                              r.wrongCount > 5 ? 'danger' : r.wrongCount > 2 ? 'warning' : 'success'
+                            }
+                          >
+                            {r.correctCount + r.wrongCount} soru
+                          </Badge>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="px-2"
+                            aria-label={`${exam?.title ?? 'Sınav'} sonucunu düzenle`}
+                            onClick={() => {
+                              setEditTarget(r);
+                              setEditCorrect(r.correctCount);
+                              setEditWrong(r.wrongCount);
+                              setEditKeepTopics(false);
+                            }}
+                          >
+                            <i className="bi bi-pencil" aria-hidden />
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            className="px-2"
+                            aria-label={`${exam?.title ?? 'Sınav'} sonucunu sil`}
+                            onClick={() => setDeleteTargetId(r.id)}
+                          >
+                            <i className="bi bi-trash" aria-hidden />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
@@ -364,8 +401,8 @@ export function StudentDetail() {
                 </h6>
               </Card.Header>
               <Card.Body>
-                <div style={{ height: 250 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="w-100" style={{ minWidth: 0 }}>
+                  <ResponsiveContainer width="100%" height={250} debounce={32}>
                     <LineChart data={weeklyChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="week" />
@@ -394,6 +431,143 @@ export function StudentDetail() {
           </Col>
         )}
       </Row>
+
+      <Modal
+        show={editTarget != null}
+        onHide={() => !resultActionLoading && setEditTarget(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Sınav sonucunu düzenle</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editTarget && (
+            <>
+              <p className="text-muted small mb-3">
+                {exams.find((e) => e.id === editTarget.examId)?.title ?? 'Sınav'}
+              </p>
+              <Alert variant="light" className="small border">
+                Hatalı optik okuma gibi durumlarda doğru/yanlış sayılarını güncelleyin. Konu özeti
+                kutusu kapalıyken mevcut konu dağılımı temizlenir; öğrenci gerekirse yeniden tarama
+                yapabilir.
+              </Alert>
+              <Form.Group className="mb-3">
+                <Form.Label htmlFor="edit-correct-count">Doğru sayısı</Form.Label>
+                <Form.Control
+                  id="edit-correct-count"
+                  type="number"
+                  min={0}
+                  value={editCorrect}
+                  onChange={(e) =>
+                    setEditCorrect(Math.max(0, Number.parseInt(e.target.value, 10) || 0))
+                  }
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label htmlFor="edit-wrong-count">Yanlış sayısı</Form.Label>
+                <Form.Control
+                  id="edit-wrong-count"
+                  type="number"
+                  min={0}
+                  value={editWrong}
+                  onChange={(e) =>
+                    setEditWrong(Math.max(0, Number.parseInt(e.target.value, 10) || 0))
+                  }
+                />
+              </Form.Group>
+              <Form.Check
+                type="checkbox"
+                id="keep-wrong-topics"
+                label="Mevcut konu özetini koru (yalnızca sayıları düzeltiyorsanız işaretleyin)"
+                checked={editKeepTopics}
+                onChange={(e) => setEditKeepTopics(e.target.checked)}
+              />
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setEditTarget(null)}
+            disabled={resultActionLoading}
+          >
+            Vazgeç
+          </Button>
+          <Button
+            variant="primary"
+            disabled={resultActionLoading || !editTarget}
+            onClick={async () => {
+              if (!editTarget) return;
+              setResultActionLoading(true);
+              try {
+                await updateExamResult(editTarget.id, {
+                  correctCount: editCorrect,
+                  wrongCount: editWrong,
+                  wrongTopics: editKeepTopics ? editTarget.wrongTopics : [],
+                });
+                showToast('Sınav sonucu güncellendi.');
+                setEditTarget(null);
+              } catch (err) {
+                const msg =
+                  err && typeof err === 'object' && 'message' in err
+                    ? String((err as ApiError).message)
+                    : 'Kaydedilemedi.';
+                showToast(msg, 'danger');
+              } finally {
+                setResultActionLoading(false);
+              }
+            }}
+          >
+            {resultActionLoading ? 'Kaydediliyor…' : 'Kaydet'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={deleteTargetId != null}
+        onHide={() => !resultActionLoading && setDeleteTargetId(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Sınav sonucunu sil</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Bu sonuç kalıcı olarak silinir. Öğrenci aynı sınav için tekrar optik gönderebilir. Emin
+          misiniz?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setDeleteTargetId(null)}
+            disabled={resultActionLoading}
+          >
+            Vazgeç
+          </Button>
+          <Button
+            variant="danger"
+            disabled={resultActionLoading}
+            onClick={async () => {
+              if (!deleteTargetId) return;
+              setResultActionLoading(true);
+              try {
+                await deleteExamResult(deleteTargetId);
+                showToast('Sınav sonucu silindi.');
+                setDeleteTargetId(null);
+              } catch (err) {
+                const msg =
+                  err && typeof err === 'object' && 'message' in err
+                    ? String((err as ApiError).message)
+                    : 'Silinemedi.';
+                showToast(msg, 'danger');
+              } finally {
+                setResultActionLoading(false);
+              }
+            }}
+          >
+            {resultActionLoading ? 'Siliniyor…' : 'Sil'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

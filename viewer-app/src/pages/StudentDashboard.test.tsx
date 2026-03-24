@@ -3,11 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { StudentDashboard } from './StudentDashboard';
 
-vi.mock('../services/backendApi', () => ({
-  meApi: {
-    getMyResults: vi.fn(),
-  },
-}));
+vi.mock('../services/backendApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/backendApi')>();
+  return {
+    ...actual,
+    meApi: {
+      ...actual.meApi,
+      getMyResults: vi.fn(),
+    },
+  };
+});
 
 const { meApi } = await import('../services/backendApi');
 

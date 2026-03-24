@@ -4,7 +4,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import type { Student, NewStudentPayload, Class, AnalysisRecord, Exam, ExamResult } from '../types/teacher';
+import type {
+  Student,
+  NewStudentPayload,
+  Class,
+  AnalysisRecord,
+  Exam,
+  ExamResult,
+  WrongTopic,
+} from '../types/teacher';
 import { studentsApi, classesApi, analysesApi, examsApi, mappers } from '../services/backendApi';
 import { analyzePDF } from '../services/predictionApi';
 
@@ -47,8 +55,9 @@ interface TeacherDataContextValue {
   addExamResult: (result: Omit<ExamResult, 'id' | 'createdAt'>) => Promise<ExamResult>;
   updateExamResult: (
     id: string,
-    updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>
-  ) => Promise<void>;
+    payload: { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
+  ) => Promise<ExamResult>;
+  deleteExamResult: (id: string) => Promise<void>;
   getStudentsByClass: (classId: string) => Student[];
   getClassById: (classId: string) => Class | undefined;
   getStudentById: (studentId: string) => Student | undefined;
@@ -305,11 +314,22 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
   );
 
   const updateExamResult = useCallback(
-    async (_id: string, _updates: Partial<Omit<ExamResult, 'id' | 'createdAt'>>) => {
+    async (
+      id: string,
+      payload: { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
+    ) => {
+      const res = await examsApi.updateResult(id, payload);
+      const result = mappers.toExamResult(res);
       await refresh();
+      return result;
     },
     [refresh]
   );
+
+  const deleteExamResult = useCallback(async (id: string) => {
+    await examsApi.deleteResult(id);
+    await refresh();
+  }, [refresh]);
 
   const getStudentsByClass = useCallback(
     (classId: string) => students.filter((s) => s.classId === classId),
@@ -348,6 +368,7 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     getResultsByStudent,
     addExamResult,
     updateExamResult,
+    deleteExamResult,
     getStudentsByClass,
     getClassById,
     getStudentById,

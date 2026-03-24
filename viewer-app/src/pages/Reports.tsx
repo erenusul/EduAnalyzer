@@ -46,8 +46,12 @@ export function Reports() {
   const topicChartData = useMemo(() => {
     const topicMap = new Map<string, number>();
     for (const r of examResults) {
-      for (const wt of r.wrongTopics) {
-        topicMap.set(wt.topic, (topicMap.get(wt.topic) ?? 0) + wt.count);
+      const topics = r.wrongTopics ?? [];
+      for (const wt of topics) {
+        const label =
+          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
+        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+        topicMap.set(label, (topicMap.get(label) ?? 0) + n);
       }
     }
     return Array.from(topicMap.entries())
@@ -287,11 +291,12 @@ export function Reports() {
           </Card.Header>
           <Card.Body>
             <div
-              style={{ height: 320 }}
+              className="w-100"
+              style={{ minWidth: 0 }}
               role="img"
               aria-label="Konu bazlı yanlış dağılımı grafiği"
             >
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={320} debounce={32}>
                 <BarChart data={topicChartData} layout="vertical" margin={{ left: 20, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
@@ -338,11 +343,12 @@ export function Reports() {
           </Card.Header>
           <Card.Body>
             <div
-              style={{ height: 250 }}
+              className="w-100"
+              style={{ minWidth: 0 }}
               role="img"
               aria-label="Haftalık yanlış trend grafiği"
             >
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={250} debounce={32}>
                 <LineChart data={weeklyTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" />

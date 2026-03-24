@@ -49,3 +49,10 @@ public record CreateExamResultRequest(
     IReadOnlyList<WrongTopicDto> WrongTopics,
     string? Source = "manual"
 );
+
+/// <summary>Öğretmenin manuel düzeltmesi (hatalı optik okuma vb.).</summary>
+public record UpdateExamResultRequest(
+    int CorrectCount,
+    int WrongCount,
+    IReadOnlyList<WrongTopicDto>? WrongTopics = null
+);

@@ -40,6 +40,10 @@ function mockTeacherData(student: unknown = null) {
     getExamByAnalysisId: () => undefined,
     getResultsByExam: () => [],
     getStudentsByClass: () => [],
+    addExamResult: async () => ({} as never),
+    updateExamResult: async () => ({} as never),
+    deleteExamResult: async () => {},
+    updateAnalysis: async () => {},
   } as never);
 }
 

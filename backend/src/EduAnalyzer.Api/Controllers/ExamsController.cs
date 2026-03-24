@@ -84,7 +84,7 @@ public class ExamsController : ControllerBase
         var count = questionCount ?? exam.AnswerKey?.Count ?? 20;
 
         await using var stream = file.OpenReadStream();
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(stream, count, optionCount, ct);
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(stream, count, optionCount, file.ContentType, ct);
 
         var request = new ScanExamRequest(studentId, ocrResult.Answers);
         var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
@@ -96,5 +96,45 @@ public class ExamsController : ControllerBase
     {
         var dto = await _service.AddExamResultAsync(TeacherId, request, ct);
         return CreatedAtAction(nameof(GetById), new { id = request.ExamId }, dto);
+    }
+
+    [HttpPut("results/{id:guid}")]
+    public async Task<ActionResult<ExamResultDto>> UpdateResult(Guid id, [FromBody] UpdateExamResultRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var dto = await _service.UpdateExamResultAsync(id, TeacherId, request, ct);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("results/{id:guid}")]
+    public async Task<IActionResult> DeleteResult(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            await _service.DeleteExamResultAsync(id, TeacherId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
     }
 }

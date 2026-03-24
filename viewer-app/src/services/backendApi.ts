@@ -69,7 +69,7 @@ export interface BackendExamResult {
   examTitle?: string | null;
   correctCount: number;
   wrongCount: number;
-  wrongTopics: { topic: string; count: number }[];
+  wrongTopics?: { topic?: string | null; count?: number | null }[] | null;
   wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
   source?: string | null;
   createdAt: string;
@@ -165,6 +165,22 @@ function toAnalysis(d: BackendAnalysis): AnalysisRecord {
   };
 }
 
+/** API / eski kayıtlar null veya boş konu döndürebilir; UI .length ile çökmemeli. */
+function normalizeWrongTopics(
+  raw: { topic?: string | null; count?: number | null }[] | null | undefined
+): { topic: string; count: number }[] {
+  if (raw == null || !Array.isArray(raw)) {
+    return [];
+  }
+  return raw.map((wt) => {
+    const t = wt?.topic;
+    const topic = typeof t === 'string' && t.trim() !== '' ? t.trim() : 'Bilinmiyor';
+    const c = wt?.count;
+    const count = typeof c === 'number' && Number.isFinite(c) && c >= 0 ? Math.trunc(c) : 0;
+    return { topic, count };
+  });
+}
+
 function toExam(d: BackendExam): Exam {
   return {
     id: d.id,
@@ -186,7 +202,7 @@ function toExamResult(d: BackendExamResult): ExamResult {
     examId: d.examId,
     correctCount: d.correctCount,
     wrongCount: d.wrongCount,
-    wrongTopics: d.wrongTopics,
+    wrongTopics: normalizeWrongTopics(d.wrongTopics),
     wrongQuestions: d.wrongQuestions,
     createdAt: d.createdAt,
   };
@@ -340,6 +356,16 @@ export const examsApi = {
       wrongTopics: data.wrongTopics,
       source: 'manual',
     }),
+  updateResult: (
+    id: string,
+    payload: { correctCount: number; wrongCount: number; wrongTopics?: { topic: string; count: number }[] }
+  ) =>
+    apiPut<BackendExamResult>(`/api/exams/results/${id}`, {
+      correctCount: payload.correctCount,
+      wrongCount: payload.wrongCount,
+      wrongTopics: payload.wrongTopics ?? [],
+    }),
+  deleteResult: (id: string) => apiDelete(`/api/exams/results/${id}`),
 };
 
 export const mappers = {

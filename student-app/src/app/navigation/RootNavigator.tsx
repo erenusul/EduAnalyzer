@@ -38,10 +38,16 @@ function ResultsNavigator() {
   return (
     <ResultsStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.headerBackground },
-        headerTitleStyle: { color: colors.textPrimary, fontWeight: '800' },
+        headerStyle: { 
+          backgroundColor: colors.headerBackground,
+        },
+        headerTitleStyle: { 
+          color: colors.textPrimary, 
+          fontWeight: '900',
+          fontSize: 18,
+        },
         headerTintColor: colors.accent,
-        headerShadowVisible: !isDark,
+        headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
     >
@@ -57,10 +63,16 @@ function ScanNavigator() {
   return (
     <ScanStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.headerBackground },
-        headerTitleStyle: { color: colors.textPrimary, fontWeight: '800' },
+        headerStyle: { 
+          backgroundColor: colors.headerBackground,
+        },
+        headerTitleStyle: { 
+          color: colors.textPrimary, 
+          fontWeight: '900',
+          fontSize: 18,
+        },
         headerTintColor: colors.accent,
-        headerShadowVisible: !isDark,
+        headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
     >
@@ -75,10 +87,16 @@ function ProfileNavigator() {
   return (
     <ProfileStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.headerBackground },
-        headerTitleStyle: { color: colors.textPrimary, fontWeight: '800' },
+        headerStyle: { 
+          backgroundColor: colors.headerBackground,
+        },
+        headerTitleStyle: { 
+          color: colors.textPrimary, 
+          fontWeight: '900',
+          fontSize: 18,
+        },
         headerTintColor: colors.accent,
-        headerShadowVisible: !isDark,
+        headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
     >
@@ -200,7 +218,7 @@ export function RootNavigator() {
             contentStyle: { backgroundColor: colors.background },
           }}
         >
-          <AuthStack.Screen name="Login" component={LoginScreen} options={{ title: 'Öğrenci Girişi' }} />
+          <AuthStack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         </AuthStack.Navigator>
       )}
     </NavigationContainer>

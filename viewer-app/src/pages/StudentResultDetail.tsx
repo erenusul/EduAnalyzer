@@ -5,21 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, Button, Table, Spinner, Alert } from 'react-bootstrap';
-import { meApi } from '../services/backendApi';
+import { meApi, mappers } from '../services/backendApi';
 import type { ExamResult } from '../types/teacher';
-import type { BackendExamResult } from '../services/backendApi';
-
-function toExamResult(r: BackendExamResult): ExamResult {
-  return {
-    id: r.id,
-    studentId: r.studentId,
-    examId: r.examId,
-    correctCount: r.correctCount,
-    wrongCount: r.wrongCount,
-    wrongTopics: r.wrongTopics ?? [],
-    createdAt: r.createdAt,
-  };
-}
 
 export function StudentResultDetail() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +21,7 @@ export function StudentResultDetail() {
       .then((data) => {
         if (!cancelled) {
           const found = data.find((r) => r.id === id);
-          setResult(found ? toExamResult(found) : null);
+          setResult(found ? mappers.toExamResult(found) : null);
         }
       })
       .catch((err) => {

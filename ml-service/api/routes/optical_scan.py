@@ -19,6 +19,47 @@ OPTIONS_5 = ["A", "B", "C", "D", "E"]
 OPTIONS_4 = ["A", "B", "C", "D"]
 
 
+class OpticalScanRejected(Exception):
+    """Görüntü optik okumaya uygun değil (boş, çok karanlık, tek renk vb.)."""
+
+
+def _validate_optical_image_quality(gray) -> None:
+    """
+    Siyah ekran / boş duvar gibi girdilerde adaptif eşik gürültü üretip sahte işaretler çıkmasını önler.
+    """
+    import numpy as np
+
+    if gray is None or gray.size == 0:
+        raise OpticalScanRejected("Görüntü okunamadı.")
+
+    mean = float(np.mean(gray))
+    std = float(np.std(gray))
+    # Tek renk veya neredeyse düz görüntü (siyah fotoğraf, düz yüzey)
+    if std < 14.0:
+        raise OpticalScanRejected(
+            "Optik form algılanamadı. Formu net gösterin, aydınlık ortamda tekrar deneyin."
+        )
+    # Çok karanlık ve düşük kontrast (kapaklı lens, kapalı kamera)
+    if mean < 22.0 and std < 45.0:
+        raise OpticalScanRejected(
+            "Görüntü çok karanlık veya belirsiz. Işığı artırıp formu kadraja alarak tekrar çekin."
+        )
+
+
+def _is_probably_image(content_type: str | None, body: bytes) -> bool:
+    """İstemci veya proxy Content-Type iletmezse (ör. octet-stream) imzaya bak."""
+    if body and len(body) >= 3 and body[:3] == b"\xff\xd8\xff":
+        return True
+    if body and len(body) >= 8 and body[:8] == b"\x89PNG\r\n\x1a\n":
+        return True
+    if body and len(body) >= 12 and body[:4] == b"RIFF" and body[8:12] == b"WEBP":
+        return True
+    if not content_type:
+        return False
+    main = content_type.split(";", 1)[0].strip().lower()
+    return main.startswith("image/")
+
+
 def _get_options(option_count: int) -> List[str]:
     if option_count == 4:
         return OPTIONS_4
@@ -250,6 +291,8 @@ def _detect_answers_from_image(
         if img is None:
             return []
 
+        _validate_optical_image_quality(img)
+
         binary = _prepare_binary(img)
         markers = _find_corner_markers(binary)
         working_image = _warp_from_markers(img, markers) if markers else img
@@ -267,6 +310,8 @@ def _detect_answers_from_image(
             },
         )
         return answers
+    except OpticalScanRejected:
+        raise
     except Exception as e:
         logger.error(f"Optik form işleme hatası: {e}", exc_info=True)
         return []
@@ -284,15 +329,18 @@ async def optical_scan(
     option_count: şık sayısı 4 veya 5 (varsayılan 5, Türkçe için 4)
     Döner: { "answers": ["A","B","C",...], "questionCount": 20 }
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(400, "Sadece görsel dosyalar kabul edilir")
-
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "Dosya boyutu 10MB'dan küçük olmalı")
 
+    if not _is_probably_image(file.content_type, content):
+        raise HTTPException(400, "Sadece görsel dosyalar kabul edilir")
+
     option_count = max(4, min(5, option_count))
-    answers = _detect_answers_from_image(
-        content, question_count=question_count, option_count=option_count
-    )
+    try:
+        answers = _detect_answers_from_image(
+            content, question_count=question_count, option_count=option_count
+        )
+    except OpticalScanRejected as exc:
+        raise HTTPException(400, str(exc)) from exc
     return {"answers": answers, "questionCount": len(answers)}

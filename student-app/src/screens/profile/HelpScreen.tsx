@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { HelpScreenProps } from '../../app/navigation/types';
 import { useAppTheme } from '../../theme/AppThemeContext';
@@ -13,39 +13,49 @@ function buildStyles(colors: AppThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 32,
-      gap: 16,
+      paddingBottom: 40,
+      gap: 20,
     },
     card: {
       backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 20,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderRadius: 24,
+      padding: 24,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 2,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
       borderColor: colors.border,
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '800',
+      fontSize: 20,
+      fontWeight: '900',
       marginBottom: 12,
+      letterSpacing: -0.5,
     },
     paragraph: {
       color: colors.textSecondary,
-      lineHeight: 22,
-      fontSize: 15,
+      lineHeight: 24,
+      fontSize: 16,
       marginBottom: 12,
     },
     bulletRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      marginBottom: 10,
+      marginBottom: 12,
+      backgroundColor: colors.inputBackground,
+      padding: 12,
+      borderRadius: 16,
     },
     bulletText: {
       flex: 1,
       color: colors.textSecondary,
       lineHeight: 22,
       fontSize: 15,
-      marginLeft: 10,
+      marginLeft: 12,
+      fontWeight: '500',
     },
   });
 }

@@ -15,21 +15,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { meApi } from '../services/backendApi';
+import { meApi, mappers } from '../services/backendApi';
 import type { ExamResult } from '../types/teacher';
-import type { BackendExamResult } from '../services/backendApi';
-
-function toExamResult(r: BackendExamResult): ExamResult {
-  return {
-    id: r.id,
-    studentId: r.studentId,
-    examId: r.examId,
-    correctCount: r.correctCount,
-    wrongCount: r.wrongCount,
-    wrongTopics: r.wrongTopics ?? [],
-    createdAt: r.createdAt,
-  };
-}
 
 export function StudentDashboard() {
   const [results, setResults] = useState<ExamResult[]>([]);
@@ -42,7 +29,7 @@ export function StudentDashboard() {
       .getMyResults()
       .then((data) => {
         if (!cancelled) {
-          setResults(data.map(toExamResult));
+          setResults(data.map(mappers.toExamResult));
         }
       })
       .catch((err) => {
@@ -107,11 +94,12 @@ export function StudentDashboard() {
               </Card.Header>
               <Card.Body>
                 <div
-                  style={{ height: 220 }}
+                  className="w-100"
+                  style={{ minWidth: 0 }}
                   role="img"
                   aria-label="Haftalık sınav sonuçları grafiği"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={220} debounce={32}>
                     <LineChart data={weeklyChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="week" />

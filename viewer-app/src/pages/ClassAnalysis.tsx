@@ -32,14 +32,17 @@ export function ClassAnalysis() {
     const topicMap = new Map<string, { count: number; studentIds: Set<string> }>();
 
     for (const result of results) {
-      for (const wt of result.wrongTopics) {
-        const existing = topicMap.get(wt.topic);
+      for (const wt of result.wrongTopics ?? []) {
+        const label =
+          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
+        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+        const existing = topicMap.get(label);
         if (existing) {
-          existing.count += wt.count;
+          existing.count += n;
           existing.studentIds.add(result.studentId);
         } else {
-          topicMap.set(wt.topic, {
-            count: wt.count,
+          topicMap.set(label, {
+            count: n,
             studentIds: new Set([result.studentId]),
           });
         }
@@ -66,11 +69,14 @@ export function ClassAnalysis() {
 
   const chartData = useMemo(
     () =>
-      topicStats.slice(0, 10).map((t) => ({
-        name: t.topic.length > 20 ? t.topic.substring(0, 20) + '...' : t.topic,
-        fullName: t.topic,
-        yanlis: t.totalWrong,
-      })),
+      topicStats.slice(0, 10).map((t) => {
+        const topic = t.topic || 'Bilinmiyor';
+        return {
+          name: topic.length > 20 ? topic.substring(0, 20) + '...' : topic,
+          fullName: topic,
+          yanlis: t.totalWrong,
+        };
+      }),
     [topicStats]
   );
 
@@ -162,11 +168,12 @@ export function ClassAnalysis() {
             </Card.Header>
             <Card.Body>
               <div
-                style={{ height: 300 }}
+                className="w-100"
+                style={{ minWidth: 0 }}
                 role="img"
                 aria-label="Sınıf konu bazlı yanlış dağılımı grafiği"
               >
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={300} debounce={32}>
                   <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
