@@ -112,4 +112,74 @@ public class ExamServiceTests
         Assert.Equal(8, result[0].Results[0].CorrectCount);
         Assert.Equal(2, result[0].Results[0].WrongCount);
     }
+
+    [Fact]
+    public async Task DeleteExamAsync_DeletesResultsThenExam_WhenTeacherOwnsExam()
+    {
+        var teacherId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = Guid.NewGuid(),
+            TeacherId = teacherId,
+            Title = "Silinecek",
+            WeekLabel = "2026-W01",
+            Date = DateTime.UtcNow,
+            Status = ExamStatus.Ready,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(exam);
+        examRepo.Setup(x => x.DeleteAsync(examId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.DeleteByExamIdAsync(examId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var studentRepo = new Mock<IStudentRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await service.DeleteExamAsync(examId, teacherId);
+
+        resultRepo.Verify(x => x.DeleteByExamIdAsync(examId, It.IsAny<CancellationToken>()), Times.Once);
+        examRepo.Verify(x => x.DeleteAsync(examId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteExamAsync_ThrowsUnauthorized_WhenTeacherMismatch()
+    {
+        var examId = Guid.NewGuid();
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = Guid.NewGuid(),
+            TeacherId = Guid.NewGuid(),
+            Title = "X",
+            WeekLabel = "W1",
+            Date = DateTime.UtcNow,
+            Status = ExamStatus.Ready,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(exam);
+
+        var resultRepo = new Mock<IExamResultRepository>();
+        var studentRepo = new Mock<IStudentRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.DeleteExamAsync(examId, Guid.NewGuid()));
+
+        resultRepo.Verify(x => x.DeleteByExamIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

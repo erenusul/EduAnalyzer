@@ -32,6 +32,7 @@ public interface IExamService
     Task<IReadOnlyList<StudentWithResultsDto>> GetStudentsWithResultsForParentAsync(Guid parentId, CancellationToken ct = default);
     Task DeleteExamResultAsync(Guid resultId, Guid teacherId, CancellationToken ct = default);
     Task<ExamResultDto> UpdateExamResultAsync(Guid resultId, Guid teacherId, UpdateExamResultRequest request, CancellationToken ct = default);
+    Task DeleteExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
 }
 
 public class ExamService : IExamService
@@ -138,6 +139,20 @@ public class ExamService : IExamService
         var deleted = await _resultRepo.DeleteAsync(resultId, ct);
         if (!deleted)
             throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+    }
+
+    public async Task DeleteExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default)
+    {
+        var exam = await _examRepo.GetByIdAsync(examId, ct);
+        if (exam == null)
+            throw new KeyNotFoundException("Sınav bulunamadı.");
+        if (exam.TeacherId != teacherId)
+            throw new UnauthorizedAccessException("Bu sınavı silme yetkiniz yok.");
+
+        await _resultRepo.DeleteByExamIdAsync(examId, ct);
+        var deleted = await _examRepo.DeleteAsync(examId, ct);
+        if (!deleted)
+            throw new KeyNotFoundException("Sınav silinemedi.");
     }
 
     public async Task<ExamResultDto> UpdateExamResultAsync(
@@ -273,11 +288,24 @@ public class ExamService : IExamService
         {
             var correctAnswer = i < answerKey.Count ? (answerKey[i]?.Trim().ToUpperInvariant() ?? "") : "";
             var studentAnswer = i < request.StudentAnswers.Count ? (request.StudentAnswers[i]?.Trim().ToUpperInvariant() ?? "") : "";
-
-            if (string.IsNullOrEmpty(correctAnswer)) continue;
-
             var studentChar = studentAnswer.Length > 0 ? studentAnswer[0].ToString() : "";
-            var isCorrect = correctAnswer.Length > 0 && string.Equals(correctAnswer, studentChar, StringComparison.OrdinalIgnoreCase);
+
+            if (string.IsNullOrEmpty(correctAnswer))
+            {
+                // Anahtarda bu soru boşsa önceden tamamen atlanıyordu; 19. soru gibi kayıplara yol açıyordu.
+                if (string.IsNullOrEmpty(studentChar))
+                    continue;
+                wrongCount++;
+                var rawTopicEmptyKey = i < results.Count && results[i].Topic.Count > 0
+                    ? results[i].Topic[0].Label
+                    : null;
+                var topicEmptyKey = string.IsNullOrWhiteSpace(rawTopicEmptyKey) ? "Bilinmiyor" : rawTopicEmptyKey!;
+                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topicEmptyKey));
+                topicCounts[topicEmptyKey] = topicCounts.GetValueOrDefault(topicEmptyKey, 0) + 1;
+                continue;
+            }
+
+            var isCorrect = string.Equals(correctAnswer, studentChar, StringComparison.OrdinalIgnoreCase);
 
             if (isCorrect)
                 correctCount++;

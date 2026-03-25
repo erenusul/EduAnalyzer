@@ -366,6 +366,7 @@ export const examsApi = {
       wrongTopics: payload.wrongTopics ?? [],
     }),
   deleteResult: (id: string) => apiDelete(`/api/exams/results/${id}`),
+  delete: (id: string) => apiDelete(`/api/exams/${id}`),
 };
 
 export const mappers = {

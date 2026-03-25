@@ -40,6 +40,7 @@ public interface IExamRepository
     Task<IReadOnlyList<Exam>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default);
     Task<Exam> AddAsync(Exam entity, CancellationToken ct = default);
     Task UpdateAsync(Exam entity, CancellationToken ct = default);
+    Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
 public interface IExamResultRepository
@@ -51,6 +52,7 @@ public interface IExamResultRepository
     Task<ExamResult> AddAsync(ExamResult entity, CancellationToken ct = default);
     Task UpdateAsync(ExamResult entity, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
+    Task<int> DeleteByExamIdAsync(Guid examId, CancellationToken ct = default);
 }
 
 public interface IUserRepository

@@ -58,6 +58,7 @@ interface TeacherDataContextValue {
     payload: { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
   ) => Promise<ExamResult>;
   deleteExamResult: (id: string) => Promise<void>;
+  deleteExam: (id: string) => Promise<void>;
   getStudentsByClass: (classId: string) => Student[];
   getClassById: (classId: string) => Class | undefined;
   getStudentById: (studentId: string) => Student | undefined;
@@ -331,6 +332,14 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const deleteExam = useCallback(
+    async (id: string) => {
+      await examsApi.delete(id);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const getStudentsByClass = useCallback(
     (classId: string) => students.filter((s) => s.classId === classId),
     [students]
@@ -369,6 +378,7 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     addExamResult,
     updateExamResult,
     deleteExamResult,
+    deleteExam,
     getStudentsByClass,
     getClassById,
     getStudentById,

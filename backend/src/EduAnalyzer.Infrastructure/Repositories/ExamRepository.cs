@@ -41,4 +41,10 @@ public class ExamRepository : IExamRepository
         _context.Exams.Update(entity);
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var deleted = await _context.Exams.Where(e => e.Id == id).ExecuteDeleteAsync(ct);
+        return deleted > 0;
+    }
 }

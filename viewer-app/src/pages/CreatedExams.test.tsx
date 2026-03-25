@@ -42,6 +42,7 @@ function mockTeacherData(exams: unknown[] = [], analyses: unknown[] = []) {
     addExamResult: async () => ({} as never),
     updateExamResult: async () => ({} as never),
     deleteExamResult: async () => {},
+    deleteExam: async () => {},
     updateAnalysis: async () => {},
   } as never);
 }

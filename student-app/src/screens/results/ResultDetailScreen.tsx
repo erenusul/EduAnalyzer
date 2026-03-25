@@ -193,7 +193,10 @@ function buildStyles(colors: AppThemeColors) {
 export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
   const { result } = route.params;
   const total = result.correctCount + result.wrongCount;
-  const wrongQuestions = result.wrongQuestions ?? [];
+  const wrongQuestions = useMemo(() => {
+    const list = result.wrongQuestions ?? [];
+    return [...list].sort((a, b) => a.questionIndex - b.questionIndex);
+  }, [result.wrongQuestions]);
   const { colors } = useAppTheme();
   const styles = useMemo(() => buildStyles(colors), [colors]);
 
@@ -263,8 +266,8 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
             <Text style={styles.emptyText}>Harika! Bu sınav için zayıf konu kaydınız bulunmuyor.</Text>
           </View>
         ) : (
-          result.wrongTopics.map((topic) => (
-            <View key={`${topic.topic}-${topic.count}`} style={styles.topicRow}>
+          result.wrongTopics.map((topic, index) => (
+            <View key={`${result.id}-wt-${index}`} style={styles.topicRow}>
               <View style={styles.topicIconBox}>
                 <Ionicons name="warning-outline" size={20} color={colors.warning} />
               </View>

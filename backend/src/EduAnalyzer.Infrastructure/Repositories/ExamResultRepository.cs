@@ -57,4 +57,7 @@ public class ExamResultRepository : IExamResultRepository
         var deleted = await _context.ExamResults.Where(r => r.Id == id).ExecuteDeleteAsync(ct);
         return deleted > 0;
     }
+
+    public async Task<int> DeleteByExamIdAsync(Guid examId, CancellationToken ct = default) =>
+        await _context.ExamResults.Where(r => r.ExamId == examId).ExecuteDeleteAsync(ct);
 }

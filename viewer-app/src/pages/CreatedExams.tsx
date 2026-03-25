@@ -11,13 +11,16 @@ import { parseUtcToLocal } from '../utils/dateUtils';
 import type { Exam } from '../types/teacher';
 
 export function CreatedExams() {
-  const { exams, analyses, students, refresh, loading, addExamResult } = useTeacherData();
+  const { exams, analyses, students, refresh, loading, addExamResult, deleteExam, getResultsByExam } =
+    useTeacherData();
   const { showToast } = useToast();
   const [addModalExam, setAddModalExam] = useState<Exam | null>(null);
   const [addStudentId, setAddStudentId] = useState('');
   const [addCorrect, setAddCorrect] = useState(0);
   const [addWrong, setAddWrong] = useState(0);
   const [addSaving, setAddSaving] = useState(false);
+  const [deleteModalExam, setDeleteModalExam] = useState<Exam | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   const getAnalysisByExamId = (analysisId: string) => analyses.find((a) => a.id === analysisId);
 
@@ -33,6 +36,22 @@ export function CreatedExams() {
     setAddStudentId('');
     setAddCorrect(0);
     setAddWrong(0);
+  };
+
+  const deleteResultCount = deleteModalExam ? getResultsByExam(deleteModalExam.id).length : 0;
+
+  const handleConfirmDeleteExam = async () => {
+    if (!deleteModalExam) return;
+    setDeleteSaving(true);
+    try {
+      await deleteExam(deleteModalExam.id);
+      showToast('Sınav kaldırıldı.');
+      setDeleteModalExam(null);
+    } catch {
+      showToast('Sınav silinirken hata oluştu.', 'danger');
+    } finally {
+      setDeleteSaving(false);
+    }
   };
 
   const handleAddResult = async () => {
@@ -152,10 +171,18 @@ export function CreatedExams() {
                           Sonuç Ekle
                         </Button>
                         <Link to={`/dashboard/analiz-gecmisi/${exam.analysisId}`}>
-                          <Button variant="outline-primary" size="sm" aria-label="Görüntüle">
+                          <Button variant="outline-primary" size="sm" className="me-1" aria-label="Görüntüle">
                             <i className="bi bi-eye" />
                           </Button>
                         </Link>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => setDeleteModalExam(exam)}
+                          aria-label="Sınavı kaldır"
+                        >
+                          <i className="bi bi-trash" />
+                        </Button>
                       </td>
                     </tr>
                   );
@@ -232,6 +259,47 @@ export function CreatedExams() {
               </>
             ) : (
               'Kaydet'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={!!deleteModalExam} onHide={() => !deleteSaving && setDeleteModalExam(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Sınavı kaldır</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {deleteModalExam && (
+            <>
+              <p className="mb-2">
+                <strong>{deleteModalExam.title}</strong> sınavını listeden kaldırmak istediğinize emin misiniz?
+              </p>
+              <p className="text-muted small mb-0">
+                Bu sınavın bağlı olduğu analiz kaydı silinmez; yalnızca sınav ve öğrenci sonuçları kaldırılır.
+                {deleteResultCount > 0 && (
+                  <>
+                    {' '}
+                    <span className="text-danger fw-semibold">
+                      {deleteResultCount} öğrenci sonucu da silinecek.
+                    </span>
+                  </>
+                )}
+              </p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setDeleteModalExam(null)} disabled={deleteSaving}>
+            Vazgeç
+          </Button>
+          <Button variant="danger" onClick={handleConfirmDeleteExam} disabled={deleteSaving}>
+            {deleteSaving ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden />
+                Kaldırılıyor...
+              </>
+            ) : (
+              'Evet, kaldır'
             )}
           </Button>
         </Modal.Footer>

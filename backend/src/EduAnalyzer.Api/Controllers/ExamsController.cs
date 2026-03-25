@@ -60,6 +60,24 @@ public class ExamsController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteExam(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            await _service.DeleteExamAsync(id, TeacherId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+    }
+
     [HttpPost("{id:guid}/results/scan")]
     public async Task<ActionResult<ScanExamResponse>> ScanResult(Guid id, [FromBody] ScanExamRequest request, CancellationToken ct)
     {

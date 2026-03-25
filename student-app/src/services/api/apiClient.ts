@@ -103,9 +103,29 @@ function resolveLanDevBackendUrl(): string | null {
 /**
  * EXPO_PUBLIC_BACKEND_URL yoksa Metro ile aynı makinedeki backend’e (5131) bağlanır.
  * Fiziksel telefonda `localhost` kullanılmaz: iPhone’da localhost = telefonun kendisi, Mac’teki API’ye gitmez.
+ *
+ * Simülatör / emülatör: .env’deki LAN veya VPN IP’si (ör. 10.242.x.x) genelde simülatörden erişilemez;
+ * bu yüzden önce localhost / 10.0.2.2 kullanılır. Fiziksel cihazda EXPO_PUBLIC_BACKEND_URL geçerlidir.
  */
 export function resolveApiBaseUrl(): string {
   const envBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_BACKEND_URL);
+  const iosSimOverride = normalizeBaseUrl(process.env.EXPO_PUBLIC_BACKEND_URL_IOS_SIMULATOR);
+  const androidEmuOverride = normalizeBaseUrl(process.env.EXPO_PUBLIC_BACKEND_URL_ANDROID_EMULATOR);
+
+  if (Platform.OS === 'ios' && !Device.isDevice) {
+    if (iosSimOverride) {
+      return iosSimOverride;
+    }
+    return 'http://localhost:5131';
+  }
+
+  if (Platform.OS === 'android' && !Device.isDevice) {
+    if (androidEmuOverride) {
+      return androidEmuOverride;
+    }
+    return 'http://10.0.2.2:5131';
+  }
+
   if (envBaseUrl) {
     if (
       Device.isDevice &&
@@ -123,13 +143,6 @@ export function resolveApiBaseUrl(): string {
   const lanUrl = resolveLanDevBackendUrl();
   if (lanUrl) {
     return lanUrl;
-  }
-
-  if (Platform.OS === 'android' && !Device.isDevice) {
-    return 'http://10.0.2.2:5131';
-  }
-  if (Platform.OS === 'ios' && !Device.isDevice) {
-    return 'http://localhost:5131';
   }
 
   if (Device.isDevice) {
