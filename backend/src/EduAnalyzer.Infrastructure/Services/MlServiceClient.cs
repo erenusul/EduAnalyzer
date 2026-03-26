@@ -79,6 +79,7 @@ public class MlServiceClient : IMlServiceClient
         int questionCount = 20,
         int? optionCount = null,
         string? imageContentType = null,
+        string? opticalTemplate = null,
         CancellationToken ct = default)
     {
         await using var ms = new MemoryStream();
@@ -99,6 +100,8 @@ public class MlServiceClient : IMlServiceClient
         content.Add(imagePart, "file", fileName);
         content.Add(new StringContent(questionCount.ToString()), "question_count");
         content.Add(new StringContent(optCount.ToString()), "option_count");
+        if (!string.IsNullOrWhiteSpace(opticalTemplate))
+            content.Add(new StringContent(opticalTemplate.Trim()), "template");
 
         var response = await _httpClient.PostAsync("api/optical-scan", content, ct);
         var json = await response.Content.ReadAsStringAsync(ct);

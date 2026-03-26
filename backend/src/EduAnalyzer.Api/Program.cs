@@ -117,6 +117,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
     await EduAnalyzer.Infrastructure.Data.SchemaPatches.ApplyExamResultWrongQuestionsColumnAsync(db);
+    await EduAnalyzer.Infrastructure.Data.SchemaPatches.ApplyExamResultCorrectQuestionsColumnAsync(db);
     await EduAnalyzer.Infrastructure.Data.DataSeeder.SeedAsync(db);
 }
 

@@ -316,6 +316,10 @@ export function apiPost<T>(path: string, body?: unknown, apiOpts?: ApiRequestOpt
   );
 }
 
+export function apiDelete(path: string): Promise<void> {
+  return apiRequest<void>(path, { method: 'DELETE' });
+}
+
 export async function apiUploadFormData<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetchWithTimeout(
     buildUrl(path),

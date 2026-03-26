@@ -2,7 +2,11 @@ import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { getOptionCountFromAnswerKey, submitScan } from '../../services/api/examsApi';
+import {
+  getOptionCountFromAnswerKey,
+  OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107,
+  submitScan,
+} from '../../services/api/examsApi';
 import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
@@ -273,6 +277,27 @@ function buildStyles(colors: AppThemeColors) {
       fontWeight: '800',
       color: colors.textPrimary,
     },
+    resultBreakdownTitle: {
+      marginTop: 20,
+      marginBottom: 10,
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    resultQLine: {
+      fontSize: 14,
+      lineHeight: 22,
+      color: colors.textSecondary,
+      paddingVertical: 4,
+    },
+    resultQLineOk: {
+      color: colors.success,
+      fontWeight: '600',
+    },
+    resultQLineBad: {
+      color: colors.danger,
+      fontWeight: '600',
+    },
     resultTopicsContainer: {
       flexDirection: 'row',
       marginTop: 16,
@@ -314,7 +339,13 @@ export function ScanScreen({ route }: ScanScreenProps) {
     try {
       const questionCount = exam.answerKey?.length;
       const optionCount = getOptionCountFromAnswerKey(exam.answerKey);
-      const result = await submitScan(exam.id, photoUri, questionCount, optionCount);
+      const result = await submitScan(
+        exam.id,
+        photoUri,
+        questionCount,
+        optionCount,
+        OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107
+      );
       setScanResult(result);
       Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
     } catch (err) {
@@ -403,7 +434,9 @@ export function ScanScreen({ route }: ScanScreenProps) {
           </View>
           <View style={styles.instructionRow}>
             <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            <Text style={styles.instructionsText}>Dört köşe marker görünür olsun.</Text>
+            <Text style={styles.instructionsText}>
+              117×107 mm SÖZEL optik alanı kadrajda dolsun (dört sütun görünsün, köşeler net olsun).
+            </Text>
           </View>
           <View style={styles.instructionRow}>
             <Ionicons name="chevron-forward" size={16} color={colors.accent} />
@@ -488,6 +521,41 @@ export function ScanScreen({ route }: ScanScreenProps) {
             <Text style={styles.resultTextLabel}>Toplam:</Text>
             <Text style={styles.resultTextValue}>{scanResult.totalCount}</Text>
           </View>
+
+          {(scanResult.correctQuestions?.length ?? 0) > 0 ? (
+            <View>
+              <Text style={styles.resultBreakdownTitle}>Doğru sorular</Text>
+              {(scanResult.correctQuestions ?? [])
+                .slice()
+                .sort((a, b) => a.questionIndex - b.questionIndex)
+                .map((c) => (
+                  <Text
+                    key={`cq-${c.questionIndex}`}
+                    style={[styles.resultQLine, styles.resultQLineOk]}
+                  >
+                    Soru {c.questionIndex}: {c.studentAnswer || '—'} · {c.topic}
+                  </Text>
+                ))}
+            </View>
+          ) : null}
+
+          {(scanResult.wrongQuestions?.length ?? 0) > 0 ? (
+            <View>
+              <Text style={styles.resultBreakdownTitle}>Yanlış sorular</Text>
+              {(scanResult.wrongQuestions ?? [])
+                .slice()
+                .sort((a, b) => a.questionIndex - b.questionIndex)
+                .map((w) => (
+                  <Text
+                    key={`wq-${w.questionIndex}`}
+                    style={[styles.resultQLine, styles.resultQLineBad]}
+                  >
+                    Soru {w.questionIndex}: işaret {w.studentAnswer || '—'}
+                    {w.expectedAnswer ? ` · anahtar ${w.expectedAnswer}` : ''} · {w.topic}
+                  </Text>
+                ))}
+            </View>
+          ) : null}
 
           {scanResult.wrongTopics.length > 0 ? (
             <View style={styles.resultTopicsContainer}>

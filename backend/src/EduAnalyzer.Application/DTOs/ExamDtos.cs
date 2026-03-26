@@ -14,12 +14,14 @@ public record ExamDto(
 
 public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswers);
 
-public record WrongQuestionDto(int QuestionIndex, string StudentAnswer, string Topic);
+/// <param name="ExpectedAnswer">Yanlış sorularda cevap anahtarındaki doğru şık (optik karşılaştırma için).</param>
+public record WrongQuestionDto(int QuestionIndex, string StudentAnswer, string Topic, string? ExpectedAnswer = null);
 
 public record ScanExamResponse(
     int CorrectCount,
     int WrongCount,
     int TotalCount,
+    IReadOnlyList<WrongQuestionDto> CorrectQuestions,
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
     IReadOnlyList<WrongTopicDto> WrongTopics
 );
@@ -36,6 +38,7 @@ public record ExamResultDto(
     int CorrectCount,
     int WrongCount,
     IReadOnlyList<WrongTopicDto> WrongTopics,
+    IReadOnlyList<WrongQuestionDto> CorrectQuestions,
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
     string? Source,
     DateTime CreatedAt

@@ -7,6 +7,8 @@ export interface WrongQuestion {
   questionIndex: number;
   studentAnswer: string;
   topic: string;
+  /** Yanlış sorularda anahtardaki doğru şık */
+  expectedAnswer?: string | null;
 }
 
 export interface ExamResult {
@@ -17,6 +19,8 @@ export interface ExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics: WrongTopic[];
+  /** Optik kayıtlarda doğru işaretlenen sorular (soru no, verilen şık, konu). */
+  correctQuestions?: WrongQuestion[];
   wrongQuestions?: WrongQuestion[];
   source?: string | null;
   createdAt: string;
@@ -37,6 +41,7 @@ export interface ScanExamResponse {
   correctCount: number;
   wrongCount: number;
   totalCount: number;
-  wrongQuestions: WrongQuestion[];
+  correctQuestions?: WrongQuestion[];
+  wrongQuestions?: WrongQuestion[];
   wrongTopics: WrongTopic[];
 }

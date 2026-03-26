@@ -1,4 +1,4 @@
-import { apiGet } from './apiClient';
+import { apiDelete, apiGet } from './apiClient';
 import type { AvailableExam, ExamResult } from '../../types/exam';
 import { loadResultsCache, saveResultsCache } from '../storage/resultsCache';
 
@@ -8,6 +8,11 @@ export function getMyResults(): Promise<ExamResult[]> {
 
 export function getMyAvailableExams(): Promise<AvailableExam[]> {
   return apiGet<AvailableExam[]>('/api/me/exams');
+}
+
+/** Öğrencinin kendi sınav sonucunu siler; sınav tekrar “Sınav Seç” listesinde görünür. */
+export function deleteMyResult(resultId: string): Promise<void> {
+  return apiDelete(`/api/me/results/${resultId}`);
 }
 
 export interface LoadResultsOutcome {

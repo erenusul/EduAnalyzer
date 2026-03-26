@@ -23,6 +23,7 @@ public interface IExamService
         int? questionCount,
         int? optionCount,
         string? imageContentType = null,
+        string? opticalTemplate = null,
         CancellationToken ct = default);
     Task<ExamResultDto> AddExamResultAsync(Guid teacherId, CreateExamResultRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
@@ -31,6 +32,7 @@ public interface IExamService
     Task<IReadOnlyList<ExamResultDto>> GetResultsByStudentForSelfAsync(Guid studentId, CancellationToken ct = default);
     Task<IReadOnlyList<StudentWithResultsDto>> GetStudentsWithResultsForParentAsync(Guid parentId, CancellationToken ct = default);
     Task DeleteExamResultAsync(Guid resultId, Guid teacherId, CancellationToken ct = default);
+    Task DeleteExamResultForStudentSelfAsync(Guid resultId, Guid studentId, CancellationToken ct = default);
     Task<ExamResultDto> UpdateExamResultAsync(Guid resultId, Guid teacherId, UpdateExamResultRequest request, CancellationToken ct = default);
     Task DeleteExamAsync(Guid examId, Guid teacherId, CancellationToken ct = default);
 }
@@ -119,6 +121,7 @@ public class ExamService : IExamService
             WrongCount = request.WrongCount,
             WrongTopicsJson = wrongTopicsJson,
             WrongQuestionsJson = "[]",
+            CorrectQuestionsJson = "[]",
             Source = request.Source ?? "manual",
             CreatedAt = DateTime.UtcNow
         };
@@ -135,6 +138,19 @@ public class ExamService : IExamService
         var exam = await _examRepo.GetByIdAsync(entity.ExamId, ct);
         if (exam == null || exam.TeacherId != teacherId)
             throw new UnauthorizedAccessException("Bu sonucu silme yetkiniz yok.");
+
+        var deleted = await _resultRepo.DeleteAsync(resultId, ct);
+        if (!deleted)
+            throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+    }
+
+    public async Task DeleteExamResultForStudentSelfAsync(Guid resultId, Guid studentId, CancellationToken ct = default)
+    {
+        var entity = await _resultRepo.GetByIdAsync(resultId, ct);
+        if (entity == null)
+            throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+        if (entity.StudentId != studentId)
+            throw new UnauthorizedAccessException("Bu sonuca erişim yetkiniz yok.");
 
         var deleted = await _resultRepo.DeleteAsync(resultId, ct);
         if (!deleted)
@@ -181,6 +197,7 @@ public class ExamService : IExamService
         entity.WrongCount = request.WrongCount;
         entity.WrongTopicsJson = JsonSerializer.Serialize(topics.Select(w => new { w.Topic, w.Count }));
         entity.WrongQuestionsJson = "[]";
+        entity.CorrectQuestionsJson = "[]";
         entity.Source = "manual";
         await _resultRepo.UpdateAsync(entity, ct);
 
@@ -280,6 +297,7 @@ public class ExamService : IExamService
         }
 
         var wrongQuestions = new List<WrongQuestionDto>();
+        var correctQuestions = new List<WrongQuestionDto>();
         var topicCounts = new Dictionary<string, int>();
         var correctCount = 0;
         var wrongCount = 0;
@@ -308,7 +326,14 @@ public class ExamService : IExamService
             var isCorrect = string.Equals(correctAnswer, studentChar, StringComparison.OrdinalIgnoreCase);
 
             if (isCorrect)
+            {
                 correctCount++;
+                var rawTopicOk = i < results.Count && results[i].Topic.Count > 0
+                    ? results[i].Topic[0].Label
+                    : null;
+                var topicOk = string.IsNullOrWhiteSpace(rawTopicOk) ? "Bilinmiyor" : rawTopicOk!;
+                correctQuestions.Add(new WrongQuestionDto(i + 1, studentChar, topicOk));
+            }
             else
             {
                 wrongCount++;
@@ -316,7 +341,7 @@ public class ExamService : IExamService
                     ? results[i].Topic[0].Label
                     : null;
                 var topic = string.IsNullOrWhiteSpace(rawTopic) ? "Bilinmiyor" : rawTopic!;
-                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topic));
+                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topic, correctAnswer));
                 topicCounts[topic] = topicCounts.GetValueOrDefault(topic, 0) + 1;
             }
         }
@@ -324,6 +349,7 @@ public class ExamService : IExamService
         var wrongTopics = topicCounts.Select(kv => new WrongTopicDto(kv.Key, kv.Value)).ToList();
         var wrongTopicsJson = JsonSerializer.Serialize(wrongTopics.Select(w => new { w.Topic, w.Count }));
         var wrongQuestionsJson = JsonSerializer.Serialize(wrongQuestions, JsonStoreOptions);
+        var correctQuestionsJson = JsonSerializer.Serialize(correctQuestions, JsonStoreOptions);
 
         var entity = new ExamResult
         {
@@ -334,6 +360,7 @@ public class ExamService : IExamService
             WrongCount = wrongCount,
             WrongTopicsJson = wrongTopicsJson,
             WrongQuestionsJson = wrongQuestionsJson,
+            CorrectQuestionsJson = correctQuestionsJson,
             Source = "optical",
             CreatedAt = DateTime.UtcNow
         };
@@ -343,6 +370,7 @@ public class ExamService : IExamService
             correctCount,
             wrongCount,
             answerKey.Count,
+            correctQuestions,
             wrongQuestions,
             wrongTopics
         );
@@ -355,6 +383,7 @@ public class ExamService : IExamService
         int? questionCount,
         int? optionCount,
         string? imageContentType = null,
+        string? opticalTemplate = null,
         CancellationToken ct = default)
     {
         var student = await _studentRepo.GetByIdAsync(studentId, ct)
@@ -384,7 +413,13 @@ public class ExamService : IExamService
         if (count <= 0)
             count = 20;
 
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(imageStream, count, optionCount, imageContentType, ct);
+        var ocrResult = await _mlClient.ScanOpticalFormAsync(
+            imageStream,
+            count,
+            optionCount,
+            imageContentType,
+            opticalTemplate,
+            ct);
         return await ScanAndSaveResultAsync(
             examId,
             exam.TeacherId,
@@ -425,6 +460,9 @@ public class ExamService : IExamService
         var wrongQuestions = string.IsNullOrEmpty(r.WrongQuestionsJson)
             ? new List<WrongQuestionDto>()
             : JsonSerializer.Deserialize<List<WrongQuestionDto>>(r.WrongQuestionsJson, JsonStoreOptions) ?? new List<WrongQuestionDto>();
+        var correctQuestions = string.IsNullOrEmpty(r.CorrectQuestionsJson)
+            ? new List<WrongQuestionDto>()
+            : JsonSerializer.Deserialize<List<WrongQuestionDto>>(r.CorrectQuestionsJson, JsonStoreOptions) ?? new List<WrongQuestionDto>();
         return new ExamResultDto(
             r.Id,
             r.StudentId,
@@ -435,6 +473,7 @@ public class ExamService : IExamService
             r.CorrectCount,
             r.WrongCount,
             topics,
+            correctQuestions,
             wrongQuestions,
             r.Source,
             r.CreatedAt

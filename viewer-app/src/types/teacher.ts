@@ -65,6 +65,7 @@ export interface WrongQuestion {
   questionIndex: number;
   studentAnswer: string;
   topic: string;
+  expectedAnswer?: string | null;
 }
 
 export interface ExamResult {
@@ -74,6 +75,7 @@ export interface ExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics: WrongTopic[];
+  correctQuestions?: WrongQuestion[];
   wrongQuestions?: WrongQuestion[];
   createdAt: string;
 }

@@ -56,6 +56,7 @@ public class MeController : ControllerBase
         [FromForm] IFormFile file,
         [FromForm] int? questionCount,
         [FromForm] int? optionCount,
+        [FromForm] string? opticalTemplate,
         CancellationToken ct)
     {
         var studentId = StudentIdOrNull;
@@ -75,6 +76,7 @@ public class MeController : ControllerBase
                 questionCount,
                 optionCount,
                 file.ContentType,
+                opticalTemplate,
                 ct
             );
             return Ok(response);
@@ -82,6 +84,29 @@ public class MeController : ControllerBase
         catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("results/{id:guid}")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> DeleteMyResult(Guid id, CancellationToken ct)
+    {
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
+            return Forbid();
+
+        try
+        {
+            await _examService.DeleteExamResultForStudentSelfAsync(id, studentId.Value, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
     }
 

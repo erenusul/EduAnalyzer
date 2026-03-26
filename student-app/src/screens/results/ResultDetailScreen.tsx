@@ -1,7 +1,19 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Platform,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ResultDetailScreenProps } from '../../app/navigation/types';
+import { deleteMyResult } from '../../services/api/meApi';
+import { clearResultsCache } from '../../services/storage/resultsCache';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
 
@@ -187,18 +199,120 @@ function buildStyles(colors: AppThemeColors) {
       fontSize: 14,
       fontWeight: '500',
     },
+    correctQRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    correctQIndex: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+    },
+    correctQIndexText: {
+      color: colors.success,
+      fontWeight: '800',
+      fontSize: 15,
+    },
+    correctQBody: {
+      flex: 1,
+    },
+    correctQTopic: {
+      color: colors.textPrimary,
+      fontWeight: '700',
+      fontSize: 16,
+      marginBottom: 4,
+    },
+    correctQMeta: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    deleteSection: {
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 20,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    deleteHint: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 22,
+      marginBottom: 16,
+    },
+    deleteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.errorBackground,
+      paddingVertical: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.danger,
+    },
+    deleteButtonDisabled: {
+      opacity: 0.6,
+    },
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize: 16,
+      fontWeight: '800',
+      marginLeft: 8,
+    },
   });
 }
 
 export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
   const { result } = route.params;
+  const navigation = useNavigation();
+  const [deleting, setDeleting] = useState(false);
   const total = result.correctCount + result.wrongCount;
+  const correctQuestions = useMemo(() => {
+    const list = result.correctQuestions ?? [];
+    return [...list].sort((a, b) => a.questionIndex - b.questionIndex);
+  }, [result.correctQuestions]);
   const wrongQuestions = useMemo(() => {
     const list = result.wrongQuestions ?? [];
     return [...list].sort((a, b) => a.questionIndex - b.questionIndex);
   }, [result.wrongQuestions]);
   const { colors } = useAppTheme();
   const styles = useMemo(() => buildStyles(colors), [colors]);
+
+  const handleDeleteResult = useCallback(() => {
+    Alert.alert(
+      'Sonucu kaldır',
+      'Bu sınav sonucu silinecek. İsterseniz “Sınav Seç” ekranından optik taramayı yeniden yapabilirsiniz.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDeleting(true);
+              try {
+                await deleteMyResult(result.id);
+                await clearResultsCache();
+                navigation.goBack();
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : 'Sonuç silinemedi.';
+                Alert.alert('Hata', msg);
+              } finally {
+                setDeleting(false);
+              }
+            })();
+          },
+        },
+      ]
+    );
+  }, [navigation, result.id]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -234,6 +348,26 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
         </View>
       </View>
 
+      {correctQuestions.length > 0 ? (
+        <View style={styles.topicCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="checkmark-done-outline" size={24} color={colors.success} style={{ marginRight: 8 }} />
+            <Text style={styles.sectionTitle}>Doğru sorular</Text>
+          </View>
+          {correctQuestions.map((cq) => (
+            <View key={`${result.id}-cq-${cq.questionIndex}`} style={styles.correctQRow}>
+              <View style={styles.correctQIndex}>
+                <Text style={styles.correctQIndexText}>{cq.questionIndex}</Text>
+              </View>
+              <View style={styles.correctQBody}>
+                <Text style={styles.correctQTopic}>{cq.topic}</Text>
+                <Text style={styles.correctQMeta}>İşaretlenen: {cq.studentAnswer || '—'}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       {wrongQuestions.length > 0 ? (
         <View style={styles.topicCard}>
           <View style={styles.sectionHeader}>
@@ -247,7 +381,10 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
               </View>
               <View style={styles.wrongQBody}>
                 <Text style={styles.wrongQTopic}>{wq.topic}</Text>
-                <Text style={styles.wrongQMeta}>Verilen cevap: {wq.studentAnswer || '—'}</Text>
+                <Text style={styles.wrongQMeta}>
+                  İşaretlenen: {wq.studentAnswer || '—'}
+                  {wq.expectedAnswer ? ` · Doğru şık: ${wq.expectedAnswer}` : ''}
+                </Text>
               </View>
             </View>
           ))}
@@ -278,6 +415,28 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
             </View>
           ))
         )}
+      </View>
+
+      <View style={styles.deleteSection}>
+        <Text style={styles.deleteHint}>
+          Yanlış okuma veya tekrar denemek için bu kaydı kaldırın. Sınav yeniden listede görünür.
+        </Text>
+        <Pressable
+          style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+          onPress={handleDeleteResult}
+          disabled={deleting}
+          accessibilityRole="button"
+          accessibilityLabel="Sınav sonucunu sil ve yeniden okutmak için listeye dön"
+        >
+          {deleting ? (
+            <ActivityIndicator color={colors.danger} size="small" />
+          ) : (
+            <Ionicons name="trash-outline" size={22} color={colors.danger} />
+          )}
+          <Text style={styles.deleteButtonText}>
+            {deleting ? 'Siliniyor…' : 'Sonucu sil ve yeniden okut'}
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );

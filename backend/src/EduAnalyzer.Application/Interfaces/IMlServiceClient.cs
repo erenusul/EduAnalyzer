@@ -22,6 +22,7 @@ public interface IMlServiceClient
         int questionCount = 20,
         int? optionCount = null,
         string? imageContentType = null,
+        string? opticalTemplate = null,
         CancellationToken ct = default);
 }
 

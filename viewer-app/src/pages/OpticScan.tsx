@@ -5,11 +5,16 @@
 import { useState, useMemo } from 'react';
 import { Card, Form, Button, Row, Col, Alert } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
-import { examsApi } from '../services/backendApi';
+import { examsApi, OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 } from '../services/backendApi';
 import { useToast } from '../contexts/ToastContext';
 import { CameraCapture } from '../components/CameraCapture';
 
 const OPTIONS = ['A', 'B', 'C', 'D'];
+
+function optionCountFromAnswerKey(answerKey: string[] | undefined): number {
+  if (!answerKey?.length) return 4;
+  return answerKey.some((a) => /^E$/i.test(String(a ?? '').trim())) ? 5 : 4;
+}
 
 export function OpticScan() {
   const { exams, students, refresh } = useTeacherData();
@@ -77,7 +82,9 @@ export function OpticScan() {
         selectedExamId,
         selectedStudentId,
         capturedBlob,
-        exam.answerKey.length
+        exam.answerKey.length,
+        optionCountFromAnswerKey(exam.answerKey),
+        OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107
       );
       await refresh();
       showToast('Optik form OCR ile okundu ve kaydedildi.');

@@ -182,4 +182,65 @@ public class ExamServiceTests
 
         resultRepo.Verify(x => x.DeleteByExamIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task DeleteExamResultForStudentSelfAsync_Deletes_WhenStudentOwnsResult()
+    {
+        var studentId = Guid.NewGuid();
+        var resultId = Guid.NewGuid();
+        var entity = new ExamResult
+        {
+            Id = resultId,
+            StudentId = studentId,
+            ExamId = Guid.NewGuid(),
+            CorrectCount = 1,
+            WrongCount = 1,
+            WrongTopicsJson = "[]",
+            Source = "optical",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByIdAsync(resultId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        resultRepo.Setup(x => x.DeleteAsync(resultId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var studentRepo = new Mock<IStudentRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await service.DeleteExamResultForStudentSelfAsync(resultId, studentId);
+
+        resultRepo.Verify(x => x.DeleteAsync(resultId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteExamResultForStudentSelfAsync_Throws_WhenOtherStudent()
+    {
+        var resultId = Guid.NewGuid();
+        var entity = new ExamResult
+        {
+            Id = resultId,
+            StudentId = Guid.NewGuid(),
+            ExamId = Guid.NewGuid(),
+            CorrectCount = 1,
+            WrongCount = 0,
+            WrongTopicsJson = "[]",
+            Source = "optical",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByIdAsync(resultId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        var studentRepo = new Mock<IStudentRepository>();
+        var mlClient = new Mock<IMlServiceClient>();
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.DeleteExamResultForStudentSelfAsync(resultId, Guid.NewGuid()));
+
+        resultRepo.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

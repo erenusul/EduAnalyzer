@@ -70,6 +70,7 @@ export interface BackendExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics?: { topic?: string | null; count?: number | null }[] | null;
+  correctQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
   wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
   source?: string | null;
   createdAt: string;
@@ -79,7 +80,8 @@ export interface ScanExamResponse {
   correctCount: number;
   wrongCount: number;
   totalCount: number;
-  wrongQuestions: { questionIndex: number; studentAnswer: string; topic: string }[];
+  correctQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
+  wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
   wrongTopics: { topic: string; count: number }[];
 }
 
@@ -203,6 +205,7 @@ function toExamResult(d: BackendExamResult): ExamResult {
     correctCount: d.correctCount,
     wrongCount: d.wrongCount,
     wrongTopics: normalizeWrongTopics(d.wrongTopics),
+    correctQuestions: d.correctQuestions,
     wrongQuestions: d.wrongQuestions,
     createdAt: d.createdAt,
   };
@@ -315,6 +318,11 @@ export const analysesApi = {
   markExamReady: (examId: string) => apiPost<BackendExam>(`/api/analyses/exam/${examId}/ready`),
 };
 
+/** ML `optical_scan` şablon kimliği — student-app ile aynı (212×300 mm Türkçe 20×4). */
+export const OPTICAL_TEMPLATE_LGS_TURKISH_212X300 = 'lgs_turkish_212x300';
+
+export const OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 = 'lgs_sozel_crop_117x107';
+
 export const examsApi = {
   getAll: () => apiGet<BackendExam[]>('/api/exams'),
   getById: (id: string) => apiGet<BackendExam>(`/api/exams/${id}`),
@@ -336,12 +344,16 @@ export const examsApi = {
     examId: string,
     studentId: string,
     imageBlob: Blob,
-    questionCount?: number
+    questionCount?: number,
+    optionCount?: number,
+    opticalTemplate?: string
   ): Promise<ScanExamResponse> => {
     const formData = new FormData();
     formData.append('studentId', studentId);
     formData.append('file', imageBlob, 'optical-form.jpg');
     if (questionCount != null) formData.append('questionCount', String(questionCount));
+    if (optionCount != null) formData.append('optionCount', String(optionCount));
+    if (opticalTemplate) formData.append('opticalTemplate', opticalTemplate);
     return apiUploadFormData<ScanExamResponse>(
       `/api/exams/${examId}/results/scan-image`,
       formData

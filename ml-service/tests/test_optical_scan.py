@@ -7,7 +7,12 @@ import cv2
 import numpy as np
 import pytest
 
-from ml_service.api.routes.optical_scan import OpticalScanRejected, _detect_answers_from_image
+from ml_service.api.routes.optical_scan import (
+    TEMPLATE_LGS_SOZEL_CROP_117X107,
+    TEMPLATE_LGS_TURKISH_212X300,
+    OpticalScanRejected,
+    _detect_answers_from_image,
+)
 
 
 def _build_synthetic_optical_form(
@@ -108,4 +113,89 @@ def test_optical_scan_detects_answers_4_options_turkce():
         image_bytes, question_count=len(answers), option_count=4
     )
 
+    assert detected == answers
+
+
+def _build_lgs_turkish_212x300_synthetic(answers: list[str]) -> bytes:
+    """212×300 mm sayfayı 4 px/mm ile sentetik üret; Türkçe mm şablonuyla uyumlu merkezler."""
+    scale = 4.0
+    w = int(212 * scale)
+    h = int(300 * scale)
+    image = np.full((h, w), 255, dtype=np.uint8)
+    option_step_mm = 5.0
+    row_step_mm = 85.0 / 19.0
+    opts = ["A", "B", "C", "D"]
+
+    for row, selected in enumerate(answers):
+        cy = (194.0 + row * row_step_mm) * scale
+        for col, letter in enumerate(opts):
+            cx = (27.0 + col * option_step_mm) * scale
+            radius = max(8.0, min(option_step_mm, row_step_mm) * scale * 0.42)
+            r = int(round(radius))
+            cxi, cyi = int(round(cx)), int(round(cy))
+            cv2.circle(image, (cxi, cyi), r, 0, 2)
+            if selected == letter:
+                cv2.circle(image, (cxi, cyi), max(4, r - 3), 0, -1)
+
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+    return encoded.tobytes()
+
+
+def test_lgs_turkish_212x300_template_reads_marked_bubbles():
+    answers = ["A", "C", "", "D", "B", "A", "B", "C", "D", "", "A", "B"]
+    image_bytes = _build_lgs_turkish_212x300_synthetic(answers)
+    detected = _detect_answers_from_image(
+        image_bytes,
+        question_count=len(answers),
+        option_count=4,
+        template=TEMPLATE_LGS_TURKISH_212X300,
+    )
+    assert detected == answers
+
+
+def _build_lgs_sozel_117x107_synthetic(answers: list[str]) -> bytes:
+    """117×107 mm SÖZEL kırpıntısı; mm şablonuyla uyumlu merkezler (4 sütun × 20 satır sırası)."""
+    scale = 4.0
+    w = int(117 * scale)
+    h = int(107 * scale)
+    image = np.full((h, w), 255, dtype=np.uint8)
+    option_step_mm = 5.0
+    row_step_mm = 84.0 / 19.0
+    col_w_mm = 117.0 / 4.0
+    opts = ["A", "B", "C", "D"]
+
+    for global_idx, selected in enumerate(answers):
+        col = global_idx // 20
+        row = global_idx % 20
+        q1_a_x = col * col_w_mm + 11.0
+        cy = (21.0 + row * row_step_mm) * scale
+        for c, letter in enumerate(opts):
+            cx = (q1_a_x + c * option_step_mm) * scale
+            radius = max(8.0, min(option_step_mm, row_step_mm) * scale * 0.42)
+            r = int(round(radius))
+            cxi, cyi = int(round(cx)), int(round(cy))
+            cv2.circle(image, (cxi, cyi), r, 0, 2)
+            if selected == letter:
+                cv2.circle(image, (cxi, cyi), max(4, r - 3), 0, -1)
+
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+    return encoded.tobytes()
+
+
+def test_lgs_sozel_crop_117x107_template_reads_marked_bubbles():
+    """İlk sütun + ikinci sütunun ilk iki satırı (22 soru)."""
+    answers = (
+        ["A", "B", "C", "D", "", "A", "B", "C", "D", "A"] * 2
+        + ["B", "C"]
+    )
+    assert len(answers) == 22
+    image_bytes = _build_lgs_sozel_117x107_synthetic(answers)
+    detected = _detect_answers_from_image(
+        image_bytes,
+        question_count=len(answers),
+        option_count=4,
+        template=TEMPLATE_LGS_SOZEL_CROP_117X107,
+    )
     assert detected == answers
