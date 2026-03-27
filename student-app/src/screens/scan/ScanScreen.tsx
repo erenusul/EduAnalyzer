@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getOptionCountFromAnswerKey,
@@ -66,6 +67,37 @@ function buildStyles(colors: AppThemeColors) {
       borderRadius: 16,
       paddingVertical: 16,
       alignItems: 'center',
+    },
+    permissionSecondaryButton: {
+      flexDirection: 'row',
+      width: '100%',
+      justifyContent: 'center',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 16,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    permissionHint: {
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginBottom: 16,
+      lineHeight: 20,
+      fontSize: 14,
+    },
+    cameraActionsRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    primaryButtonFlex: {
+      flex: 1,
+    },
+    primaryButtonFullWidth: {
+      flex: 0,
+      width: '100%',
+      alignSelf: 'stretch',
     },
     infoCard: {
       backgroundColor: colors.card,
@@ -332,6 +364,26 @@ export function ScanScreen({ route }: ScanScreenProps) {
     }
   };
 
+  const handlePickFromLibrary = async () => {
+    const media = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!media.granted) {
+      Alert.alert(
+        'İzin gerekli',
+        'Galeriden görsel seçmek için fotoğraf kütüphanesi erişimine izin vermeniz gerekir.'
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.9,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
+      setScanResult(null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!photoUri) return;
 
@@ -389,14 +441,18 @@ export function ScanScreen({ route }: ScanScreenProps) {
     );
   }
 
-  if (!permission.granted) {
+  if (!permission.granted && !photoUri) {
     return (
       <View style={styles.permissionContainer}>
         <View style={styles.permissionIconCircle}>
           <Ionicons name="camera-outline" size={48} color={colors.accent} />
         </View>
-        <Text style={styles.permissionTitle}>Kamera izni gerekli</Text>
-        <Text style={styles.permissionText}>Optik kağıdını tarayabilmek için kamera erişimine izin ver.</Text>
+        <Text style={styles.permissionTitle}>Kamera veya galeri</Text>
+        <Text style={styles.permissionText}>
+          Canlı tarama için kamera izni verin; aynı görüntüyü dosyadan yükleyerek doğruluğu karşılaştırmak için
+          galeriden de seçebilirsiniz (kamera gerekmez).
+        </Text>
+        <Text style={styles.permissionHint}>Test için: önce çekim, sonra aynı fotoğrafı galeriden yükleyip sonuçları kıyaslayın.</Text>
         <Pressable
           style={styles.permissionPrimaryButton}
           onPress={() => void requestPermission()}
@@ -405,6 +461,15 @@ export function ScanScreen({ route }: ScanScreenProps) {
         >
           <Ionicons name="shield-checkmark-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
           <Text style={styles.primaryButtonText}>Kamera İzni Ver</Text>
+        </Pressable>
+        <Pressable
+          style={styles.permissionSecondaryButton}
+          onPress={() => void handlePickFromLibrary()}
+          accessibilityRole="button"
+          accessibilityLabel="Galeriden görsel seç"
+        >
+          <Ionicons name="images-outline" size={22} color={colors.accent} style={{ marginRight: 8 }} />
+          <Text style={styles.secondaryButtonText}>Galeriden Görsel Seç</Text>
         </Pressable>
       </View>
     );
@@ -448,15 +513,37 @@ export function ScanScreen({ route }: ScanScreenProps) {
       {photoUri ? (
         <View style={styles.previewCard}>
           <Image source={{ uri: photoUri }} style={styles.previewImage} />
-          <View style={styles.previewActions}>
-            <Pressable style={styles.secondaryButton} onPress={() => setPhotoUri(null)}>
-              <Ionicons name="refresh-outline" size={20} color={colors.accent} style={{ marginRight: 8 }} />
-              <Text style={styles.secondaryButtonText}>Tekrar Çek</Text>
-            </Pressable>
+          <View style={{ gap: 12 }}>
+            <View style={styles.previewActions}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => void handlePickFromLibrary()}
+                accessibilityRole="button"
+                accessibilityLabel="Galeriden farklı görsel seç"
+              >
+                <Ionicons name="images-outline" size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={styles.secondaryButtonText}>Galeriden</Text>
+              </Pressable>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => setPhotoUri(null)}
+                accessibilityRole="button"
+                accessibilityLabel={permission.granted ? 'Tekrar çek' : 'Görseli kaldır'}
+              >
+                <Ionicons name="refresh-outline" size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={styles.secondaryButtonText}>{permission.granted ? 'Tekrar Çek' : 'Kaldır'}</Text>
+              </Pressable>
+            </View>
             <Pressable
-              style={[styles.primaryButton, submitting && styles.buttonDisabled]}
+              style={[
+                styles.primaryButton,
+                styles.primaryButtonFullWidth,
+                submitting && styles.buttonDisabled,
+              ]}
               onPress={() => void handleSubmit()}
               disabled={submitting}
+              accessibilityRole="button"
+              accessibilityLabel="Gönder ve oku"
             >
               {submitting ? (
                 <View style={styles.loadingRow}>
@@ -484,10 +571,26 @@ export function ScanScreen({ route }: ScanScreenProps) {
               </View>
             </View>
           </View>
-          <Pressable style={styles.primaryButton} onPress={() => void handleCapture()}>
-            <Ionicons name="camera" size={24} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text style={styles.primaryButtonText}>Fotoğraf Çek</Text>
-          </Pressable>
+          <View style={styles.cameraActionsRow}>
+            <Pressable
+              style={[styles.primaryButton, styles.primaryButtonFlex]}
+              onPress={() => void handleCapture()}
+              accessibilityRole="button"
+              accessibilityLabel="Fotoğraf çek"
+            >
+              <Ionicons name="camera" size={22} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.primaryButtonText}>Çek</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.secondaryButton, styles.primaryButtonFlex]}
+              onPress={() => void handlePickFromLibrary()}
+              accessibilityRole="button"
+              accessibilityLabel="Galeriden görsel seç"
+            >
+              <Ionicons name="images-outline" size={22} color={colors.accent} style={{ marginRight: 8 }} />
+              <Text style={styles.secondaryButtonText}>Galeriden</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 

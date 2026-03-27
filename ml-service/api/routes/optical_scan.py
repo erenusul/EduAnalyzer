@@ -41,6 +41,11 @@ _SOZEL_COLUMN_COUNT = 4
 _SOZEL_COLUMN_WIDTH_MM = _SOZEL_PAGE_W_MM / float(_SOZEL_COLUMN_COUNT)
 _SOZEL_ROWS_PER_COLUMN = 20
 _SOZEL_MAX_QUESTIONS = _SOZEL_COLUMN_COUNT * _SOZEL_ROWS_PER_COLUMN  # 80
+# Baskı/kadraj kayması varsa mm cinsinden ince ayar (±0.3 … ±0.8 denenebilir).
+_SOZEL_GRID_OFFSET_X_MM = 0.0
+_SOZEL_GRID_OFFSET_Y_MM = 0.0
+# Balon yarıçapı = min(şık_aralığı, satır_aralığı) px × bu katsayı (çok büyük komşu şıkkı seçer).
+_SOZEL_BUBBLE_RADIUS_SCALE = 0.50
 
 
 class OpticalScanRejected(Exception):
@@ -429,7 +434,7 @@ def _answers_from_lgs_option_scores(option_scores: list[float], options: list[st
 
 def _answers_from_lgs_option_scores_sozel(option_scores: list[float], options: list[str]) -> str:
     """
-    117×107 SÖZEL: hibrit skor + biraz daha toleranslı baskınlık (yanlış satırda boş/yanlış şık azalsın).
+    117×107 SÖZEL: ikili+gri hibrit skor ile uyumlu baskınlık (çok gevşek eşik yanlış şık artırır).
     """
     if not option_scores:
         return ""
@@ -495,7 +500,7 @@ def _detect_answers_lgs_sozel_crop_117x107(
 
     step_x_px = option_step_mm / _SOZEL_PAGE_W_MM * width
     step_y_px = row_step_mm / _SOZEL_PAGE_H_MM * height
-    radius = max(5, int(min(step_x_px, step_y_px) * 0.48))
+    radius = max(5, int(min(step_x_px, step_y_px) * _SOZEL_BUBBLE_RADIUS_SCALE))
 
     n = max(0, min(question_count, _SOZEL_MAX_QUESTIONS))
     answers: List[str] = []
@@ -503,13 +508,15 @@ def _detect_answers_lgs_sozel_crop_117x107(
     for global_idx in range(n):
         col = global_idx // _SOZEL_ROWS_PER_COLUMN
         row = global_idx % _SOZEL_ROWS_PER_COLUMN
-        q1_a_x_mm = col * _SOZEL_COLUMN_WIDTH_MM + _SOZEL_Q1_A_CX_COL0_MM
-        cy_mm = _SOZEL_Q1_A_CY_MM + row * row_step_mm
+        q1_a_x_mm = (
+            col * _SOZEL_COLUMN_WIDTH_MM + _SOZEL_Q1_A_CX_COL0_MM + _SOZEL_GRID_OFFSET_X_MM
+        )
+        cy_mm = _SOZEL_Q1_A_CY_MM + row * row_step_mm + _SOZEL_GRID_OFFSET_Y_MM
         cy_px = cy_mm / _SOZEL_PAGE_H_MM * height
         centers_x_mm = [q1_a_x_mm + c * option_step_mm for c in range(oc)]
         centers_x_px = [cx / _SOZEL_PAGE_W_MM * width for cx in centers_x_mm]
         scores, opts = _row_scores_from_centers_hybrid(
-            binary, gray, width, height, centers_x_px, cy_px, radius
+            binary, gray, width, height, centers_x_px, cy_px, radius, binary_weight=0.52
         )
         answers.append(_answers_from_lgs_option_scores_sozel(scores, opts))
 

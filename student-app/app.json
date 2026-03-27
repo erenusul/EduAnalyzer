@@ -18,6 +18,13 @@
           "cameraPermission": "Optik formu taramak için kamera erişimi gerekiyor."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Optik test ve doğrulama için galeriden görsel seçmeniz gerekebilir.",
+          "cameraPermission": "Optik formu taramak için kamera erişimi gerekiyor."
+        }
+      ],
       "expo-notifications"
     ],
     "ios": {

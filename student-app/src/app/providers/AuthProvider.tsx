@@ -51,7 +51,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await loginRequest(email, password);
-    if (response.user.role !== 'Student') {
+    const role = response.user?.role;
+    if (!role) {
+      throw new Error('Giriş yanıtı geçersiz (rol bilgisi alınamadı).');
+    }
+    if (role !== 'Student') {
       throw new Error('Bu mobil uygulama sadece öğrenci hesapları için kullanılabilir.');
     }
 
