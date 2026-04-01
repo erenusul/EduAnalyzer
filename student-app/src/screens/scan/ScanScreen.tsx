@@ -1,18 +1,33 @@
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getOptionCountFromAnswerKey,
-  OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107,
+  OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+  OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
   submitScan,
 } from '../../services/api/examsApi';
+import { TurkishColumnScanOverlay } from './TurkishColumnScanOverlay';
+import { TurkishFullPageScanOverlay } from './TurkishFullPageScanOverlay';
 import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
+
+type OpticalScanMode = 'fullPage' | 'turkishColumn';
 
 function buildStyles(colors: AppThemeColors) {
   return StyleSheet.create({
@@ -169,31 +184,6 @@ function buildStyles(colors: AppThemeColors) {
     },
     overlay: {
       ...StyleSheet.absoluteFillObject,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    overlayFrame: {
-      width: '85%',
-      height: '75%',
-      borderWidth: 3,
-      borderColor: colors.accent,
-      borderRadius: 24,
-      backgroundColor: colors.accentMuted,
-    },
-    overlayTextContainer: {
-      position: 'absolute',
-      bottom: 24,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.7)',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 14,
-    },
-    overlayText: {
-      color: '#ffffff',
-      fontSize: 15,
-      fontWeight: '800',
     },
     previewCard: {
       backgroundColor: colors.card,
@@ -343,18 +333,70 @@ function buildStyles(colors: AppThemeColors) {
       lineHeight: 22,
       fontSize: 14,
     },
+    modeSwitchLabel: {
+      color: colors.textPrimary,
+      fontWeight: '800',
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    modeSwitchRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 4,
+    },
+    modeChip: {
+      flex: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBackground,
+    },
+    modeChipActive: {
+      borderColor: colors.accent,
+      backgroundColor: colors.accentMuted,
+    },
+    modeChipTitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    modeChipTitleActive: {
+      color: colors.textPrimary,
+    },
+    modeChipHint: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: 4,
+      lineHeight: 15,
+    },
   });
 }
 
 export function ScanScreen({ route }: ScanScreenProps) {
   const { exam } = route.params;
   const { colors } = useAppTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const styles = useMemo(() => buildStyles(colors), [colors]);
   const cameraRef = useRef<CameraView | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [scanResult, setScanResult] = useState<ScanExamResponse | null>(null);
+  const [scanMode, setScanMode] = useState<OpticalScanMode>('fullPage');
+
+  const handleScanModeChange = (mode: OpticalScanMode) => {
+    if (mode === scanMode) return;
+    setScanMode(mode);
+    setPhotoUri(null);
+    setScanResult(null);
+  };
 
   const handleCapture = async () => {
     const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
@@ -391,13 +433,11 @@ export function ScanScreen({ route }: ScanScreenProps) {
     try {
       const questionCount = exam.answerKey?.length;
       const optionCount = getOptionCountFromAnswerKey(exam.answerKey);
-      const result = await submitScan(
-        exam.id,
-        photoUri,
-        questionCount,
-        optionCount,
-        OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107
-      );
+      const opticalTemplate =
+        scanMode === 'fullPage'
+          ? OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER
+          : OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP;
+      const result = await submitScan(exam.id, photoUri, questionCount, optionCount, opticalTemplate);
       setScanResult(result);
       Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
     } catch (err) {
@@ -413,6 +453,14 @@ export function ScanScreen({ route }: ScanScreenProps) {
       /** Sunucuya ulaşılamadı / zaman aşımı: apiClient zaten açıklayıcı metin üretir; bunu saklamayın. */
       if (status === 0) {
         Alert.alert('Hata', `${rawMessage}\n\nKullanılan API: ${getApiBaseUrl()}`);
+        return;
+      }
+
+      if (status === 400) {
+        const opticalHint =
+          rawMessage.trim() ||
+          'Fotoğraf işlenemedi. Formu düz tutup daha net çekin veya başka bir fotoğraf deneyin.';
+        Alert.alert('Optik okunamadı', opticalHint);
         return;
       }
 
@@ -488,24 +536,75 @@ export function ScanScreen({ route }: ScanScreenProps) {
           </View>
         </View>
 
+        <Text style={styles.modeSwitchLabel}>Optik kadraj</Text>
+        <View style={styles.modeSwitchRow}>
+          <Pressable
+            style={[styles.modeChip, scanMode === 'fullPage' && styles.modeChipActive]}
+            onPress={() => handleScanModeChange('fullPage')}
+            accessibilityRole="button"
+            accessibilityLabel="Tam sayfa A4 optik kadrajı"
+            accessibilityState={{ selected: scanMode === 'fullPage' }}
+          >
+            <Text style={[styles.modeChipTitle, scanMode === 'fullPage' && styles.modeChipTitleActive]}>
+              Tam sayfa (A4)
+            </Text>
+            <Text style={styles.modeChipHint}>Önerilen — OMR şablonu; köşe kareleri varsa hizala</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.modeChip, scanMode === 'turkishColumn' && styles.modeChipActive]}
+            onPress={() => handleScanModeChange('turkishColumn')}
+            accessibilityRole="button"
+            accessibilityLabel="Yalnızca Türkçe sütunu kadrajı"
+            accessibilityState={{ selected: scanMode === 'turkishColumn' }}
+          >
+            <Text style={[styles.modeChipTitle, scanMode === 'turkishColumn' && styles.modeChipTitleActive]}>
+              TÜRKÇE sütunu
+            </Text>
+            <Text style={styles.modeChipHint}>Dar alan — milimetrik hizalama gerekir</Text>
+          </Pressable>
+        </View>
+
         <View style={styles.instructionsContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
             <Ionicons name="bulb-outline" size={20} color={colors.textPrimary} style={{ marginRight: 8 }} />
             <Text style={styles.instructionsTitle}>Çekim rehberi</Text>
           </View>
+          {scanMode === 'fullPage' ? (
+            <>
+              <View style={styles.instructionRow}>
+                <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                <Text style={styles.instructionsText}>
+                  Tüm optik sayfayı (A4) çerçeveye sığdırın; formda köşe kareleri varsa dört köşeyi rehberdeki L
+                  işaretleriyle hizalayın.
+                </Text>
+              </View>
+              <View style={styles.instructionRow}>
+                <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                <Text style={styles.instructionsText}>
+                  Uzak çekimde köşe kareleri küçük kalabilir; yeterli çözünürlükte okuma yine denenir. Mümkünse
+                  biraz yaklaşın veya TÜRKÇE sütunu modunu kullanın.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.instructionRow}>
+                <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                <Text style={styles.instructionsText}>
+                  Yalnızca TÜRKÇE sütununu çekin: pembe başlık ve 1–20 satırlar rehberle üst üste binsin.
+                </Text>
+              </View>
+              <View style={styles.instructionRow}>
+                <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                <Text style={styles.instructionsText}>
+                  Tam sayfa yerine bu mod yalnızca dar kırpıntı içindir; hizalama zordur, mümkünse tam sayfa seçin.
+                </Text>
+              </View>
+            </>
+          )}
           <View style={styles.instructionRow}>
             <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            <Text style={styles.instructionsText}>Kağıdı çerçevenin içine tam yerleştir.</Text>
-          </View>
-          <View style={styles.instructionRow}>
-            <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            <Text style={styles.instructionsText}>
-              117×107 mm SÖZEL optik alanı kadrajda dolsun (dört sütun görünsün, köşeler net olsun).
-            </Text>
-          </View>
-          <View style={styles.instructionRow}>
-            <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            <Text style={styles.instructionsText}>Telefonu kağıda paralel tut ve gölge yapma.</Text>
+            <Text style={styles.instructionsText}>Telefonu kağıda paralel tutun, flaş ve gölgeden kaçının.</Text>
           </View>
         </View>
       </View>
@@ -564,11 +663,19 @@ export function ScanScreen({ route }: ScanScreenProps) {
           <View style={styles.cameraWrapper}>
             <CameraView ref={cameraRef} style={styles.camera} facing="back" />
             <View pointerEvents="none" style={styles.overlay}>
-              <View style={styles.overlayFrame} />
-              <View style={styles.overlayTextContainer}>
-                <Ionicons name="aperture-outline" size={20} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.overlayText}>Optik formu çerçeveye hizala</Text>
-              </View>
+              {scanMode === 'fullPage' ? (
+                <TurkishFullPageScanOverlay
+                  accentColor={colors.accent}
+                  layoutMaxWidth={Math.max(200, windowWidth - 64)}
+                  cameraViewportHeight={440}
+                />
+              ) : (
+                <TurkishColumnScanOverlay
+                  accentColor={colors.accent}
+                  layoutMaxWidth={Math.max(200, windowWidth - 64)}
+                  cameraViewportHeight={440}
+                />
+              )}
             </View>
           </View>
           <View style={styles.cameraActionsRow}>

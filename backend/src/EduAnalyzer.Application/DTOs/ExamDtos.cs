@@ -14,6 +14,9 @@ public record ExamDto(
 
 public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswers);
 
+/// <summary>ML optical-scan yanıtındaki tek soru satırı.</summary>
+public record OpticalPerQuestionReadDto(string Answer, string Status, double Confidence);
+
 /// <param name="ExpectedAnswer">Yanlış sorularda cevap anahtarındaki doğru şık (optik karşılaştırma için).</param>
 public record WrongQuestionDto(int QuestionIndex, string StudentAnswer, string Topic, string? ExpectedAnswer = null);
 

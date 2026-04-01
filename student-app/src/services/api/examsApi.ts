@@ -4,8 +4,17 @@ import type { ScanExamResponse } from '../../types/exam';
 /** 212×300 mm A4, yalnızca Türkçe 20×4 mm şablonu (ML tarafıyla aynı kimlik). */
 export const OPTICAL_TEMPLATE_LGS_TURKISH_212X300 = 'lgs_turkish_212x300';
 
+/**
+ * OMRChecker (sunucuda OMR_CHECKER_TEMPLATE_JSON + requirements-omrchecker).
+ * Yapılandırma yoksa ML otomatik olarak dahili 212×300 okuyucuya düşer.
+ */
+export const OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER = 'lgs_turkish_omrchecker';
+
 /** 117×107 mm SÖZEL kırpıntısı: 4 sütun × 20 satır (ML ile aynı kimlik). Kadraj bu alanı doldurmalı. */
 export const OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 = 'lgs_sozel_crop_117x107';
+
+/** Yalnızca TÜRKÇE sütunu kırpıntısı; `opticalTurkishColumn.ts` ile aynı mm varsayılanları. */
+export { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP } from '../../constants/opticalTurkishColumn';
 
 export function submitScan(
   examId: string,

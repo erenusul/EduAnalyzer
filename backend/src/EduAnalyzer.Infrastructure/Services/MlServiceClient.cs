@@ -121,7 +121,19 @@ public class MlServiceClient : IMlServiceClient
         var raw = JsonSerializer.Deserialize<MlOpticalScanResponse>(json, JsonOptions)
             ?? throw new InvalidOperationException("ML servisi geçersiz yanıt döndü.");
 
-        return new OpticalScanResultDto(raw.Answers ?? [], raw.QuestionCount);
+        var perQuestion = (raw.PerQuestion ?? [])
+            .Select(p => new OpticalPerQuestionReadDto(
+                p.Answer ?? "",
+                p.Status ?? "",
+                p.Confidence))
+            .ToList();
+
+        return new OpticalScanResultDto(
+            raw.Answers ?? [],
+            raw.QuestionCount,
+            raw.MarkersDetected,
+            raw.PerspectiveOk,
+            perQuestion);
     }
 
     public async Task<HealthCheckDto> CheckHealthAsync(CancellationToken ct = default)
@@ -207,5 +219,15 @@ public class MlServiceClient : IMlServiceClient
     {
         public List<string>? Answers { get; set; }
         public int QuestionCount { get; set; }
+        public bool? MarkersDetected { get; set; }
+        public bool? PerspectiveOk { get; set; }
+        public List<MlOpticalPerQuestion>? PerQuestion { get; set; }
+    }
+
+    private class MlOpticalPerQuestion
+    {
+        public string? Answer { get; set; }
+        public string? Status { get; set; }
+        public double Confidence { get; set; }
     }
 }

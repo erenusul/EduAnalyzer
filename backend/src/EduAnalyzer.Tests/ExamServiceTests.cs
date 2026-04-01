@@ -1,4 +1,7 @@
+using System.IO;
+using System.Text.Json;
 using EduAnalyzer.Application.DTOs;
+using EduAnalyzer.Application.Exceptions;
 using EduAnalyzer.Application.Interfaces;
 using EduAnalyzer.Application.Services;
 using EduAnalyzer.Domain.Entities;
@@ -242,5 +245,151 @@ public class ExamServiceTests
             service.DeleteExamResultForStudentSelfAsync(resultId, Guid.NewGuid()));
 
         resultRepo.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitScanForStudentAsync_ThrowsOpticalScanRejected_WhenPerspectiveNotOk()
+    {
+        var teacherId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var analysis = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            ClassId = null,
+            ResultsJson = "{}",
+            Title = "t",
+            Date = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = analysis.Id,
+            TeacherId = teacherId,
+            Status = ExamStatus.Ready,
+            Title = "E",
+            WeekLabel = "W",
+            Date = DateTime.UtcNow,
+            AnswerKeyJson = JsonSerializer.Serialize(new List<string> { "A", "A" }),
+            CreatedAt = DateTime.UtcNow,
+            Analysis = analysis
+        };
+        var student = new Student
+        {
+            Id = studentId,
+            TeacherId = teacherId,
+            StudentNo = "1",
+            FirstName = "a",
+            LastName = "b",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>())).ReturnsAsync(exam);
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByStudentIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExamResult>());
+        var studentRepo = new Mock<IStudentRepository>();
+        studentRepo.Setup(x => x.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        var mlClient = new Mock<IMlServiceClient>();
+        var per = new List<OpticalPerQuestionReadDto>
+        {
+            new("A", "ok", 0.95),
+            new("A", "ok", 0.95)
+        };
+        mlClient
+            .Setup(x => x.ScanOpticalFormAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OpticalScanResultDto(
+                new[] { "A", "A" },
+                2,
+                true,
+                false,
+                per));
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await Assert.ThrowsAsync<OpticalScanRejectedException>(() =>
+            service.SubmitScanForStudentAsync(examId, studentId, new MemoryStream(), 2, null, null, null, default));
+
+        resultRepo.Verify(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitScanForStudentAsync_ThrowsOpticalScanRejected_WhenConfidenceTooLow()
+    {
+        var teacherId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var analysis = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            ClassId = null,
+            ResultsJson = "{}",
+            Title = "t",
+            Date = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = analysis.Id,
+            TeacherId = teacherId,
+            Status = ExamStatus.Ready,
+            Title = "E",
+            WeekLabel = "W",
+            Date = DateTime.UtcNow,
+            AnswerKeyJson = JsonSerializer.Serialize(new List<string> { "A" }),
+            CreatedAt = DateTime.UtcNow,
+            Analysis = analysis
+        };
+        var student = new Student
+        {
+            Id = studentId,
+            TeacherId = teacherId,
+            StudentNo = "1",
+            FirstName = "a",
+            LastName = "b",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>())).ReturnsAsync(exam);
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByStudentIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExamResult>());
+        var studentRepo = new Mock<IStudentRepository>();
+        studentRepo.Setup(x => x.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        var mlClient = new Mock<IMlServiceClient>();
+        var per = new List<OpticalPerQuestionReadDto> { new("A", "ok", 0.05) };
+        mlClient
+            .Setup(x => x.ScanOpticalFormAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OpticalScanResultDto(
+                new[] { "A" },
+                1,
+                true,
+                true,
+                per));
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        await Assert.ThrowsAsync<OpticalScanRejectedException>(() =>
+            service.SubmitScanForStudentAsync(examId, studentId, new MemoryStream(), 1, null, null, null, default));
+
+        resultRepo.Verify(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

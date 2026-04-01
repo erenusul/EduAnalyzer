@@ -28,4 +28,9 @@ public interface IMlServiceClient
 
 public record HealthCheckDto(string Status, bool ModelLoaded, string? Message);
 
-public record OpticalScanResultDto(IReadOnlyList<string> Answers, int QuestionCount);
+public record OpticalScanResultDto(
+    IReadOnlyList<string> Answers,
+    int QuestionCount,
+    bool? MarkersDetected = null,
+    bool? PerspectiveOk = null,
+    IReadOnlyList<OpticalPerQuestionReadDto>? PerQuestion = null);

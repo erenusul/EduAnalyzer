@@ -37,6 +37,12 @@ Once the server is running, visit:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
+## Optik tarama ve OMRChecker (isteğe bağlı)
+
+- Varsayılan: dahili OpenCV tabanlı okuma (`template`: `lgs_turkish_212x300`, `lgs_turkish_column_crop`, …).
+- **OMRChecker:** `template=lgs_turkish_omrchecker` + ortam değişkeni `OMR_CHECKER_TEMPLATE_JSON` (mutlak yol, OMRChecker `template.json`). Bağımlılıklar: `pip install -r requirements-omrchecker.txt`. Şablon yoksa veya hata olursa otomatik olarak dahili `lgs_turkish_212x300` okuyucuya düşülür.
+- Ayrıntı: `omr_templates/README.md`, `optical.env.example`.
+
 
 
 

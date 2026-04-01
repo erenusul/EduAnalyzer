@@ -420,6 +420,7 @@ public class ExamService : IExamService
             imageContentType,
             opticalTemplate,
             ct);
+        OpticalScanStrictValidator.EnsureAcceptable(ocrResult);
         return await ScanAndSaveResultAsync(
             examId,
             exam.TeacherId,

@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Security.Claims;
 using EduAnalyzer.Application.DTOs;
+using EduAnalyzer.Application.Exceptions;
 using EduAnalyzer.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -82,6 +83,10 @@ public class MeController : ControllerBase
             return Ok(response);
         }
         catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (OpticalScanRejectedException ex)
         {
             return BadRequest(new { message = ex.Message });
         }

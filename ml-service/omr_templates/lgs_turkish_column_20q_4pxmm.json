@@ -1,0 +1,22 @@
+{
+  "pageDimensions": [104, 364],
+  "bubbleDimensions": [14, 14],
+  "preProcessors": [
+    {
+      "name": "GaussianBlur",
+      "options": {
+        "kSize": [3, 3],
+        "sigmaX": 0
+      }
+    }
+  ],
+  "fieldBlocks": {
+    "TurkceColumn20_MCQ4": {
+      "fieldType": "QTYPE_MCQ4",
+      "fieldLabels": ["q1..20"],
+      "origin": [17, 37],
+      "bubblesGap": 17,
+      "labelsGap": 17
+    }
+  }
+}

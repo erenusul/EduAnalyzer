@@ -7,10 +7,18 @@ Faz 1 yaklaşımı:
 - iç grid üzerinde adaptif eşikleme ve doluluk oranı ile şık seç
 """
 
-from typing import List, Tuple
+import os
+from dataclasses import dataclass, field
+from typing import Any, List, Tuple
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from ml_service.optical_template_mm import (
+    get_lgs_turkish_template_mm,
+    get_sozel_template_mm,
+    get_turkish_column_crop_template_mm,
+)
+from ml_service.omr_checker_bridge import try_read_with_omr_checker
 from ml_service.utils.logger import logger
 
 router = APIRouter()
@@ -18,38 +26,68 @@ router = APIRouter()
 OPTIONS_5 = ["A", "B", "C", "D", "E"]
 OPTIONS_4 = ["A", "B", "C", "D"]
 
-# A4 baskı (212×300 mm): yalnızca Türkçe 20 soru × 4 şık — ölçüler mm, sol üst köşe referans.
+# A4 baskı (212×300 mm) Türkçe şablon kimliği — mm değerleri ml_service.optical_template_mm + OPTICAL_LGS_* env.
 TEMPLATE_LGS_TURKISH_212X300 = "lgs_turkish_212x300"
-_LGS_PAGE_W_MM = 212.0
-_LGS_PAGE_H_MM = 300.0
-_LGS_Q1_A_CX_MM = 27.0
-_LGS_Q1_A_CY_MM = 194.0
-_LGS_AD_CENTERS_SPAN_MM = 15.0  # A merkezi → D merkezi
-_LGS_Q1_Q20_CENTERS_SPAN_MM = 85.0  # 1. soru merkezi → 20. soru merkezi
 
-# SÖZEL bölümü kırpıntısı (117×107 mm): 4 sütun × 20 satır; sol üst (0,0), X sağa Y aşağı.
-# Soru sırası: sütun 1 (Türkçe) 1–20, sütun 2 21–40, sütun 3 41–60, sütun 4 61–80.
-# Sütun genişliği eşit kabul edilir; Q1–A x = k * (sayfa_genişliği/4) + ilk_sütun_Q1A_x.
+# SÖZEL kırpıntı şablon kimliği — mm değerleri optical_template_mm + OPTICAL_SOZEL_* env ile kalibre edilir.
 TEMPLATE_LGS_SOZEL_CROP_117X107 = "lgs_sozel_crop_117x107"
-_SOZEL_PAGE_W_MM = 117.0
-_SOZEL_PAGE_H_MM = 107.0
-_SOZEL_Q1_A_CX_COL0_MM = 11.0  # 1. sütun, 1. soru A merkezi X (sayfa solundan)
-_SOZEL_Q1_A_CY_MM = 21.0
-_SOZEL_AD_CENTERS_SPAN_MM = 15.0  # A merkezi → D merkezi
-_SOZEL_Q1_Q20_CENTERS_SPAN_MM = 84.0  # 1. satır merkezi → 20. satır merkezi (aynı sütun)
-_SOZEL_COLUMN_COUNT = 4
-_SOZEL_COLUMN_WIDTH_MM = _SOZEL_PAGE_W_MM / float(_SOZEL_COLUMN_COUNT)
-_SOZEL_ROWS_PER_COLUMN = 20
-_SOZEL_MAX_QUESTIONS = _SOZEL_COLUMN_COUNT * _SOZEL_ROWS_PER_COLUMN  # 80
-# Baskı/kadraj kayması varsa mm cinsinden ince ayar (±0.3 … ±0.8 denenebilir).
-_SOZEL_GRID_OFFSET_X_MM = 0.0
-_SOZEL_GRID_OFFSET_Y_MM = 0.0
-# Balon yarıçapı = min(şık_aralığı, satır_aralığı) px × bu katsayı (çok büyük komşu şıkkı seçer).
-_SOZEL_BUBBLE_RADIUS_SCALE = 0.50
+
+# Yalnızca TÜRKÇE sütunu (pembe başlık + 20×4) — kadraj = kırpıntı; OPTICAL_TR_COL_* env.
+TEMPLATE_LGS_TURKISH_COLUMN_CROP = "lgs_turkish_column_crop"
+
+# OMRChecker (third_party/OMRChecker) — OMR_CHECKER_TEMPLATE_JSON zorunlu; yoksa veya hata olursa dahili lgs_turkish_212x300 okumasına düşülür.
+TEMPLATE_LGS_TURKISH_OMRCHECKER = "lgs_turkish_omrchecker"
+
+# A4 tam sayfa: uzak kadrajda köşe kareleri _find_corner_markers eşiğinin altında kalınca
+# markers_detected/perspective_ok false olur; backend kesin politika reddeder. Yeterli çözünürlükte
+# okumayı denemeye izin ver (lgs_turkish_column_crop ile aynı fikir).
+_FULLPAGE_MIN_SHORT_EDGE_FOR_MARKER_FALLBACK_PX = 560
 
 
 class OpticalScanRejected(Exception):
     """Görüntü optik okumaya uygun değil (boş, çok karanlık, tek renk vb.)."""
+
+
+@dataclass(frozen=True)
+class QuestionRead:
+    """Tek soru satırı için okuma sonucu (bloklama politikası için)."""
+
+    answer: str
+    status: str  # ok | empty | ambiguous
+    confidence: float
+
+
+@dataclass
+class OpticalScanFullResult:
+    """Tam optik tarama çıktısı; API ve .NET istemcisi ile uyumlu."""
+
+    answers: List[str]
+    markers_detected: bool
+    perspective_ok: bool
+    per_question: List[QuestionRead] = field(default_factory=list)
+
+    def to_api_dict(self, question_count: int) -> dict[str, Any]:
+        # .NET JsonNamingPolicy.SnakeCaseLower ile uyumlu anahtarlar
+        return {
+            "answers": self.answers,
+            "question_count": question_count,
+            "markers_detected": self.markers_detected,
+            "perspective_ok": self.perspective_ok,
+            "per_question": [
+                {
+                    "answer": q.answer,
+                    "status": q.status,
+                    "confidence": round(q.confidence, 4),
+                }
+                for q in self.per_question
+            ],
+        }
+
+
+def _confidence_from_margin(best: float, second: float, scale: float = 0.12) -> float:
+    """Baskın şık ile ikinci arasındaki marjdan 0–1 güven (scale: tipik marj aralığı)."""
+    gap = max(0.0, best - second)
+    return min(1.0, max(0.0, 0.2 + 0.8 * min(1.0, gap / max(scale, 1e-6))))
 
 
 def _validate_optical_image_quality(gray) -> None:
@@ -264,10 +302,16 @@ def _find_corner_markers(binary_image) -> Tuple[Tuple[float, float], ...] | None
     )
 
 
-def _warp_from_markers(gray_image, markers):
-    """Gri (H×W) veya BGR (H×W×3) görüntü; perspektif düzeltme."""
+def _try_warp_from_markers(image, markers) -> tuple[Any, bool]:
+    """
+    Gri (H×W) veya BGR (H×W×3) görüntü; perspektif düzeltme.
+    Dönüş: (görüntü, warp_uygulandı_mı). Köşe yok veya çıktı çok küçükse orijinal + False.
+    """
     import cv2
     import numpy as np
+
+    if not markers:
+        return image, False
 
     top_left, top_right, bottom_right, bottom_left = markers
 
@@ -280,7 +324,7 @@ def _warp_from_markers(gray_image, markers):
     max_height = int(max(height_right, height_left))
 
     if max_width < 200 or max_height < 200:
-        return gray_image
+        return image, False
 
     source = np.array(markers, dtype="float32")
     destination = np.array(
@@ -294,7 +338,13 @@ def _warp_from_markers(gray_image, markers):
     )
 
     transform = cv2.getPerspectiveTransform(source, destination)
-    return cv2.warpPerspective(gray_image, transform, (max_width, max_height))
+    return cv2.warpPerspective(image, transform, (max_width, max_height)), True
+
+
+def _warp_from_markers(gray_image, markers):
+    """Geriye dönük: yalnızca görüntü (warp yoksa orijinal)."""
+    warped, _ = _try_warp_from_markers(gray_image, markers)
+    return warped
 
 
 def _bubble_fill_ratio(
@@ -322,6 +372,53 @@ def _bubble_fill_ratio(
     if inner_pixels.size == 0:
         return 0.0
     return float(np.count_nonzero(inner_pixels)) / float(inner_pixels.size)
+
+
+def _lgs_vertical_slack_enabled() -> bool:
+    v = (os.environ.get("OPTICAL_LGS_DISABLE_VERTICAL_SLACK") or "").strip().lower()
+    return v not in ("1", "true", "yes", "on")
+
+
+def _row_scores_from_centers_lgs_vertical_slack(
+    binary,
+    width: int,
+    height: int,
+    centers_x: list[float],
+    center_y: float,
+    radius: int,
+    row_step_px: float,
+) -> tuple[list[float], list[str]]:
+    """
+    Her şık dairesi için nominal Y etrafında dar dikey pencerede maksimum doluluk alınır.
+    Geçerli Y aralığına clamp + nominal Y ile max alınır; kenar/bozuk kadrajda tüm örneklerin
+    atlanıp skorun 0 kalması engellenir.
+    """
+    import numpy as np
+
+    r = int(max(4, radius))
+    rsp = max(float(row_step_px), 1.0)
+    half = min(rsp * 0.22, max(float(r) * 1.6, rsp * 0.12))
+    half = max(half, 1.0)
+
+    y_lo = float(r + 1)
+    y_hi = float(max(r + 1, height - r - 1))
+    if y_lo >= y_hi:
+        y_mid = max(0.0, min(float(height - 1), float(center_y)))
+        y_lo = y_hi = y_mid
+
+    options = _get_options(len(centers_x))
+    scores: list[float] = []
+    cy = float(center_y)
+    for cx in centers_x:
+        best = 0.0
+        for dy in np.linspace(-half, half, num=7):
+            y = max(y_lo, min(y_hi, cy + float(dy)))
+            v = _bubble_fill_ratio(binary, width, height, cx, y, r)
+            if v > best:
+                best = v
+        nominal = _bubble_fill_ratio(binary, width, height, cx, max(y_lo, min(y_hi, cy)), r)
+        scores.append(max(best, nominal))
+    return scores, options
 
 
 def _bubble_pencil_darkness(
@@ -403,129 +500,210 @@ def _row_scores_from_centers_hybrid(
     return scores, options
 
 
-def _answers_from_option_scores(option_scores: list[float], options: list[str]) -> str:
+def _row_read_default(option_scores: list[float], options: list[str]) -> QuestionRead:
+    """Varsayılan grid şablonu: baskın değilse ve iki şık da güçlü + marj darsa ambiguous."""
     if not option_scores:
-        return ""
+        return QuestionRead("", "empty", 0.0)
     best_index = max(range(len(option_scores)), key=lambda i: option_scores[i])
     sorted_scores = sorted(option_scores, reverse=True)
     best_score = sorted_scores[0]
     second_score = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
-    is_marked = best_score >= 0.18
-    is_dominant = best_score >= max(second_score * 1.35, second_score + 0.05)
-    if is_marked and is_dominant:
-        return options[best_index]
-    return ""
+    mark_thresh = 0.165
+    if best_score < mark_thresh:
+        return QuestionRead("", "empty", best_score)
+    is_dominant = best_score >= max(second_score * 1.33, second_score + 0.048)
+    if not is_dominant:
+        strong2 = mark_thresh * 0.92
+        if second_score >= strong2 and (best_score - second_score) < max(
+            0.048, second_score * 0.17
+        ):
+            return QuestionRead("", "ambiguous", min(1.0, (best_score + second_score) / 2.0))
+        return QuestionRead("", "empty", best_score)
+    conf = _confidence_from_margin(best_score, second_score, scale=0.1)
+    return QuestionRead(options[best_index], "ok", conf)
 
 
-def _answers_from_lgs_option_scores(option_scores: list[float], options: list[str]) -> str:
-    """Pembe form + hafif işaret için daha yumuşak eşik."""
+def _row_read_lgs(option_scores: list[float], options: list[str]) -> QuestionRead:
+    """212×300 Türkçe LGS şablonu."""
     if not option_scores:
-        return ""
+        return QuestionRead("", "empty", 0.0)
     best_index = max(range(len(option_scores)), key=lambda i: option_scores[i])
     sorted_scores = sorted(option_scores, reverse=True)
     best_score = sorted_scores[0]
     second_score = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
-    if best_score < 0.09:
-        return ""
+    min_best = 0.085
+    if best_score < min_best:
+        return QuestionRead("", "empty", best_score)
+    strong2 = min_best * 1.35
+    if second_score >= strong2 and (best_score - second_score) < max(
+        0.024, second_score * 0.11
+    ):
+        return QuestionRead("", "ambiguous", min(1.0, (best_score + second_score) / 2.0))
     if best_score < max(second_score * 1.18, second_score + 0.025):
-        return ""
-    return options[best_index]
+        return QuestionRead("", "empty", best_score)
+    conf = _confidence_from_margin(best_score, second_score, scale=0.08)
+    return QuestionRead(options[best_index], "ok", conf)
 
 
-def _answers_from_lgs_option_scores_sozel(option_scores: list[float], options: list[str]) -> str:
-    """
-    117×107 SÖZEL: ikili+gri hibrit skor ile uyumlu baskınlık (çok gevşek eşik yanlış şık artırır).
-    """
+def _row_read_sozel(option_scores: list[float], options: list[str]) -> QuestionRead:
+    """117×107 SÖZEL hibrit skorları."""
     if not option_scores:
-        return ""
+        return QuestionRead("", "empty", 0.0)
     best_index = max(range(len(option_scores)), key=lambda i: option_scores[i])
     sorted_scores = sorted(option_scores, reverse=True)
     best_score = sorted_scores[0]
     second_score = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
-    if best_score < 0.062:
-        return ""
+    min_best = 0.062
+    if best_score < min_best:
+        return QuestionRead("", "empty", best_score)
+    strong2 = min_best * 1.5
+    if second_score >= strong2 and (best_score - second_score) < max(
+        0.018, second_score * 0.09
+    ):
+        return QuestionRead("", "ambiguous", min(1.0, (best_score + second_score) / 2.0))
     if best_score < max(second_score * 1.12, second_score + 0.017):
-        return ""
-    return options[best_index]
+        return QuestionRead("", "empty", best_score)
+    conf = _confidence_from_margin(best_score, second_score, scale=0.06)
+    return QuestionRead(options[best_index], "ok", conf)
 
 
 def _detect_answers_lgs_turkish_212x300(
     form_image, question_count: int, option_count: int = 4
-) -> List[str]:
+) -> List[QuestionRead]:
     """
-    212×300 mm sayfa; Türkçe 1–20: 1. soru A merkezi (27,194) mm, A–D arası 15 mm, satır aralığı 85/19 mm.
+    212×300 mm sayfa; Türkçe 1–20: varsayılan A merkezi (27,194) mm — env ile güncellenir.
     Görüntü köşe düzeltmesinden sonra piksel boyutu sayfanın tamamına karşılık gelmeli (tam kadraj).
     """
     _ = option_count  # Bu şablonda her zaman 4 şık
+    tm = get_lgs_turkish_template_mm()
     binary = _prepare_binary_lgs(form_image)
     height, width = binary.shape
     oc = 4
-    option_step_mm = _LGS_AD_CENTERS_SPAN_MM / float(oc - 1)
-    row_step_mm = _LGS_Q1_Q20_CENTERS_SPAN_MM / 19.0
+    option_step_mm = tm.ad_centers_span_mm / float(oc - 1)
+    row_step_mm = tm.q1_q20_centers_span_mm / 19.0
+    row_step_px = row_step_mm / tm.page_h_mm * height
 
-    step_x_px = option_step_mm / _LGS_PAGE_W_MM * width
-    step_y_px = row_step_mm / _LGS_PAGE_H_MM * height
+    step_x_px = option_step_mm / tm.page_w_mm * width
+    step_y_px = row_step_px
     radius = max(5, int(min(step_x_px, step_y_px) * 0.48))
 
     rows = max(1, min(question_count, 60))
-    answers: List[str] = []
+    reads: List[QuestionRead] = []
 
     for row in range(rows):
-        cy_mm = _LGS_Q1_A_CY_MM + row * row_step_mm
-        cy_px = cy_mm / _LGS_PAGE_H_MM * height
-        centers_x_mm = [_LGS_Q1_A_CX_MM + c * option_step_mm for c in range(oc)]
-        centers_x_px = [cx / _LGS_PAGE_W_MM * width for cx in centers_x_mm]
-        scores, opts = _row_scores_from_centers(
-            binary, width, height, centers_x_px, cy_px, radius
-        )
-        answers.append(_answers_from_lgs_option_scores(scores, opts))
+        cy_mm = tm.q1_a_cy_mm + row * row_step_mm + tm.grid_offset_y_mm
+        cy_px = cy_mm / tm.page_h_mm * height
+        centers_x_mm = [
+            tm.q1_a_cx_mm + tm.grid_offset_x_mm + c * option_step_mm for c in range(oc)
+        ]
+        centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
+        if _lgs_vertical_slack_enabled():
+            scores, opts = _row_scores_from_centers_lgs_vertical_slack(
+                binary, width, height, centers_x_px, cy_px, radius, row_step_px
+            )
+        else:
+            scores, opts = _row_scores_from_centers(
+                binary, width, height, centers_x_px, cy_px, radius
+            )
+        reads.append(_row_read_lgs(scores, opts))
 
-    return answers[:question_count]
+    while len(reads) < question_count:
+        reads.append(QuestionRead("", "empty", 0.0))
+    return reads[:question_count]
 
 
 def _detect_answers_lgs_sozel_crop_117x107(
     form_image, question_count: int, option_count: int = 4
-) -> List[str]:
+) -> List[QuestionRead]:
     """
-    117×107 mm kırpıntı; dört ders sütunu (Türkçe, Sosyal, Din, İngilizce), sütun başına 20 soru.
+    SÖZEL kırpıntısı; sütun başına N soru (varsayılan 4×20). mm modeli optical_template_mm + OPTICAL_SOZEL_* env.
     Görüntü bu dikdörtgene denk gelecek şekilde kadrajlanmalı (köşe düzeltmesi sonrası tam alan).
     """
     _ = option_count
+    tm = get_sozel_template_mm()
     gray = form_image
     binary = _prepare_binary_lgs(form_image)
     height, width = binary.shape
     oc = 4
-    option_step_mm = _SOZEL_AD_CENTERS_SPAN_MM / float(oc - 1)
-    row_step_mm = _SOZEL_Q1_Q20_CENTERS_SPAN_MM / 19.0
+    option_step_mm = tm.ad_centers_span_mm / float(oc - 1)
+    row_step_mm = tm.q1_q20_centers_span_mm / 19.0
 
-    step_x_px = option_step_mm / _SOZEL_PAGE_W_MM * width
-    step_y_px = row_step_mm / _SOZEL_PAGE_H_MM * height
-    radius = max(5, int(min(step_x_px, step_y_px) * _SOZEL_BUBBLE_RADIUS_SCALE))
+    step_x_px = option_step_mm / tm.page_w_mm * width
+    step_y_px = row_step_mm / tm.page_h_mm * height
+    radius = max(5, int(min(step_x_px, step_y_px) * tm.bubble_radius_scale))
 
-    n = max(0, min(question_count, _SOZEL_MAX_QUESTIONS))
-    answers: List[str] = []
+    n = max(0, min(question_count, tm.max_questions))
+    reads: List[QuestionRead] = []
 
     for global_idx in range(n):
-        col = global_idx // _SOZEL_ROWS_PER_COLUMN
-        row = global_idx % _SOZEL_ROWS_PER_COLUMN
-        q1_a_x_mm = (
-            col * _SOZEL_COLUMN_WIDTH_MM + _SOZEL_Q1_A_CX_COL0_MM + _SOZEL_GRID_OFFSET_X_MM
-        )
-        cy_mm = _SOZEL_Q1_A_CY_MM + row * row_step_mm + _SOZEL_GRID_OFFSET_Y_MM
-        cy_px = cy_mm / _SOZEL_PAGE_H_MM * height
+        col = global_idx // tm.rows_per_column
+        row = global_idx % tm.rows_per_column
+        q1_a_x_mm = tm.column_left_mm(col) + tm.q1_a_cx_col0_mm + tm.grid_offset_x_mm
+        cy_mm = tm.q1_a_cy_mm + row * row_step_mm + tm.grid_offset_y_mm
+        cy_px = cy_mm / tm.page_h_mm * height
         centers_x_mm = [q1_a_x_mm + c * option_step_mm for c in range(oc)]
-        centers_x_px = [cx / _SOZEL_PAGE_W_MM * width for cx in centers_x_mm]
+        centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
         scores, opts = _row_scores_from_centers_hybrid(
             binary, gray, width, height, centers_x_px, cy_px, radius, binary_weight=0.52
         )
-        answers.append(_answers_from_lgs_option_scores_sozel(scores, opts))
+        reads.append(_row_read_sozel(scores, opts))
 
-    return answers
+    while len(reads) < question_count:
+        reads.append(QuestionRead("", "empty", 0.0))
+    return reads[:question_count]
+
+
+def _detect_answers_lgs_turkish_column_crop(
+    form_image, question_count: int, option_count: int = 4
+) -> List[QuestionRead]:
+    """
+    Tek sütun TÜRKÇE kırpıntısı; görüntü OPTICAL_TR_COL_PAGE_* mm dikdörtgenine denk gelmeli.
+
+    Tam sayfa `lgs_turkish_212x300` ile aynı ikili doluluk + `_row_read_lgs` ailesi kullanılır;
+    hibrit/SÖZEL eşikleri bu şablonda skor dağılımıyla uyumsuz olduğu için gerçek fotoğraflarda
+    sık belirsiz/düşük güven üretiyordu.
+    """
+    _ = option_count
+    tm = get_turkish_column_crop_template_mm()
+    binary = _prepare_binary_lgs(form_image)
+    height, width = binary.shape
+    oc = 4
+    option_step_mm = tm.ad_centers_span_mm / float(oc - 1)
+    row_step_mm = tm.q1_q20_centers_span_mm / 19.0
+    row_step_px = row_step_mm / tm.page_h_mm * height
+
+    step_x_px = option_step_mm / tm.page_w_mm * width
+    step_y_px = row_step_px
+    radius = max(5, int(min(step_x_px, step_y_px) * tm.bubble_radius_scale))
+
+    rows = max(1, min(question_count, 60))
+    reads: List[QuestionRead] = []
+
+    for row in range(rows):
+        cy_mm = tm.q1_a_cy_mm + row * row_step_mm + tm.grid_offset_y_mm
+        cy_px = cy_mm / tm.page_h_mm * height
+        centers_x_mm = [
+            tm.q1_a_cx_mm + tm.grid_offset_x_mm + c * option_step_mm for c in range(oc)
+        ]
+        centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
+        if _lgs_vertical_slack_enabled():
+            scores, opts = _row_scores_from_centers_lgs_vertical_slack(
+                binary, width, height, centers_x_px, cy_px, radius, row_step_px
+            )
+        else:
+            scores, opts = _row_scores_from_centers(
+                binary, width, height, centers_x_px, cy_px, radius
+            )
+        reads.append(_row_read_lgs(scores, opts))
+
+    while len(reads) < question_count:
+        reads.append(QuestionRead("", "empty", 0.0))
+    return reads[:question_count]
 
 
 def _detect_answers_from_template(
     form_image, question_count: int, option_count: int = 5
-) -> List[str]:
+) -> List[QuestionRead]:
     option_count = max(4, min(5, option_count))
     options = _get_options(option_count)
 
@@ -540,7 +718,7 @@ def _detect_answers_from_template(
     grid_height = max(grid_bottom - grid_top, 1)
     row_height = grid_height / rows
     col_width = grid_width / float(option_count)
-    answers = []
+    reads: List[QuestionRead] = []
 
     for row in range(rows):
         option_scores = []
@@ -552,9 +730,11 @@ def _detect_answers_from_template(
                 _bubble_fill_ratio(binary, width, height, center_x, center_y, radius)
             )
 
-        answers.append(_answers_from_option_scores(option_scores, options))
+        reads.append(_row_read_default(option_scores, options))
 
-    return answers[:question_count]
+    while len(reads) < question_count:
+        reads.append(QuestionRead("", "empty", 0.0))
+    return reads[:question_count]
 
 
 def _detect_answers_from_image(
@@ -562,7 +742,7 @@ def _detect_answers_from_image(
     question_count: int = 20,
     option_count: int = 5,
     template: str | None = None,
-) -> List[str]:
+) -> OpticalScanFullResult:
     """
     Optik form görüntüsünden işaretleri tespit et.
 
@@ -571,59 +751,138 @@ def _detect_answers_from_image(
     2. İç cevap grid'ini ayır
     3. Adaptif threshold + doluluk oranı ile işaretli şıkkı belirle
 
-    Marker bulunamazsa mevcut görüntü üzerinden aynı mantıkla devam eder.
+    markers_detected / perspective_ok bloklama politikası için döner (köşe yok veya warp
+    uygulanmadıysa perspective_ok false).
     """
+    empty = OpticalScanFullResult([], False, False, [])
     try:
         import cv2
         import numpy as np
     except ImportError:
         logger.warning("OpenCV yüklü değil, optik form OCR kullanılamaz")
-        return []
+        return empty
 
     try:
         nparr = np.frombuffer(image_bytes, np.uint8)
         bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if bgr is None:
-            return []
+            return empty
 
         img_gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         _validate_optical_image_quality(img_gray)
 
         binary = _prepare_binary(img_gray)
         markers = _find_corner_markers(binary)
+        markers_detected = markers is not None
         tmpl = (template or "").strip().lower()
         lgs_magenta_dropout = False
-        if tmpl == TEMPLATE_LGS_TURKISH_212X300:
-            work_bgr = _warp_from_markers(bgr, markers) if markers else bgr
+        perspective_ok = False
+        reads: List[QuestionRead]
+        gray_lgs = None
+
+        if tmpl == TEMPLATE_LGS_TURKISH_OMRCHECKER:
+            if markers:
+                work_bgr, perspective_ok = _try_warp_from_markers(bgr, markers)
+            else:
+                work_bgr = bgr
             gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
-            answers = _detect_answers_lgs_turkish_212x300(gray_lgs, question_count, 4)
+            omr_reads: List[QuestionRead] | None = None
+            jpeg_ok, jpeg_buf = cv2.imencode(
+                ".jpg", work_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 92]
+            )
+            if jpeg_ok:
+                omr_tuples = try_read_with_omr_checker(
+                    jpeg_buf.tobytes(), question_count, option_count
+                )
+                if omr_tuples is not None:
+                    omr_reads = [
+                        QuestionRead(a, st, conf) for a, st, conf in omr_tuples
+                    ]
+            if omr_reads is not None:
+                reads = omr_reads
+                markers_detected = True
+                perspective_ok = True
+                lgs_magenta_dropout = False
+            else:
+                reads = _detect_answers_lgs_turkish_212x300(gray_lgs, question_count, 4)
+        elif tmpl == TEMPLATE_LGS_TURKISH_212X300:
+            if markers:
+                work_bgr, perspective_ok = _try_warp_from_markers(bgr, markers)
+            else:
+                work_bgr = bgr
+            gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
+            reads = _detect_answers_lgs_turkish_212x300(gray_lgs, question_count, 4)
         elif tmpl == TEMPLATE_LGS_SOZEL_CROP_117X107:
-            work_bgr = _warp_from_markers(bgr, markers) if markers else bgr
+            if markers:
+                work_bgr, perspective_ok = _try_warp_from_markers(bgr, markers)
+            else:
+                work_bgr = bgr
             gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
-            answers = _detect_answers_lgs_sozel_crop_117x107(gray_lgs, question_count, 4)
+            reads = _detect_answers_lgs_sozel_crop_117x107(gray_lgs, question_count, 4)
+        elif tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP:
+            if markers:
+                work_bgr, perspective_ok = _try_warp_from_markers(bgr, markers)
+            else:
+                work_bgr = bgr
+            gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
+            reads = _detect_answers_lgs_turkish_column_crop(gray_lgs, question_count, 4)
+            gh, gw = gray_lgs.shape[:2]
+            if not markers_detected or not perspective_ok:
+                # Dar kırpıntıda köşe kareleri yok; ~4 px/mm altında hizalama hataları çok artar
+                if gw >= 100 and gh >= 320:
+                    markers_detected = True
+                    perspective_ok = True
         else:
-            working_gray = _warp_from_markers(img_gray, markers) if markers else img_gray
-            answers = _detect_answers_from_template(
+            if markers:
+                working_gray, perspective_ok = _try_warp_from_markers(img_gray, markers)
+            else:
+                working_gray = img_gray
+            reads = _detect_answers_from_template(
                 working_gray, question_count, option_count
             )
+
+        if (
+            tmpl in (TEMPLATE_LGS_TURKISH_212X300, TEMPLATE_LGS_TURKISH_OMRCHECKER)
+            and gray_lgs is not None
+        ):
+            gh, gw = gray_lgs.shape[:2]
+            if (not markers_detected or not perspective_ok) and min(gh, gw) >= int(
+                _FULLPAGE_MIN_SHORT_EDGE_FOR_MARKER_FALLBACK_PX
+            ):
+                markers_detected = True
+                perspective_ok = True
+
+        answers = [r.answer for r in reads]
+        result = OpticalScanFullResult(
+            answers=answers,
+            markers_detected=markers_detected,
+            perspective_ok=perspective_ok,
+            per_question=reads,
+        )
 
         log_extra = {
             "question_count": question_count,
             "option_count": option_count,
             "template": tmpl or "default",
-            "markers_detected": bool(markers),
+            "markers_detected": markers_detected,
+            "perspective_ok": perspective_ok,
             "detected_answers": len(answers),
         }
-        if tmpl in (TEMPLATE_LGS_TURKISH_212X300, TEMPLATE_LGS_SOZEL_CROP_117X107):
+        if tmpl in (
+            TEMPLATE_LGS_TURKISH_212X300,
+            TEMPLATE_LGS_TURKISH_OMRCHECKER,
+            TEMPLATE_LGS_SOZEL_CROP_117X107,
+            TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+        ):
             log_extra["lgs_magenta_dropout"] = lgs_magenta_dropout
 
         logger.info("Optik form işlendi", extra=log_extra)
-        return answers
+        return result
     except OpticalScanRejected:
         raise
     except Exception as e:
         logger.error(f"Optik form işleme hatası: {e}", exc_info=True)
-        return []
+        return empty
 
 
 @router.post("/optical-scan")
@@ -634,8 +893,9 @@ async def optical_scan(
     template: str | None = Form(
         None,
         description=(
-            f"Şablon; örn. {TEMPLATE_LGS_SOZEL_CROP_117X107} (117×107 mm SÖZEL 4×20) veya "
-            f"{TEMPLATE_LGS_TURKISH_212X300} (212×300 A4 Türkçe 20×4)"
+            f"Şablon; örn. {TEMPLATE_LGS_SOZEL_CROP_117X107} (117×107 mm SÖZEL 4×20), "
+            f"{TEMPLATE_LGS_TURKISH_212X300} (212×300 A4), "
+            f"{TEMPLATE_LGS_TURKISH_OMRCHECKER} (OMRChecker + OMR_CHECKER_TEMPLATE_JSON)"
         ),
     ),
 ):
@@ -644,8 +904,9 @@ async def optical_scan(
     question_count: soru sayısı (varsayılan 20)
     option_count: şık sayısı 4 veya 5 (varsayılan 5, Türkçe için 4)
     template: lgs_sozel_crop_117x107 = 117×107 mm SÖZEL dört sütun (kadraj bu alanı doldursun);
-        lgs_turkish_212x300 = A4 Türkçe tek sütun 20×4
-    Döner: { "answers": ["A","B","C",...], "questionCount": 20 }
+        lgs_turkish_212x300 = A4 Türkçe tek sütun 20×4;
+        lgs_turkish_omrchecker = OMRChecker (env OMR_CHECKER_TEMPLATE_JSON); yoksa dahili 212×300
+    Döner: answers, question_count, markers_detected, perspective_ok, per_question (ok|empty|ambiguous).
     """
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
@@ -656,7 +917,7 @@ async def optical_scan(
 
     option_count = max(4, min(5, option_count))
     try:
-        answers = _detect_answers_from_image(
+        result = _detect_answers_from_image(
             content,
             question_count=question_count,
             option_count=option_count,
@@ -664,4 +925,4 @@ async def optical_scan(
         )
     except OpticalScanRejected as exc:
         raise HTTPException(400, str(exc)) from exc
-    return {"answers": answers, "questionCount": len(answers)}
+    return result.to_api_dict(len(result.answers))

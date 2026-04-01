@@ -321,7 +321,12 @@ export const analysesApi = {
 /** ML `optical_scan` şablon kimliği — student-app ile aynı (212×300 mm Türkçe 20×4). */
 export const OPTICAL_TEMPLATE_LGS_TURKISH_212X300 = 'lgs_turkish_212x300';
 
+/** OMRChecker; sunucuda OMR_CHECKER_TEMPLATE_JSON gerekir (yoksa dahili 212×300). */
+export const OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER = 'lgs_turkish_omrchecker';
+
 export const OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 = 'lgs_sozel_crop_117x107';
+
+export const OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP = 'lgs_turkish_column_crop';
 
 export const examsApi = {
   getAll: () => apiGet<BackendExam[]>('/api/exams'),

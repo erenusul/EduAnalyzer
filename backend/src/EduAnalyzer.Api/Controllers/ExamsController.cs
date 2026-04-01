@@ -1,5 +1,7 @@
+using System.Net.Http;
 using System.Security.Claims;
 using EduAnalyzer.Application.DTOs;
+using EduAnalyzer.Application.Exceptions;
 using EduAnalyzer.Application.Interfaces;
 using EduAnalyzer.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -102,18 +104,31 @@ public class ExamsController : ControllerBase
         if (exam == null) return NotFound();
         var count = questionCount ?? exam.AnswerKey?.Count ?? 20;
 
-        await using var stream = file.OpenReadStream();
-        var ocrResult = await _mlClient.ScanOpticalFormAsync(
-            stream,
-            count,
-            optionCount,
-            file.ContentType,
-            opticalTemplate,
-            ct);
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var ocrResult = await _mlClient.ScanOpticalFormAsync(
+                stream,
+                count,
+                optionCount,
+                file.ContentType,
+                opticalTemplate,
+                ct);
 
-        var request = new ScanExamRequest(studentId, ocrResult.Answers);
-        var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
-        return Ok(response);
+            OpticalScanStrictValidator.EnsureAcceptable(ocrResult);
+
+            var request = new ScanExamRequest(studentId, ocrResult.Answers);
+            var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
+            return Ok(response);
+        }
+        catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (OpticalScanRejectedException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("results")]

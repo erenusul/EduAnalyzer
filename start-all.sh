@@ -84,6 +84,10 @@ start_ml_service() {
     source "$ROOT/ml-service/venv/bin/activate"
     cd "$ROOT"
     release_port 8000 "ML API"
+    # Tam sayfa optik: student-app `lgs_turkish_omrchecker` gönderir; şablon yolu yoksa ML dahili 212×300'e düşer.
+    if [ -z "${OMR_CHECKER_TEMPLATE_JSON:-}" ] && [ -f "$ROOT/ml-service/omr_templates/lgs_turkish_user_measured_993x1319.json" ]; then
+      export OMR_CHECKER_TEMPLATE_JSON="$ROOT/ml-service/omr_templates/lgs_turkish_user_measured_993x1319.json"
+    fi
     "$PYTHON_CMD" -m uvicorn ml_service.api.main:app --host 0.0.0.0 --port 8000 &
     ML_PID=$!
     if [ -z "$ML_PID" ] || ! kill -0 "$ML_PID" 2>/dev/null; then
