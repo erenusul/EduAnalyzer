@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  type LayoutChangeEvent,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -19,7 +22,7 @@ import {
   OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
   submitScan,
 } from '../../services/api/examsApi';
-import { TurkishColumnScanOverlay } from './TurkishColumnScanOverlay';
+import { TurkishColumnScanOverlay, getTurkishColumnOverlayFrame } from './TurkishColumnScanOverlay';
 import { TurkishFullPageScanOverlay } from './TurkishFullPageScanOverlay';
 import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
 import type { ScanScreenProps } from '../../app/navigation/types';
@@ -28,6 +31,114 @@ import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
 
 type OpticalScanMode = 'fullPage' | 'turkishColumn';
+type ViewportSize = { width: number; height: number };
+
+function getImageSizeAsync(uri: string): Promise<ViewportSize> {
+  return new Promise((resolve, reject) => {
+    Image.getSize(
+      uri,
+      (width, height) => resolve({ width, height }),
+      (error) => reject(error)
+    );
+  });
+}
+
+function getCenteredCoverCropRect(
+  imageSize: ViewportSize,
+  viewportSize: ViewportSize,
+  frameSize: ViewportSize
+): { originX: number; originY: number; width: number; height: number } | null {
+  if (
+    imageSize.width <= 0 ||
+    imageSize.height <= 0 ||
+    viewportSize.width <= 0 ||
+    viewportSize.height <= 0 ||
+    frameSize.width <= 0 ||
+    frameSize.height <= 0
+  ) {
+    return null;
+  }
+
+  const scale = Math.max(
+    viewportSize.width / imageSize.width,
+    viewportSize.height / imageSize.height
+  );
+  const displayedWidth = imageSize.width * scale;
+  const displayedHeight = imageSize.height * scale;
+  const offsetX = Math.max(0, (displayedWidth - viewportSize.width) / 2);
+  const offsetY = Math.max(0, (displayedHeight - viewportSize.height) / 2);
+  const frameX = (viewportSize.width - frameSize.width) / 2;
+  const frameY = (viewportSize.height - frameSize.height) / 2;
+
+  const originX = Math.max(0, Math.round((offsetX + frameX) / scale));
+  const originY = Math.max(0, Math.round((offsetY + frameY) / scale));
+  const width = Math.min(
+    imageSize.width - originX,
+    Math.max(1, Math.round(frameSize.width / scale))
+  );
+  const height = Math.min(
+    imageSize.height - originY,
+    Math.max(1, Math.round(frameSize.height / scale))
+  );
+
+  if (width <= 1 || height <= 1) {
+    return null;
+  }
+
+  return { originX, originY, width, height };
+}
+
+async function cropTurkishColumnPhoto(
+  photoUri: string,
+  imageSize: ViewportSize,
+  viewportSize: ViewportSize
+): Promise<string> {
+  const frameSize = getTurkishColumnOverlayFrame(viewportSize.width, viewportSize.height);
+  const cropRect = getCenteredCoverCropRect(imageSize, viewportSize, frameSize);
+  if (!cropRect) {
+    return photoUri;
+  }
+
+  const result = await manipulateAsync(
+    photoUri,
+    [{ crop: cropRect }],
+    {
+      compress: 0.95,
+      format: SaveFormat.JPEG,
+    }
+  );
+
+  return result.uri;
+}
+
+function buildOpticalErrorHint(rawMessage: string, scanMode: OpticalScanMode): string {
+  const message = rawMessage.trim();
+  if (!message) {
+    return scanMode === 'turkishColumn'
+      ? 'Fotoğraf işlenemedi. Sol 1-20 turuncu alanı daha yakından, düz ve taşmadan çekip yeniden deneyin.'
+      : 'Fotoğraf işlenemedi. Formu düz tutup daha net çekin veya başka bir fotoğraf deneyin.';
+  }
+
+  if (message.includes('TÜRKÇE kutusu çok küçük')) {
+    return `${message}\n\nİpucu: kamera ile yaklaşın, kutunun etrafında çok fazla boşluk bırakmayın ve galeriden kırpılmış bir örnekle de deneyin.`;
+  }
+
+  if (message.includes('Turuncu soru kutusu çok küçük')) {
+    return `${message}\n\nİpucu: soldaki 1-20 paneli kadrajın büyük kısmını kaplayacak şekilde alın; sağ 21-40 alanı kısmen görünse de sorun değil.`;
+  }
+
+  if (message.includes('Köşe işaretleri algılanamadı')) {
+    return `${message}\n\nİpucu: tam sayfa modunda dört köşe görünmeli; olmuyorsa TÜRKÇE sütunu moduna geçin.`;
+  }
+
+  if (message.includes('çok karanlık') || message.includes('belirsiz')) {
+    return `${message}\n\nİpucu: flaşı kapatın, kağıda paralel tutun ve gölgeyi azaltın.`;
+  }
+
+  return scanMode === 'turkishColumn'
+    ? `${message}\n\nİpucu: soldaki 1-20 turuncu paneli yakın çekin; üst başlık, sol siyah işaret şeridi ve alt kenar görünür olsun.`
+    : message;
+}
 
 function buildStyles(colors: AppThemeColors) {
   return StyleSheet.create({
@@ -198,9 +309,45 @@ function buildStyles(colors: AppThemeColors) {
       borderRadius: 20,
       marginBottom: 16,
     },
+    previewZoomHint: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginBottom: 12,
+    },
     previewActions: {
       flexDirection: 'row',
       gap: 12,
+    },
+    imageModalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.94)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 20,
+    },
+    imageModalCloseButton: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageModalContent: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalImage: {
+      width: '100%',
+      height: '100%',
     },
     loadingRow: {
       flexDirection: 'row',
@@ -390,6 +537,24 @@ export function ScanScreen({ route }: ScanScreenProps) {
   const [submitting, setSubmitting] = useState(false);
   const [scanResult, setScanResult] = useState<ScanExamResponse | null>(null);
   const [scanMode, setScanMode] = useState<OpticalScanMode>('fullPage');
+  const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
+  const [isFlashEnabled, setIsFlashEnabled] = useState(false);
+  const [cameraViewportSize, setCameraViewportSize] = useState<ViewportSize>({ width: 0, height: 440 });
+  const cameraViewportWidth = cameraViewportSize.width > 0 ? cameraViewportSize.width : Math.max(200, windowWidth - 64);
+  const cameraViewportHeight = cameraViewportSize.height > 0 ? cameraViewportSize.height : 440;
+
+  const handleCameraViewportLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+
+    setCameraViewportSize((current) => {
+      const widthChanged = Math.abs(current.width - width) > 1;
+      const heightChanged = Math.abs(current.height - height) > 1;
+      return widthChanged || heightChanged ? { width, height } : current;
+    });
+  };
 
   const handleScanModeChange = (mode: OpticalScanMode) => {
     if (mode === scanMode) return;
@@ -401,7 +566,23 @@ export function ScanScreen({ route }: ScanScreenProps) {
   const handleCapture = async () => {
     const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
     if (photo?.uri) {
-      setPhotoUri(photo.uri);
+      let nextUri = photo.uri;
+      if (scanMode === 'turkishColumn') {
+        try {
+          const imageSize =
+            typeof photo.width === 'number' && typeof photo.height === 'number'
+              ? { width: photo.width, height: photo.height }
+              : await getImageSizeAsync(photo.uri);
+          nextUri = await cropTurkishColumnPhoto(photo.uri, imageSize, {
+            width: cameraViewportWidth,
+            height: cameraViewportHeight,
+          });
+        } catch {
+          nextUri = photo.uri;
+        }
+      }
+
+      setPhotoUri(nextUri);
       setScanResult(null);
     }
   };
@@ -457,9 +638,7 @@ export function ScanScreen({ route }: ScanScreenProps) {
       }
 
       if (status === 400) {
-        const opticalHint =
-          rawMessage.trim() ||
-          'Fotoğraf işlenemedi. Formu düz tutup daha net çekin veya başka bir fotoğraf deneyin.';
+        const opticalHint = buildOpticalErrorHint(rawMessage, scanMode);
         Alert.alert('Optik okunamadı', opticalHint);
         return;
       }
@@ -524,7 +703,8 @@ export function ScanScreen({ route }: ScanScreenProps) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.infoCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
           <View style={styles.examIconBox}>
@@ -560,7 +740,7 @@ export function ScanScreen({ route }: ScanScreenProps) {
             <Text style={[styles.modeChipTitle, scanMode === 'turkishColumn' && styles.modeChipTitleActive]}>
               TÜRKÇE sütunu
             </Text>
-            <Text style={styles.modeChipHint}>Dar alan — milimetrik hizalama gerekir</Text>
+            <Text style={styles.modeChipHint}>Yakın çekim — şablon dışı alan gönderimden önce kırpılır</Text>
           </Pressable>
         </View>
 
@@ -591,13 +771,13 @@ export function ScanScreen({ route }: ScanScreenProps) {
               <View style={styles.instructionRow}>
                 <Ionicons name="chevron-forward" size={16} color={colors.accent} />
                 <Text style={styles.instructionsText}>
-                  Yalnızca TÜRKÇE sütununu çekin: pembe başlık ve 1–20 satırlar rehberle üst üste binsin.
+                  Soldaki 1-20 turuncu paneli çerçeveye oturtun; fotoğraf gönderilmeden önce çerçeve dışı alan otomatik kırpılır.
                 </Text>
               </View>
               <View style={styles.instructionRow}>
                 <Ionicons name="chevron-forward" size={16} color={colors.accent} />
                 <Text style={styles.instructionsText}>
-                  Tam sayfa yerine bu mod yalnızca dar kırpıntı içindir; hizalama zordur, mümkünse tam sayfa seçin.
+                  Sağdaki 21-40 alanını mümkün olduğunca dışarıda bırakın; sol siyah işaret şeridi görünürse hizalama daha tutarlı olur.
                 </Text>
               </View>
             </>
@@ -611,7 +791,14 @@ export function ScanScreen({ route }: ScanScreenProps) {
 
       {photoUri ? (
         <View style={styles.previewCard}>
-          <Image source={{ uri: photoUri }} style={styles.previewImage} />
+          <Pressable
+            onPress={() => setIsImagePreviewVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Onizleme gorselini tam ekranda ac"
+          >
+            <Image source={{ uri: photoUri }} style={styles.previewImage} />
+          </Pressable>
+          <Text style={styles.previewZoomHint}>Kontrol icin gorselin uzerine dokunup tam boy acabilirsiniz.</Text>
           <View style={{ gap: 12 }}>
             <View style={styles.previewActions}>
               <Pressable
@@ -660,25 +847,45 @@ export function ScanScreen({ route }: ScanScreenProps) {
         </View>
       ) : (
         <View style={styles.cameraCard}>
-          <View style={styles.cameraWrapper}>
-            <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+          <View style={styles.cameraWrapper} onLayout={handleCameraViewportLayout}>
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="back"
+              enableTorch={isFlashEnabled}
+            />
             <View pointerEvents="none" style={styles.overlay}>
               {scanMode === 'fullPage' ? (
                 <TurkishFullPageScanOverlay
                   accentColor={colors.accent}
-                  layoutMaxWidth={Math.max(200, windowWidth - 64)}
-                  cameraViewportHeight={440}
+                  layoutMaxWidth={cameraViewportWidth}
+                  cameraViewportHeight={cameraViewportHeight}
                 />
               ) : (
                 <TurkishColumnScanOverlay
                   accentColor={colors.accent}
-                  layoutMaxWidth={Math.max(200, windowWidth - 64)}
-                  cameraViewportHeight={440}
+                  layoutMaxWidth={cameraViewportWidth}
+                  cameraViewportHeight={cameraViewportHeight}
                 />
               )}
             </View>
           </View>
           <View style={styles.cameraActionsRow}>
+            <Pressable
+              style={[styles.secondaryButton, styles.primaryButtonFlex]}
+              onPress={() => setIsFlashEnabled((current) => !current)}
+              accessibilityRole="button"
+              accessibilityLabel={isFlashEnabled ? 'Flaşi kapat' : 'Flaşi aç'}
+              accessibilityState={{ selected: isFlashEnabled }}
+            >
+              <Ionicons
+                name={isFlashEnabled ? 'flash' : 'flash-off'}
+                size={22}
+                color={colors.accent}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.secondaryButtonText}>{isFlashEnabled ? 'Flaş Açık' : 'Flaş Kapalı'}</Text>
+            </Pressable>
             <Pressable
               style={[styles.primaryButton, styles.primaryButtonFlex]}
               onPress={() => void handleCapture()}
@@ -778,6 +985,28 @@ export function ScanScreen({ route }: ScanScreenProps) {
           ) : null}
         </View>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+
+      <Modal
+        visible={isImagePreviewVisible && !!photoUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsImagePreviewVisible(false)}
+      >
+        <Pressable style={styles.imageModalBackdrop} onPress={() => setIsImagePreviewVisible(false)}>
+          <View style={styles.imageModalContent} pointerEvents="box-none">
+            <Image source={photoUri ? { uri: photoUri } : undefined} style={styles.imageModalImage} resizeMode="contain" />
+          </View>
+          <Pressable
+            style={styles.imageModalCloseButton}
+            onPress={() => setIsImagePreviewVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Tam ekran onizlemeyi kapat"
+          >
+            <Ionicons name="close" size={24} color="#ffffff" />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }

@@ -30,12 +30,19 @@ OmrRowResult = Tuple[str, str, float]
 BRIDGE_ROOT = Path(__file__).resolve().parent
 OMR_CHECKER_ROOT = BRIDGE_ROOT / "third_party" / "OMRChecker"
 MAIN_PY = OMR_CHECKER_ROOT / "main.py"
+DEFAULT_COLUMN_TEMPLATE_JSON = BRIDGE_ROOT / "omr_templates" / "lgs_turkish_column_20q_4pxmm.json"
 
 
-def _template_json_path() -> Optional[Path]:
-    raw = (os.environ.get("OMR_CHECKER_TEMPLATE_JSON") or "").strip()
+def _template_json_path(
+    env_var: str = "OMR_CHECKER_TEMPLATE_JSON",
+    default_path: Optional[Path] = None,
+) -> Optional[Path]:
+    raw = (os.environ.get(env_var) or "").strip()
     if not raw:
-        return None
+        if default_path is None:
+            return None
+        p = default_path.expanduser()
+        return p if p.is_file() else None
     p = Path(raw).expanduser()
     return p if p.is_file() else None
 
@@ -131,15 +138,19 @@ def try_read_with_omr_checker(
     image_jpeg_bytes: bytes,
     question_count: int,
     option_count: int,
+    *,
+    template_env_var: str = "OMR_CHECKER_TEMPLATE_JSON",
+    template_json_path: Optional[Path] = None,
 ) -> Optional[List[OmrRowResult]]:
     """
     Tek görüntü için OMRChecker subprocess çalıştırır; başarılıysa (answer, status, confidence) listesi.
     Aksi halde None (çağıran dahili pipeline kullanır).
     """
-    tpl = _template_json_path()
+    tpl = _template_json_path(template_env_var, template_json_path)
     if tpl is None:
         logger.info(
-            "OMRChecker: OMR_CHECKER_TEMPLATE_JSON tanımlı değil; dahili optik okuyucu kullanılacak."
+            "OMRChecker: %s tanımlı değil ve varsayılan şablon bulunamadı; dahili optik okuyucu kullanılacak.",
+            template_env_var,
         )
         return None
     if not _omr_checker_available():

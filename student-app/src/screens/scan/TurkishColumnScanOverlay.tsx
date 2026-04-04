@@ -10,6 +10,27 @@ export type TurkishColumnScanOverlayProps = {
   cameraViewportHeight: number;
 };
 
+export type TurkishColumnOverlayFrame = {
+  width: number;
+  height: number;
+};
+
+export function getTurkishColumnOverlayFrame(
+  layoutMaxWidth: number,
+  cameraViewportHeight: number
+): TurkishColumnOverlayFrame {
+  const aspect = turkishColumnCropAspectRatio();
+  const maxH = cameraViewportHeight * 0.9;
+  const maxW = layoutMaxWidth * 0.94;
+  let h = maxH;
+  let w = h * aspect;
+  if (w > maxW) {
+    w = maxW;
+    h = w / aspect;
+  }
+  return { width: w, height: h };
+}
+
 /**
  * Türkçe sütun kırpıntısı için mm modeli en-boy oranında yalnızca dış çerçeve — satır/şık rehberi yok (formla hizası tutmuyordu).
  */
@@ -18,18 +39,10 @@ export function TurkishColumnScanOverlay({
   layoutMaxWidth,
   cameraViewportHeight,
 }: TurkishColumnScanOverlayProps) {
-  const frameStyle = useMemo(() => {
-    const aspect = turkishColumnCropAspectRatio();
-    const maxH = cameraViewportHeight * 0.9;
-    const maxW = layoutMaxWidth * 0.94;
-    let h = maxH;
-    let w = h * aspect;
-    if (w > maxW) {
-      w = maxW;
-      h = w / aspect;
-    }
-    return { width: w, height: h };
-  }, [layoutMaxWidth, cameraViewportHeight]);
+  const frameStyle = useMemo(
+    () => getTurkishColumnOverlayFrame(layoutMaxWidth, cameraViewportHeight),
+    [layoutMaxWidth, cameraViewportHeight]
+  );
 
   return (
     <View style={styles.centerFill} pointerEvents="none">

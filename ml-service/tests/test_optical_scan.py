@@ -8,11 +8,13 @@ import numpy as np
 import pytest
 
 from ml_service.api.routes.optical_scan import (
+    QuestionRead,
     TEMPLATE_LGS_SOZEL_CROP_117X107,
     TEMPLATE_LGS_TURKISH_212X300,
     TEMPLATE_LGS_TURKISH_COLUMN_CROP,
     OpticalScanRejected,
     _detect_answers_from_image,
+    _looks_like_collapsed_single_option,
 )
 
 
@@ -234,6 +236,49 @@ def _build_lgs_turkish_column_crop_synthetic(answers: list[str]) -> bytes:
     return encoded.tobytes()
 
 
+def _build_lgs_turkish_left_panel_photo_like_synthetic(answers: list[str]) -> bytes:
+    """Gerçek örneğe benzer: turuncu dış kutu + sol 1-20 alanında A-D işaretleri."""
+    canvas_w = 768
+    canvas_h = 1024
+    image = np.full((canvas_h, canvas_w, 3), 255, dtype=np.uint8)
+    orange = (80, 165, 235)
+
+    # Sol siyah işaret şeridi
+    for i in range(14):
+        y = 22 + i * 69
+        cv2.rectangle(image, (118, y), (155, y + 16), (40, 40, 40), -1)
+
+    x0, y0, w0, h0 = 227, 85, 541, 818
+    cv2.rectangle(image, (x0, y0), (x0 + w0 - 1, y0 + h0 - 1), orange, 2)
+    cv2.rectangle(image, (x0, y0 + 78), (x0 + w0 - 1, y0 + 79), orange, -1)
+    cv2.rectangle(image, (x0 + 32, y0 + 150), (x0 + 33, y0 + h0 - 1), orange, -1)
+    cv2.rectangle(image, (x0 + 240, y0 + 150), (x0 + 241, y0 + h0 - 1), orange, -1)
+
+    centers_x = [
+        x0 + int(round(w0 * 0.109)),
+        x0 + int(round(w0 * 0.181)),
+        x0 + int(round(w0 * 0.247)),
+        x0 + int(round(w0 * 0.314)),
+    ]
+    y_start = y0 + int(round(h0 * 0.175))
+    y_end = y0 + int(round(h0 * 0.972))
+    row_step = (y_end - y_start) / 19.0
+    radius = 15
+    opts = ["A", "B", "C", "D"]
+
+    for row, selected in enumerate(answers):
+        cy = int(round(y_start + row * row_step))
+        for idx, letter in enumerate(opts):
+            cx = centers_x[idx]
+            cv2.circle(image, (cx, cy), radius, orange, 2)
+            if selected == letter:
+                cv2.circle(image, (cx, cy), radius - 4, (25, 25, 25), -1)
+
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+    return encoded.tobytes()
+
+
 def test_lgs_turkish_column_crop_reads_twenty_rows():
     answers = [
         "A",
@@ -268,6 +313,29 @@ def test_lgs_turkish_column_crop_reads_twenty_rows():
     assert result.answers == answers
     assert result.markers_detected is True
     assert result.perspective_ok is True
+
+
+def test_lgs_turkish_column_crop_reads_left_panel_photo_like_image():
+    answers = ["A", "B", "C", "D", "", "A", "B", "", "D", "C", "A", "D", "", "B", "C", "A", "", "D", "C", "B"]
+    image_bytes = _build_lgs_turkish_left_panel_photo_like_synthetic(answers)
+    result = _detect_answers_from_image(
+        image_bytes,
+        question_count=len(answers),
+        option_count=4,
+        template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    )
+
+    assert result.answers == answers
+    assert result.markers_detected is True
+    assert result.perspective_ok is True
+
+
+def test_collapsed_single_option_guard_flags_all_a_pattern():
+    reads = [QuestionRead("A", "ok", 0.88) for _ in range(18)] + [
+        QuestionRead("", "empty", 0.0),
+        QuestionRead("", "empty", 0.0),
+    ]
+    assert _looks_like_collapsed_single_option(reads, 20) is True
 
 
 def test_ambiguous_when_two_bubbles_filled_same_row():

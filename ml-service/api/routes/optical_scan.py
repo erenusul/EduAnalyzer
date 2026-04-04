@@ -7,8 +7,10 @@ Faz 1 yaklaşımı:
 - iç grid üzerinde adaptif eşikleme ve doluluk oranı ile şık seç
 """
 
+import json
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, List, Tuple
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -18,7 +20,10 @@ from ml_service.optical_template_mm import (
     get_sozel_template_mm,
     get_turkish_column_crop_template_mm,
 )
-from ml_service.omr_checker_bridge import try_read_with_omr_checker
+from ml_service.omr_checker_bridge import (
+    DEFAULT_COLUMN_TEMPLATE_JSON,
+    try_read_with_omr_checker,
+)
 from ml_service.utils.logger import logger
 
 router = APIRouter()
@@ -42,6 +47,22 @@ TEMPLATE_LGS_TURKISH_OMRCHECKER = "lgs_turkish_omrchecker"
 # markers_detected/perspective_ok false olur; backend kesin politika reddeder. Yeterli çözünürlükte
 # okumayı denemeye izin ver (lgs_turkish_column_crop ile aynı fikir).
 _FULLPAGE_MIN_SHORT_EDGE_FOR_MARKER_FALLBACK_PX = 560
+_TURKISH_COLUMN_MIN_WARPED_W_PX = 96
+_TURKISH_COLUMN_MIN_WARPED_H_PX = 300
+_TURKISH_COLUMN_TARGET_ASPECT = 26.0 / 88.0
+_TURKISH_COLUMN_PINK_BOX_W_MM = 26.0
+_TURKISH_COLUMN_PINK_BOX_H_MM = 85.0
+_TURKISH_COLUMN_EXTRA_BOTTOM_MM = 6.0
+_TURKISH_LEFT_PANEL_TARGET_ASPECT = 0.66
+_TURKISH_LEFT_PANEL_MIN_W_PX = 280
+_TURKISH_LEFT_PANEL_MIN_H_PX = 500
+_TURKISH_LEFT_PANEL_Q1_CY_RATIO = 0.186
+_TURKISH_LEFT_PANEL_Q20_CY_RATIO = 0.954
+_TURKISH_LEFT_PANEL_AX_RATIO = 0.109
+_TURKISH_LEFT_PANEL_BX_RATIO = 0.181
+_TURKISH_LEFT_PANEL_CX_RATIO = 0.247
+_TURKISH_LEFT_PANEL_DX_RATIO = 0.314
+_TURKISH_DEBUG_DIR = Path(__file__).resolve().parents[2] / "debug"
 
 
 class OpticalScanRejected(Exception):
@@ -82,6 +103,43 @@ class OpticalScanFullResult:
                 for q in self.per_question
             ],
         }
+
+
+def _question_read_summary(reads: List[QuestionRead]) -> dict[str, Any]:
+    non_empty_answers = [r.answer for r in reads if (r.answer or "").strip()]
+    unique_answers = sorted(set(non_empty_answers))
+    counts: dict[str, int] = {}
+    for ans in non_empty_answers:
+        counts[ans] = counts.get(ans, 0) + 1
+    dominant_answer = ""
+    dominant_count = 0
+    if counts:
+        dominant_answer, dominant_count = max(counts.items(), key=lambda item: item[1])
+    return {
+        "total": len(reads),
+        "non_empty": len(non_empty_answers),
+        "unique_answers": unique_answers,
+        "dominant_answer": dominant_answer,
+        "dominant_count": dominant_count,
+        "dominant_ratio": (dominant_count / float(max(len(non_empty_answers), 1))),
+    }
+
+
+def _looks_like_collapsed_single_option(reads: List[QuestionRead], question_count: int) -> bool:
+    """
+    OMR şablonu kaydığında sık görülen belirti: neredeyse tüm dolu cevaplar tek şıkta toplanır (örn. hep A).
+    Gerçek optikte mümkündür ama 20 soruluk testlerde düşük olasılık; Türkçe sütunu için bunu şüpheli say.
+    """
+    s = _question_read_summary(reads)
+    if question_count < 8:
+        return False
+    if s["non_empty"] < max(6, int(question_count * 0.35)):
+        return False
+    if len(s["unique_answers"]) <= 1 and s["dominant_ratio"] >= 0.9:
+        return True
+    if len(s["unique_answers"]) <= 2 and s["dominant_ratio"] >= 0.82:
+        return True
+    return False
 
 
 def _confidence_from_margin(best: float, second: float, scale: float = 0.12) -> float:
@@ -125,6 +183,36 @@ def _is_probably_image(content_type: str | None, body: bytes) -> bool:
         return False
     main = content_type.split(";", 1)[0].strip().lower()
     return main.startswith("image/")
+
+
+def _normalize_uploaded_image_bytes(image_bytes: bytes) -> bytes:
+    """
+    Galeriden seçilen JPEG'lerde EXIF orientation sık görülür; OpenCV bunu her zaman uygulamaz.
+    Pillow ile orientation'ı düzeltip tekrar kodla.
+    """
+    from io import BytesIO
+
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        return image_bytes
+
+    try:
+        with Image.open(BytesIO(image_bytes)) as img:
+            normalized = ImageOps.exif_transpose(img)
+            if normalized.mode not in ("RGB", "L"):
+                normalized = normalized.convert("RGB")
+            buf = BytesIO()
+            fmt = "PNG" if (img.format or "").upper() == "PNG" else "JPEG"
+            save_kwargs = {"format": fmt}
+            if fmt == "JPEG":
+                save_kwargs["quality"] = 95
+                save_kwargs["optimize"] = True
+            normalized.save(buf, **save_kwargs)
+            out = buf.getvalue()
+            return out or image_bytes
+    except Exception:
+        return image_bytes
 
 
 def _get_options(option_count: int) -> List[str]:
@@ -347,6 +435,217 @@ def _warp_from_markers(gray_image, markers):
     return warped
 
 
+def _clip_rect(x: int, y: int, w: int, h: int, max_w: int, max_h: int) -> tuple[int, int, int, int]:
+    x1 = max(0, min(int(round(x)), max_w - 1))
+    y1 = max(0, min(int(round(y)), max_h - 1))
+    x2 = max(x1 + 1, min(int(round(x + w)), max_w))
+    y2 = max(y1 + 1, min(int(round(y + h)), max_h))
+    return x1, y1, x2 - x1, y2 - y1
+
+
+def _score_turkish_column_rect(x: int, y: int, w: int, h: int, image_w: int, image_h: int) -> float:
+    area_ratio = (w * h) / float(max(image_w * image_h, 1))
+    if area_ratio < 0.025 or area_ratio > 0.82:
+        return -1.0
+
+    aspect = w / float(max(h, 1))
+    if not 0.14 <= aspect <= 0.46:
+        return -1.0
+
+    # Tam sayfa fotoğrafta sağdaki dikey renk bandı dar sütun sanılabiliyor.
+    if y <= int(image_h * 0.05) and h >= int(image_h * 0.88) and x >= int(image_w * 0.18):
+        return -1.0
+
+    aspect_score = 1.0 - min(1.0, abs(aspect - _TURKISH_COLUMN_TARGET_ASPECT) / _TURKISH_COLUMN_TARGET_ASPECT)
+    height_score = min(1.0, h / max(image_h * 0.58, 1.0))
+    area_score = min(1.0, area_ratio / 0.18)
+    top_bias = 1.0 - min(1.0, y / max(image_h * 0.7, 1.0))
+    return aspect_score * 0.52 + height_score * 0.23 + area_score * 0.17 + top_bias * 0.08
+
+
+def _score_turkish_left_panel_rect(x: int, y: int, w: int, h: int, image_w: int, image_h: int) -> float:
+    area_ratio = (w * h) / float(max(image_w * image_h, 1))
+    if area_ratio < 0.12 or area_ratio > 0.9:
+        return -1.0
+
+    aspect = w / float(max(h, 1))
+    if not 0.48 <= aspect <= 0.82:
+        return -1.0
+
+    aspect_score = 1.0 - min(
+        1.0,
+        abs(aspect - _TURKISH_LEFT_PANEL_TARGET_ASPECT) / _TURKISH_LEFT_PANEL_TARGET_ASPECT,
+    )
+    area_score = min(1.0, area_ratio / 0.42)
+    top_bias = 1.0 - min(1.0, y / max(image_h * 0.25, 1.0))
+    left_bias = 1.0 - min(1.0, x / max(image_w * 0.25, 1.0))
+    return aspect_score * 0.48 + area_score * 0.28 + top_bias * 0.14 + left_bias * 0.10
+
+
+def _find_turkish_column_rect_from_mask(mask, image_shape, method: str) -> dict[str, Any] | None:
+    import cv2
+
+    image_h, image_w = image_shape[:2]
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    best: dict[str, Any] | None = None
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        score = _score_turkish_column_rect(x, y, w, h, image_w, image_h)
+        if score < 0:
+            continue
+
+        if method == "magenta":
+            extra_bottom_px = int(round(h * max(0.0, _TURKISH_COLUMN_EXTRA_BOTTOM_MM / _TURKISH_COLUMN_PINK_BOX_H_MM)))
+            analysis_rect = _clip_rect(
+                x - int(round(w * 0.03)),
+                y - int(round(h * 0.02)),
+                w + int(round(w * 0.06)),
+                h + int(round(h * 0.04)) + extra_bottom_px,
+                image_w,
+                image_h,
+            )
+        else:
+            analysis_rect = _clip_rect(
+                x - int(round(w * 0.04)),
+                y - int(round(h * 0.03)),
+                w + int(round(w * 0.08)),
+                h + int(round(h * 0.06)),
+                image_w,
+                image_h,
+            )
+
+        candidate = {
+            "method": method,
+            "score": round(score, 4),
+            "source_rect": (int(x), int(y), int(w), int(h)),
+            "analysis_rect": analysis_rect,
+        }
+        if best is None or candidate["score"] > best["score"]:
+            best = candidate
+
+    return best
+
+
+def _find_turkish_left_panel_rect_from_mask(mask, image_shape) -> dict[str, Any] | None:
+    import cv2
+
+    image_h, image_w = image_shape[:2]
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    best: dict[str, Any] | None = None
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        score = _score_turkish_left_panel_rect(x, y, w, h, image_w, image_h)
+        if score < 0:
+            continue
+
+        analysis_rect = _clip_rect(
+            x - int(round(w * 0.01)),
+            y - int(round(h * 0.01)),
+            w + int(round(w * 0.02)),
+            h + int(round(h * 0.02)),
+            image_w,
+            image_h,
+        )
+        candidate = {
+            "kind": "left_panel",
+            "method": "orange_panel",
+            "score": round(score, 4),
+            "source_rect": (int(x), int(y), int(w), int(h)),
+            "analysis_rect": analysis_rect,
+        }
+        if best is None or candidate["score"] > best["score"]:
+            best = candidate
+
+    return best
+
+
+def _try_crop_turkish_column_region(bgr_image) -> tuple[Any, dict[str, Any] | None]:
+    """
+    Dar TÜRKÇE sütun fotoğraflarında önce pembe kutuyu bulup analize o bölgeyi ver.
+    Tam tespit edilemezse görüntüyü olduğu gibi döndür.
+    """
+    import cv2
+    import numpy as np
+
+    if bgr_image is None or bgr_image.size == 0:
+        return bgr_image, None
+
+    image_h, image_w = bgr_image.shape[:2]
+    hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
+    mask_magenta = cv2.inRange(hsv, np.array([130, 35, 45]), np.array([175, 255, 255]))
+    mask_red_wrap = cv2.inRange(hsv, np.array([0, 35, 45]), np.array([12, 255, 255]))
+    color_mask = cv2.bitwise_or(mask_magenta, mask_red_wrap)
+
+    kx = max(5, int(round(image_w * 0.025)))
+    ky = max(7, int(round(image_h * 0.025)))
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (kx | 1, ky | 1))
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, kx // 2) | 1, max(3, ky // 2) | 1))
+
+    orange_mask = cv2.inRange(hsv, np.array([3, 18, 70]), np.array([35, 255, 255]))
+    orange_mask = cv2.morphologyEx(orange_mask, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+    orange_mask = cv2.dilate(orange_mask, kernel_dilate, iterations=2)
+    panel_meta = _find_turkish_left_panel_rect_from_mask(orange_mask, bgr_image.shape)
+    if panel_meta is not None:
+        x, y, w, h = panel_meta["analysis_rect"]
+        panel_meta["crop_size"] = (int(w), int(h))
+        return bgr_image[y : y + h, x : x + w], panel_meta
+
+    color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+    color_mask = cv2.dilate(color_mask, kernel_dilate, iterations=1)
+
+    crop_meta = _find_turkish_column_rect_from_mask(color_mask, bgr_image.shape, "magenta")
+    if crop_meta is not None:
+        x, y, w, h = crop_meta["source_rect"]
+        right_edge = x + w
+        if (
+            y <= int(image_h * 0.06)
+            and h >= int(image_h * 0.82)
+            and right_edge >= int(image_w * 0.9)
+        ):
+            panel_w = int(round(h * _TURKISH_LEFT_PANEL_TARGET_ASPECT))
+            panel_rect = _clip_rect(
+                right_edge - panel_w,
+                y - int(round(h * 0.01)),
+                panel_w,
+                h + int(round(h * 0.02)),
+                image_w,
+                image_h,
+            )
+            px, py, pw, ph = panel_rect
+            expanded_meta = {
+                "kind": "left_panel",
+                "method": "magenta_expanded_left_panel",
+                "score": round(crop_meta["score"], 4),
+                "source_rect": crop_meta["source_rect"],
+                "analysis_rect": panel_rect,
+                "crop_size": (int(pw), int(ph)),
+            }
+            return bgr_image[py : py + ph, px : px + pw], expanded_meta
+        x, y, w, h = crop_meta["analysis_rect"]
+        crop_meta["kind"] = "narrow_column"
+        crop_meta["crop_size"] = (int(w), int(h))
+        return bgr_image[y : y + h, x : x + w], crop_meta
+
+    gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+    binary = _prepare_binary_lgs(gray)
+    kernel_fallback = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (max(5, int(round(image_w * 0.05))) | 1, max(7, int(round(image_h * 0.035))) | 1),
+    )
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_fallback, iterations=1)
+    binary = cv2.dilate(binary, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=1)
+    crop_meta = _find_turkish_column_rect_from_mask(binary, bgr_image.shape, "dark")
+    if crop_meta is not None:
+        x, y, w, h = crop_meta["analysis_rect"]
+        crop_meta["kind"] = "narrow_column"
+        crop_meta["crop_size"] = (int(w), int(h))
+        return bgr_image[y : y + h, x : x + w], crop_meta
+
+    return bgr_image, None
+
+
 def _bubble_fill_ratio(
     binary, width: int, height: int, center_x: float, center_y: float, radius: int
 ) -> float:
@@ -498,6 +797,51 @@ def _row_scores_from_centers_hybrid(
     gw = max(0.0, min(1.0, binary_weight))
     scores = [gw * b + (1.0 - gw) * dn for b, dn in zip(b_scores, d_norm)]
     return scores, options
+
+
+def _row_scores_from_centers_hybrid_vertical_slack(
+    binary,
+    gray,
+    width: int,
+    height: int,
+    centers_x: list[float],
+    center_y: float,
+    radius: int,
+    row_step_px: float,
+    binary_weight: float = 0.46,
+) -> tuple[list[float], list[str]]:
+    """
+    Hibrit skorları nominal Y etrafında birkaç örnekten alıp şık başına en iyi değeri seç.
+    Dar kırpıntıda küçük eğiklik / crop kaymalarını daha iyi tolere eder.
+    """
+    import numpy as np
+
+    r = int(max(4, radius))
+    rsp = max(float(row_step_px), 1.0)
+    half = min(rsp * 0.22, max(float(r) * 1.7, rsp * 0.12))
+    half = max(half, 1.0)
+
+    y_lo = float(r + 1)
+    y_hi = float(max(r + 1, height - r - 1))
+    if y_lo >= y_hi:
+        y_mid = max(0.0, min(float(height - 1), float(center_y)))
+        y_lo = y_hi = y_mid
+
+    options = _get_options(len(centers_x))
+    best_scores = [0.0 for _ in centers_x]
+    cy = float(center_y)
+    for dy in np.linspace(-half, half, num=7):
+        y = max(y_lo, min(y_hi, cy + float(dy)))
+        scores, _ = _row_scores_from_centers_hybrid(
+            binary, gray, width, height, centers_x, y, r, binary_weight=binary_weight
+        )
+        best_scores = [max(prev, cur) for prev, cur in zip(best_scores, scores)]
+
+    nominal_scores, _ = _row_scores_from_centers_hybrid(
+        binary, gray, width, height, centers_x, max(y_lo, min(y_hi, cy)), r, binary_weight=binary_weight
+    )
+    best_scores = [max(prev, cur) for prev, cur in zip(best_scores, nominal_scores)]
+    return best_scores, options
 
 
 def _row_read_default(option_scores: list[float], options: list[str]) -> QuestionRead:
@@ -659,12 +1003,11 @@ def _detect_answers_lgs_turkish_column_crop(
     """
     Tek sütun TÜRKÇE kırpıntısı; görüntü OPTICAL_TR_COL_PAGE_* mm dikdörtgenine denk gelmeli.
 
-    Tam sayfa `lgs_turkish_212x300` ile aynı ikili doluluk + `_row_read_lgs` ailesi kullanılır;
-    hibrit/SÖZEL eşikleri bu şablonda skor dağılımıyla uyumsuz olduğu için gerçek fotoğraflarda
-    sık belirsiz/düşük güven üretiyordu.
+    Dar kırpıntıda otomatik crop sonrası hibrit skor + dikey slack ile küçük geometri kaymalarını tolere et.
     """
     _ = option_count
     tm = get_turkish_column_crop_template_mm()
+    gray = form_image
     binary = _prepare_binary_lgs(form_image)
     height, width = binary.shape
     oc = 4
@@ -682,23 +1025,223 @@ def _detect_answers_lgs_turkish_column_crop(
     for row in range(rows):
         cy_mm = tm.q1_a_cy_mm + row * row_step_mm + tm.grid_offset_y_mm
         cy_px = cy_mm / tm.page_h_mm * height
+        cy_px += _turkish_narrow_lower_rows_y_correction_px(row, row_step_px)
         centers_x_mm = [
             tm.q1_a_cx_mm + tm.grid_offset_x_mm + c * option_step_mm for c in range(oc)
         ]
         centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
         if _lgs_vertical_slack_enabled():
-            scores, opts = _row_scores_from_centers_lgs_vertical_slack(
-                binary, width, height, centers_x_px, cy_px, radius, row_step_px
+            scores, opts = _row_scores_from_centers_hybrid_vertical_slack(
+                binary, gray, width, height, centers_x_px, cy_px, radius, row_step_px, binary_weight=0.46
             )
         else:
-            scores, opts = _row_scores_from_centers(
-                binary, width, height, centers_x_px, cy_px, radius
+            scores, opts = _row_scores_from_centers_hybrid(
+                binary, gray, width, height, centers_x_px, cy_px, radius, binary_weight=0.46
             )
         reads.append(_row_read_lgs(scores, opts))
 
     while len(reads) < question_count:
         reads.append(QuestionRead("", "empty", 0.0))
     return reads[:question_count]
+
+
+def _detect_answers_turkish_left_panel_orange(
+    form_image, question_count: int, option_count: int = 4
+) -> List[QuestionRead]:
+    """
+    Turuncu dış kutulu yeni optik: sol 1–20 sütunu içinde A–D okunur, E fiziksel olarak bulunsa da yok sayılır.
+    Geometri gerçek örnek fotoğraftan çıkarılan oranlara göre crop edilen turuncu kutuya bağlanır.
+    """
+    _ = option_count
+    gray = form_image
+    binary = _prepare_binary_lgs(form_image)
+    height, width = binary.shape
+    oc = 4
+    centers_x_px = [
+        width * _TURKISH_LEFT_PANEL_AX_RATIO,
+        width * _TURKISH_LEFT_PANEL_BX_RATIO,
+        width * _TURKISH_LEFT_PANEL_CX_RATIO,
+        width * _TURKISH_LEFT_PANEL_DX_RATIO,
+    ]
+    y_start = height * _TURKISH_LEFT_PANEL_Q1_CY_RATIO
+    y_end = height * _TURKISH_LEFT_PANEL_Q20_CY_RATIO
+    row_step_px = (y_end - y_start) / 19.0
+    step_x_px = min(
+        centers_x_px[i + 1] - centers_x_px[i] for i in range(len(centers_x_px) - 1)
+    )
+    radius = max(6, int(min(step_x_px * 0.36, row_step_px * 0.42)))
+
+    rows = max(1, min(question_count, 20))
+    reads: List[QuestionRead] = []
+    for row in range(rows):
+        cy_px = y_start + row * row_step_px
+        scores, opts = _row_scores_from_centers_hybrid_vertical_slack(
+            binary, gray, width, height, centers_x_px, cy_px, radius, row_step_px, binary_weight=0.34
+        )
+        reads.append(_row_read_lgs(scores, opts))
+
+    while len(reads) < question_count:
+        reads.append(QuestionRead("", "empty", 0.0))
+    return reads[:question_count]
+
+
+def _turkish_narrow_lower_rows_y_correction_px(row_index: int, row_step_px: float) -> float:
+    """
+    Alt satırlarda baskı/perspektif nedeniyle merkezler hafif yukarı kayıyor.
+    İlk 13 satıra dokunma; 14-20 aralığında kademeli küçük yukarı telafi uygula.
+    """
+    if row_index < 13:
+        return 0.0
+
+    lower_idx = min(row_index - 13, 6)
+    correction_ratio = 0.06 + lower_idx * 0.03
+    return -row_step_px * correction_ratio
+
+
+def _debug_rows_turkish_left_panel_orange(
+    form_image, question_count: int
+) -> list[dict[str, Any]]:
+    gray = form_image
+    binary = _prepare_binary_lgs(form_image)
+    height, width = binary.shape
+    centers_x_px = [
+        width * _TURKISH_LEFT_PANEL_AX_RATIO,
+        width * _TURKISH_LEFT_PANEL_BX_RATIO,
+        width * _TURKISH_LEFT_PANEL_CX_RATIO,
+        width * _TURKISH_LEFT_PANEL_DX_RATIO,
+    ]
+    y_start = height * _TURKISH_LEFT_PANEL_Q1_CY_RATIO
+    y_end = height * _TURKISH_LEFT_PANEL_Q20_CY_RATIO
+    row_step_px = (y_end - y_start) / 19.0
+    step_x_px = min(
+        centers_x_px[i + 1] - centers_x_px[i] for i in range(len(centers_x_px) - 1)
+    )
+    radius = max(6, int(min(step_x_px * 0.36, row_step_px * 0.42)))
+
+    rows = max(1, min(question_count, 20))
+    data: list[dict[str, Any]] = []
+    for row in range(rows):
+        cy_px = y_start + row * row_step_px
+        scores, opts = _row_scores_from_centers_hybrid_vertical_slack(
+            binary, gray, width, height, centers_x_px, cy_px, radius, row_step_px, binary_weight=0.34
+        )
+        best_idx = max(range(len(scores)), key=lambda i: scores[i]) if scores else 0
+        data.append(
+            {
+                "row": row + 1,
+                "cy_px": round(cy_px, 2),
+                "centers_x_px": [round(v, 2) for v in centers_x_px],
+                "radius_px": radius,
+                "scores": {opt: round(score, 4) for opt, score in zip(opts, scores)},
+                "predicted": opts[best_idx] if scores else "",
+            }
+        )
+    return data
+
+
+def _debug_rows_turkish_narrow_column(
+    form_image, question_count: int
+) -> list[dict[str, Any]]:
+    tm = get_turkish_column_crop_template_mm()
+    gray = form_image
+    binary = _prepare_binary_lgs(form_image)
+    height, width = binary.shape
+    oc = 4
+    option_step_mm = tm.ad_centers_span_mm / float(oc - 1)
+    row_step_mm = tm.q1_q20_centers_span_mm / 19.0
+    row_step_px = row_step_mm / tm.page_h_mm * height
+    step_x_px = option_step_mm / tm.page_w_mm * width
+    radius = max(5, int(min(step_x_px, row_step_px) * tm.bubble_radius_scale))
+
+    rows = max(1, min(question_count, 20))
+    data: list[dict[str, Any]] = []
+    for row in range(rows):
+        cy_mm = tm.q1_a_cy_mm + row * row_step_mm + tm.grid_offset_y_mm
+        cy_px = cy_mm / tm.page_h_mm * height
+        cy_px += _turkish_narrow_lower_rows_y_correction_px(row, row_step_px)
+        centers_x_mm = [
+            tm.q1_a_cx_mm + tm.grid_offset_x_mm + c * option_step_mm for c in range(oc)
+        ]
+        centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
+        scores, opts = _row_scores_from_centers_hybrid_vertical_slack(
+            binary, gray, width, height, centers_x_px, cy_px, radius, row_step_px, binary_weight=0.46
+        )
+        best_idx = max(range(len(scores)), key=lambda i: scores[i]) if scores else 0
+        data.append(
+            {
+                "row": row + 1,
+                "cy_px": round(cy_px, 2),
+                "centers_x_px": [round(v, 2) for v in centers_x_px],
+                "radius_px": radius,
+                "scores": {opt: round(score, 4) for opt, score in zip(opts, scores)},
+                "predicted": opts[best_idx] if scores else "",
+            }
+        )
+    return data
+
+
+def _write_turkish_debug_artifacts(
+    source_bgr,
+    crop_bgr,
+    crop_meta: dict[str, Any] | None,
+    reader: str,
+    reads: List[QuestionRead],
+    row_debug: list[dict[str, Any]],
+) -> None:
+    import cv2
+
+    if source_bgr is None or crop_bgr is None:
+        return
+
+    _TURKISH_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+    overlay = crop_bgr.copy()
+    for row in row_debug:
+        cy = int(round(float(row["cy_px"])))
+        radius = int(row["radius_px"])
+        predicted = (row.get("predicted") or "").strip().upper()
+        for idx, cx_val in enumerate(row["centers_x_px"]):
+            cx = int(round(float(cx_val)))
+            opt = "ABCD"[idx]
+            color = (0, 180, 0) if predicted == opt else (0, 140, 255)
+            cv2.circle(overlay, (cx, cy), radius, color, 2)
+            cv2.putText(
+                overlay,
+                opt,
+                (cx - 5, max(16, cy - radius - 4)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
+        cv2.putText(
+            overlay,
+            str(row["row"]),
+            (10, max(16, cy + 5)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.48,
+            (255, 0, 0),
+            1,
+            cv2.LINE_AA,
+        )
+
+    cv2.imwrite(str(_TURKISH_DEBUG_DIR / "last_turkish_source.jpg"), source_bgr)
+    cv2.imwrite(str(_TURKISH_DEBUG_DIR / "last_turkish_crop.jpg"), crop_bgr)
+    cv2.imwrite(str(_TURKISH_DEBUG_DIR / "last_turkish_overlay.jpg"), overlay)
+
+    payload = {
+        "reader": reader,
+        "crop_meta": crop_meta,
+        "read_summary": _question_read_summary(reads),
+        "answers": [r.answer for r in reads],
+        "statuses": [r.status for r in reads],
+        "confidences": [round(r.confidence, 4) for r in reads],
+        "rows": row_debug,
+    }
+    (_TURKISH_DEBUG_DIR / "last_turkish_debug.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def _detect_answers_from_template(
@@ -763,6 +1306,7 @@ def _detect_answers_from_image(
         return empty
 
     try:
+        image_bytes = _normalize_uploaded_image_bytes(image_bytes)
         nparr = np.frombuffer(image_bytes, np.uint8)
         bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if bgr is None:
@@ -776,6 +1320,9 @@ def _detect_answers_from_image(
         markers_detected = markers is not None
         tmpl = (template or "").strip().lower()
         lgs_magenta_dropout = False
+        turkish_column_crop_meta: dict[str, Any] | None = None
+        turkish_column_omr_used = False
+        turkish_column_reader = "opencv"
         perspective_ok = False
         reads: List[QuestionRead]
         gray_lgs = None
@@ -820,16 +1367,43 @@ def _detect_answers_from_image(
             gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
             reads = _detect_answers_lgs_sozel_crop_117x107(gray_lgs, question_count, 4)
         elif tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP:
-            if markers:
-                work_bgr, perspective_ok = _try_warp_from_markers(bgr, markers)
-            else:
-                work_bgr = bgr
+            # Dar Türkçe sütun modunda mobil taraf zaten yakın kadraj gönderiyor.
+            # Köşe marker warp'ı bu modda gereksiz ekstra kırpmaya yol açabiliyor.
+            work_bgr = bgr
+            work_bgr, turkish_column_crop_meta = _try_crop_turkish_column_region(work_bgr)
             gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
-            reads = _detect_answers_lgs_turkish_column_crop(gray_lgs, question_count, 4)
             gh, gw = gray_lgs.shape[:2]
-            if not markers_detected or not perspective_ok:
-                # Dar kırpıntıda köşe kareleri yok; ~4 px/mm altında hizalama hataları çok artar
-                if gw >= 100 and gh >= 320:
+            crop_kind = (
+                (turkish_column_crop_meta or {}).get("kind", "narrow_column")
+                if turkish_column_crop_meta is not None
+                else "narrow_column"
+            )
+            use_left_panel_reader = crop_kind == "left_panel" or (
+                gw >= _TURKISH_LEFT_PANEL_MIN_W_PX and gh >= _TURKISH_LEFT_PANEL_MIN_H_PX and (gw / float(max(gh, 1))) >= 0.52
+            )
+            if use_left_panel_reader:
+                if gw < _TURKISH_LEFT_PANEL_MIN_W_PX or gh < _TURKISH_LEFT_PANEL_MIN_H_PX:
+                    raise OpticalScanRejected(
+                        "Turuncu soru kutusu çok küçük veya uzak görünüyor. Sol 1-20 alanını daha yakından çekin."
+                    )
+            elif gw < _TURKISH_COLUMN_MIN_WARPED_W_PX or gh < _TURKISH_COLUMN_MIN_WARPED_H_PX:
+                raise OpticalScanRejected(
+                    "TÜRKÇE kutusu çok küçük veya uzak görünüyor. Kutuyu daha yakından çekip yeniden deneyin."
+                )
+            if use_left_panel_reader:
+                reads = _detect_answers_turkish_left_panel_orange(gray_lgs, question_count, 4)
+                turkish_column_reader = "opencv_left_panel"
+            else:
+                # Dar Türkçe sütununda OMRChecker son denemelerde B/C kaymasına yol açtı.
+                # Bu yol için yalnızca debug'lanabilir OpenCV hibrit okuyucuyu kullan.
+                reads = _detect_answers_lgs_turkish_column_crop(gray_lgs, question_count, 4)
+                turkish_column_reader = "opencv"
+            if turkish_column_crop_meta is not None:
+                markers_detected = True
+                perspective_ok = True
+            elif not markers_detected or not perspective_ok:
+                # Dar kırpıntıda köşe kareleri yok; yeterli çözünürlük varsa yine okumaya izin ver.
+                if gw >= _TURKISH_COLUMN_MIN_WARPED_W_PX and gh >= _TURKISH_COLUMN_MIN_WARPED_H_PX:
                     markers_detected = True
                     perspective_ok = True
         else:
@@ -860,6 +1434,32 @@ def _detect_answers_from_image(
             per_question=reads,
         )
 
+        if tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP and gray_lgs is not None:
+            try:
+                if turkish_column_reader == "opencv_left_panel":
+                    row_debug = _debug_rows_turkish_left_panel_orange(gray_lgs, question_count)
+                else:
+                    row_debug = _debug_rows_turkish_narrow_column(gray_lgs, question_count)
+                _write_turkish_debug_artifacts(
+                    bgr,
+                    work_bgr if "work_bgr" in locals() else bgr,
+                    turkish_column_crop_meta,
+                    turkish_column_reader,
+                    reads,
+                    row_debug,
+                )
+            except Exception as debug_exc:
+                logger.warning("Türkçe debug görselleri yazılamadı: %s", debug_exc)
+
+        status_counts = {"ok": 0, "empty": 0, "ambiguous": 0}
+        low_conf_rows = []
+        for idx, q in enumerate(reads):
+            st = (q.status or "").strip().lower()
+            if st in status_counts:
+                status_counts[st] += 1
+            if st == "ok" and q.confidence < 0.35:
+                low_conf_rows.append(idx + 1)
+
         log_extra = {
             "question_count": question_count,
             "option_count": option_count,
@@ -867,6 +1467,8 @@ def _detect_answers_from_image(
             "markers_detected": markers_detected,
             "perspective_ok": perspective_ok,
             "detected_answers": len(answers),
+            "status_counts": status_counts,
+            "low_conf_rows": low_conf_rows[:10],
         }
         if tmpl in (
             TEMPLATE_LGS_TURKISH_212X300,
@@ -875,6 +1477,12 @@ def _detect_answers_from_image(
             TEMPLATE_LGS_TURKISH_COLUMN_CROP,
         ):
             log_extra["lgs_magenta_dropout"] = lgs_magenta_dropout
+        if turkish_column_crop_meta is not None:
+            log_extra["turkish_column_crop"] = turkish_column_crop_meta
+        if tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP:
+            log_extra["turkish_column_omr_used"] = turkish_column_omr_used
+            log_extra["turkish_column_reader"] = turkish_column_reader
+            log_extra["read_summary"] = _question_read_summary(reads)
 
         logger.info("Optik form işlendi", extra=log_extra)
         return result

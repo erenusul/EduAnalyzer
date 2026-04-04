@@ -159,18 +159,18 @@ def get_lgs_turkish_template_mm() -> LgsTurkishTemplateMm:
 @lru_cache(maxsize=1)
 def get_turkish_column_crop_template_mm() -> TurkishColumnCropTemplateMm:
     """Tek sütun kırpıntısı — OPTICAL_TR_COL_* ile kalibre edilir."""
-    page_w = _env_float("OPTICAL_TR_COL_PAGE_W_MM", 26.0)
-    page_h = _env_float("OPTICAL_TR_COL_PAGE_H_MM", 91.0)
+    page_w = _env_float("OPTICAL_TR_COL_PAGE_W_MM", 25.5)
+    page_h = _env_float("OPTICAL_TR_COL_PAGE_H_MM", 85.0)
     return TurkishColumnCropTemplateMm(
         page_w_mm=page_w,
         page_h_mm=page_h,
-        q1_a_cx_mm=_env_float("OPTICAL_TR_COL_Q1_A_CX_MM", 6.0),
-        q1_a_cy_mm=_env_float("OPTICAL_TR_COL_Q1_A_CY_MM", 11.0),
+        q1_a_cx_mm=_env_float("OPTICAL_TR_COL_Q1_A_CX_MM", 5.5),
+        q1_a_cy_mm=_env_float("OPTICAL_TR_COL_Q1_A_CY_MM", 10.5),
         ad_centers_span_mm=_env_float("OPTICAL_TR_COL_AD_CENTERS_SPAN_MM", 13.0),
-        q1_q20_centers_span_mm=_env_float("OPTICAL_TR_COL_Q1_Q20_CENTERS_SPAN_MM", 80.0),
-        grid_offset_x_mm=_env_float("OPTICAL_TR_COL_GRID_OFFSET_X_MM", 0.0),
-        grid_offset_y_mm=_env_float("OPTICAL_TR_COL_GRID_OFFSET_Y_MM", 0.0),
-        bubble_radius_scale=_env_float("OPTICAL_TR_COL_BUBBLE_RADIUS_SCALE", 0.48),
+        q1_q20_centers_span_mm=_env_float("OPTICAL_TR_COL_Q1_Q20_CENTERS_SPAN_MM", 74.0),
+        grid_offset_x_mm=_env_float("OPTICAL_TR_COL_GRID_OFFSET_X_MM", -0.1),
+        grid_offset_y_mm=_env_float("OPTICAL_TR_COL_GRID_OFFSET_Y_MM", -0.2),
+        bubble_radius_scale=_env_float("OPTICAL_TR_COL_BUBBLE_RADIUS_SCALE", 0.40),
     )
 
 
