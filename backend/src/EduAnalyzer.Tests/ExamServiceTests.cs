@@ -392,4 +392,104 @@ public class ExamServiceTests
 
         resultRepo.Verify(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task SubmitScanForStudentAsync_NormalizesReadE_ToEmpty_WhenAnswerKeyHasNoE()
+    {
+        var teacherId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var pdfPayload = new PdfAnalysisResponseDto(
+            TotalQuestions: 1,
+            AnalyzedQuestions: 1,
+            Results: new List<QuestionAnalysisResultDto>
+            {
+                new(
+                    "1",
+                    "Soru",
+                    new List<PredictionItemDto>(),
+                    new List<PredictionItemDto> { new("Konu", 1.0) },
+                    false),
+            },
+            Warning: null);
+        var analysis = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            ClassId = null,
+            ResultsJson = JsonSerializer.Serialize(pdfPayload),
+            Title = "t",
+            Date = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = analysis.Id,
+            TeacherId = teacherId,
+            Status = ExamStatus.Ready,
+            Title = "Türkçe",
+            WeekLabel = "W",
+            Date = DateTime.UtcNow,
+            AnswerKeyJson = JsonSerializer.Serialize(new List<string> { "B" }),
+            CreatedAt = DateTime.UtcNow,
+            Analysis = analysis
+        };
+        var student = new Student
+        {
+            Id = studentId,
+            TeacherId = teacherId,
+            StudentNo = "1",
+            FirstName = "a",
+            LastName = "b",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>())).ReturnsAsync(exam);
+        ExamResult? saved = null;
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByStudentIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExamResult>());
+        resultRepo
+            .Setup(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()))
+            .Callback<ExamResult, CancellationToken>((e, _) => saved = e)
+            .ReturnsAsync((ExamResult e, CancellationToken _) => e);
+        var studentRepo = new Mock<IStudentRepository>();
+        studentRepo.Setup(x => x.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        var mlClient = new Mock<IMlServiceClient>();
+        var per = new List<OpticalPerQuestionReadDto> { new("E", "ok", 0.95) };
+        mlClient
+            .Setup(x => x.ScanOpticalFormAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OpticalScanResultDto(
+                new[] { "E" },
+                1,
+                true,
+                true,
+                per));
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        var response = await service.SubmitScanForStudentAsync(
+            examId,
+            studentId,
+            new MemoryStream(),
+            1,
+            5,
+            null,
+            null,
+            default);
+
+        Assert.NotNull(saved);
+        Assert.Equal(0, saved!.CorrectCount);
+        Assert.Equal(1, saved.WrongCount);
+        Assert.Equal(0, response.CorrectCount);
+        Assert.Equal(1, response.WrongCount);
+    }
 }

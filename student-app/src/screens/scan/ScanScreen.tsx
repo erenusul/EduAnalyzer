@@ -16,9 +16,9 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP } from '../../constants/opticalTurkishColumn';
 import {
-  getOptionCountFromAnswerKey,
-  OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+  getOpticalSubmitOptionCount,
   OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
   submitScan,
 } from '../../services/api/examsApi';
@@ -613,11 +613,11 @@ export function ScanScreen({ route }: ScanScreenProps) {
     setSubmitting(true);
     try {
       const questionCount = exam.answerKey?.length;
-      const optionCount = getOptionCountFromAnswerKey(exam.answerKey);
       const opticalTemplate =
         scanMode === 'fullPage'
           ? OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER
           : OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP;
+      const optionCount = getOpticalSubmitOptionCount(opticalTemplate, exam.answerKey);
       const result = await submitScan(exam.id, photoUri, questionCount, optionCount, opticalTemplate);
       setScanResult(result);
       Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');

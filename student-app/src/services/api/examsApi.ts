@@ -1,5 +1,6 @@
 import { apiUploadFormData } from './apiClient';
 import type { ScanExamResponse } from '../../types/exam';
+import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP as TURKISH_COLUMN_CROP_TEMPLATE_ID } from '../../constants/opticalTurkishColumn';
 
 /** 212×300 mm A4, yalnızca Türkçe 20×4 mm şablonu (ML tarafıyla aynı kimlik). */
 export const OPTICAL_TEMPLATE_LGS_TURKISH_212X300 = 'lgs_turkish_212x300';
@@ -13,8 +14,8 @@ export const OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER = 'lgs_turkish_omrchecker';
 /** 117×107 mm SÖZEL kırpıntısı: 4 sütun × 20 satır (ML ile aynı kimlik). Kadraj bu alanı doldurmalı. */
 export const OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 = 'lgs_sozel_crop_117x107';
 
-/** Yalnızca TÜRKÇE sütunu kırpıntısı; `opticalTurkishColumn.ts` ile aynı mm varsayılanları. */
-export { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP } from '../../constants/opticalTurkishColumn';
+/** Türkçe sütun şablon kimliği (ML `lgs_turkish_column_crop`); Metro için açık const re-export. */
+export const OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP = TURKISH_COLUMN_CROP_TEMPLATE_ID;
 
 export function submitScan(
   examId: string,
@@ -49,4 +50,18 @@ export function getOptionCountFromAnswerKey(answerKey?: string[] | null): number
   if (!answerKey?.length) return 5;
   const hasE = answerKey.some((a) => /^E$/i.test((a ?? '').trim()));
   return hasE ? 5 : 4;
+}
+
+/**
+ * ML optik geometrisi: Türkçe sütun şablonunda basılı kağıt A–E olduğu için her zaman 5 şık gönderilir;
+ * cevap anahtarı yalnız A–D olsa bile (8. sınıf Türkçe). Diğer şablonlarda anahtardan türetilir.
+ */
+export function getOpticalSubmitOptionCount(
+  opticalTemplate: string | undefined,
+  answerKey?: string[] | null
+): number {
+  if (opticalTemplate === TURKISH_COLUMN_CROP_TEMPLATE_ID) {
+    return 5;
+  }
+  return getOptionCountFromAnswerKey(answerKey);
 }

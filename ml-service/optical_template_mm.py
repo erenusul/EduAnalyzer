@@ -95,9 +95,10 @@ class LgsTurkishTemplateMm:
 @dataclass(frozen=True)
 class TurkishColumnCropTemplateMm:
     """
-    Yalnızca TÜRKÇE sütunu kırpıntısı (pembe başlık + 1–20 × A–D; formda E varsa yok sayılır).
-    Varsayılanlar: pembe kutu 26×85 mm (X/Y); kadraj yüksekliği 11+80=91 mm ile hizalı.
-    Q1 A merkezi (6, 11) mm; A–D merkez aralığı 13 mm; Q1–Q20 A merkezleri dikey 80 mm.
+    Yalnızca TÜRKÇE sütunu kırpıntısı (dar kadraj; turuncu/pembe blok).
+    `ad_centers_span_mm`: A ile D daire merkezleri arası mesafe (mm). Şık adımı = span/3;
+    5 şık (A–E) için aynı adım kullanılır (E, D’nin bir adım ötesi). OPTICAL_TR_COL_* ile kalibre.
+    Q1 A merkezi (6, 11) mm; Q1–Q20 A merkezleri dikey 80 mm.
     """
 
     page_w_mm: float

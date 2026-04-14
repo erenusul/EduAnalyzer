@@ -330,6 +330,47 @@ def test_lgs_turkish_column_crop_reads_left_panel_photo_like_image():
     assert result.perspective_ok is True
 
 
+def _build_lgs_turkish_column_crop_synthetic_five(answers: list[str]) -> bytes:
+    """Dar sütun A–E; adım 13/3 mm (A–D span 13 mm ile uyumlu)."""
+    scale = 4.0
+    w = int(26.0 * scale)
+    h = int(91.0 * scale)
+    image = np.full((h, w), 255, dtype=np.uint8)
+    option_step_mm = 13.0 / 3.0
+    row_step_mm = 80.0 / 19.0
+    opts = ["A", "B", "C", "D", "E"]
+
+    for row, selected in enumerate(answers):
+        cy = (11.0 + row * row_step_mm) * scale
+        for c, letter in enumerate(opts):
+            cx = (6.0 + c * option_step_mm) * scale
+            radius = max(8.0, min(option_step_mm, row_step_mm) * scale * 0.42)
+            r = int(round(radius))
+            cxi, cyi = int(round(cx)), int(round(cy))
+            cv2.circle(image, (cxi, cyi), r, 0, 2)
+            if selected == letter:
+                cv2.circle(image, (cxi, cyi), max(4, r - 3), 0, -1)
+
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+    return encoded.tobytes()
+
+
+def test_lgs_turkish_column_crop_reads_five_options():
+    answers = ["A", "E", "B", "", "C", "D", "A", "B", "C", "D", "E", "", "A", "B", "C", "D", "A", "B", "C", "D"]
+    assert len(answers) == 20
+    image_bytes = _build_lgs_turkish_column_crop_synthetic_five(answers)
+    result = _detect_answers_from_image(
+        image_bytes,
+        question_count=20,
+        option_count=5,
+        template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    )
+    assert result.answers == answers
+    assert result.markers_detected is True
+    assert result.perspective_ok is True
+
+
 def test_collapsed_single_option_guard_flags_all_a_pattern():
     reads = [QuestionRead("A", "ok", 0.88) for _ in range(18)] + [
         QuestionRead("", "empty", 0.0),

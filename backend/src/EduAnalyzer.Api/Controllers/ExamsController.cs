@@ -117,7 +117,11 @@ public class ExamsController : ControllerBase
 
             OpticalScanStrictValidator.EnsureAcceptable(ocrResult);
 
-            var request = new ScanExamRequest(studentId, ocrResult.Answers);
+            var keyList = exam.AnswerKey?.ToList() ?? new List<string>();
+            var normalizedAnswers = OpticalReadGradingNormalizer.NormalizeAgainstAnswerKey(
+                ocrResult.Answers,
+                keyList);
+            var request = new ScanExamRequest(studentId, normalizedAnswers);
             var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
             return Ok(response);
         }

@@ -1,3 +1,4 @@
+using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Exceptions;
 using EduAnalyzer.Application.Interfaces;
 using EduAnalyzer.Application.Services;

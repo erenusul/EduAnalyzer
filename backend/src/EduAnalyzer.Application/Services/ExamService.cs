@@ -421,10 +421,13 @@ public class ExamService : IExamService
             opticalTemplate,
             ct);
         OpticalScanStrictValidator.EnsureAcceptable(ocrResult);
+        var gradedAnswers = OpticalReadGradingNormalizer.NormalizeAgainstAnswerKey(
+            ocrResult.Answers,
+            answerKey);
         return await ScanAndSaveResultAsync(
             examId,
             exam.TeacherId,
-            new ScanExamRequest(studentId, ocrResult.Answers),
+            new ScanExamRequest(studentId, gradedAnswers),
             ct
         );
     }
