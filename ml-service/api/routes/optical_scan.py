@@ -105,10 +105,11 @@ class OpticalScanFullResult:
     markers_detected: bool
     perspective_ok: bool
     per_question: List[QuestionRead] = field(default_factory=list)
+    scan_metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_api_dict(self, question_count: int) -> dict[str, Any]:
         # .NET JsonNamingPolicy.SnakeCaseLower ile uyumlu anahtarlar
-        return {
+        d: dict[str, Any] = {
             "answers": self.answers,
             "question_count": question_count,
             "markers_detected": self.markers_detected,
@@ -122,6 +123,9 @@ class OpticalScanFullResult:
                 for q in self.per_question
             ],
         }
+        if self.scan_metadata:
+            d["scan_metadata"] = self.scan_metadata
+        return d
 
 
 def _question_read_summary(reads: List[QuestionRead]) -> dict[str, Any]:
@@ -159,6 +163,171 @@ def _looks_like_collapsed_single_option(reads: List[QuestionRead], question_coun
     if len(s["unique_answers"]) <= 2 and s["dominant_ratio"] >= 0.82:
         return True
     return False
+
+
+def _maybe_deskew_bgr_light(bgr) -> tuple[Any, dict[str, Any]]:
+    """
+    Dar TÜRKÇE kadrajda çok küçük telefon eğikliği için hafit deskew (QR'daki hafif düzeltme fikri).
+    OPTICAL_TR_COL_DESKEW=0 ile kapatılır (varsayılan: açık).
+    """
+    import cv2
+    import numpy as np
+
+    meta: dict[str, Any] = {"deskew_applied": False, "deskew_angle_deg": 0.0}
+    v = (os.environ.get("OPTICAL_TR_COL_DESKEW") or "0").strip().lower()
+    if v not in ("1", "true", "yes", "on"):
+        return bgr, meta
+    if bgr is None or bgr.size == 0:
+        return bgr, meta
+    h, w = bgr.shape[:2]
+    if h < 80 or w < 40:
+        return bgr, meta
+
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    _, bw = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    ys, xs = np.where(bw > 0)
+    if len(xs) < 80:
+        return bgr, meta
+    coords = np.column_stack((xs, ys)).astype(np.float32)
+    rect = cv2.minAreaRect(coords)
+    angle = float(rect[-1])
+    rw, rh = rect[1]
+    if rw < rh:
+        angle -= 90.0
+    while angle < -45.0:
+        angle += 90.0
+    while angle > 45.0:
+        angle -= 90.0
+    max_abs = float(os.environ.get("OPTICAL_TR_COL_DESKEW_MAX_DEG", "5.5") or "5.5")
+    dead = float(os.environ.get("OPTICAL_TR_COL_DESKEW_DEAD_DEG", "0.75") or "0.75")
+    if abs(angle) < dead:
+        return bgr, meta
+    if abs(angle) > max_abs:
+        angle = float(np.sign(angle) * max_abs)
+    meta["deskew_angle_deg"] = round(angle, 3)
+    center = (w * 0.5, h * 0.5)
+    m = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv2.warpAffine(
+        bgr,
+        m,
+        (w, h),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255),
+    )
+    meta["deskew_applied"] = True
+    return rotated, meta
+
+
+def _try_decode_optional_qr_from_bgr(bgr) -> str | None:
+    """
+    Kağıttaki küçük QR (sınav/öğrenci meta) — isteğe bağlı; OPTICAL_TR_COL_SCAN_QR=1 ile açılır.
+    """
+    v = (os.environ.get("OPTICAL_TR_COL_SCAN_QR") or "").strip().lower()
+    if v not in ("1", "true", "yes", "on"):
+        return None
+    try:
+        import cv2
+
+        det = cv2.QRCodeDetector()
+        r = det.detectAndDecode(bgr)
+        if len(r) >= 1 and isinstance(r[0], str) and r[0].strip():
+            return r[0].strip()
+        h, w = bgr.shape[:2]
+        mx = max(32, min(w, h) // 5)
+        my = max(32, min(w, h) // 5)
+        rois = (
+            bgr[0:my, 0:mx],
+            bgr[0:my, max(0, w - mx) : w],
+            bgr[max(0, h - my) : h, 0:mx],
+            bgr[max(0, h - my) : h, max(0, w - mx) : w],
+        )
+        for roi in rois:
+            if roi is None or roi.size == 0:
+                continue
+            r2 = det.detectAndDecode(roi)
+            if len(r2) >= 1 and isinstance(r2[0], str) and r2[0].strip():
+                return r2[0].strip()
+    except Exception:
+        return None
+    return None
+
+
+def _refine_narrow_row_cy_max_hybrid_sum(
+    binary,
+    gray,
+    width: int,
+    height: int,
+    centers_x: list[float],
+    cy_nominal: float,
+    radius: int,
+    row_step_px: float,
+    binary_weight: float = 0.46,
+) -> float:
+    """Nominal Y etrafında kısa aralıkta hibrit skor toplamını maksimize eder (hafif QR-benzeri hizalama)."""
+    import numpy as np
+
+    r = int(max(4, radius))
+    rsp = max(float(row_step_px), 1.0)
+    half = min(max(rsp * 0.16, 2.5), 7.0)
+    y_lo = float(r + 1)
+    y_hi = float(max(r + 1, height - r - 1))
+    if y_lo >= y_hi:
+        return float(max(y_lo, min(y_hi, cy_nominal)))
+
+    best_sum = -1.0
+    best_y = float(cy_nominal)
+    for y in np.linspace(cy_nominal - half, cy_nominal + half, num=9):
+        yy = float(max(y_lo, min(y_hi, y)))
+        scores, _ = _row_scores_from_centers_hybrid(
+            binary, gray, width, height, centers_x, yy, r, binary_weight=binary_weight
+        )
+        s = float(sum(scores)) if scores else 0.0
+        if s > best_sum + 1e-6 or (
+            abs(s - best_sum) <= 1e-6 and abs(yy - cy_nominal) < abs(best_y - cy_nominal)
+        ):
+            best_sum = s
+            best_y = yy
+    return best_y
+
+
+def _turkish_sentinel_check(reads: List[QuestionRead], question_count: int) -> None:
+    """
+    Baskıda bilinen sentinel satırı (env) — tutmazsa kadraj/şablon şüphesi.
+    OPTICAL_TR_COL_SENTINEL_ROW=1..N, OPTICAL_TR_COL_SENTINEL_EXPECT= boş veya A|B|...
+    """
+    raw = (os.environ.get("OPTICAL_TR_COL_SENTINEL_ROW") or "").strip()
+    if not raw:
+        return
+    try:
+        row_1 = int(raw)
+    except ValueError:
+        return
+    if row_1 < 1 or row_1 > question_count or row_1 > len(reads):
+        return
+    expect = (os.environ.get("OPTICAL_TR_COL_SENTINEL_EXPECT") or "").strip().upper()
+    got = (reads[row_1 - 1].answer or "").strip().upper()
+    if expect == "":
+        if got != "":
+            raise OpticalScanRejected(
+                "Kalibrasyon satırı boş olmalıydı; kadrajı veya şablonu kontrol edip yeniden çekin."
+            )
+        return
+    if got != expect:
+        raise OpticalScanRejected(
+            f"Kalibrasyon satırı ({row_1}) beklenen '{expect}' iken '{got or '(boş)'}' okundu; formu düzeltip tekrar deneyin."
+        )
+
+
+def _turkish_collapsed_consistency_check(reads: List[QuestionRead], question_count: int) -> None:
+    """Şüpheli tek-şık çöküşü (OPTICAL_TR_COL_REJECT_COLLAPSED=1)."""
+    v = (os.environ.get("OPTICAL_TR_COL_REJECT_COLLAPSED") or "").strip().lower()
+    if v not in ("1", "true", "yes", "on"):
+        return
+    if _looks_like_collapsed_single_option(reads, question_count):
+        raise OpticalScanRejected(
+            "Okuma tutarsız görünüyor (neredeyse tüm cevaplar tek şıkta). Formu daha yakından ve net çekin."
+        )
 
 
 def _confidence_from_margin(best: float, second: float, scale: float = 0.12) -> float:
@@ -1055,12 +1224,14 @@ def _detect_answers_lgs_turkish_column_crop(
     option_count: int = 4,
     *,
     use_vertical_slack: bool | None = None,
+    refine_row_y: bool = False,
 ) -> List[QuestionRead]:
     """
     Tek sütun TÜRKÇE kırpıntısı; görüntü OPTICAL_TR_COL_PAGE_* mm dikdörtgenine denk gelmeli.
 
     Dar kırpıntıda otomatik crop sonrası hibrit skor + dikey slack ile küçük geometri kaymalarını tolere et.
     Zaten hizalı dar kadrajda (otomatik kırpım yok) slack komşu satır gürültüsü yaratabilir; bu durumda kapatılır.
+    refine_row_y: otomatik kırpım sonrası (crop_meta varken) satır Y için kısa hibrit skor maksimizasyonu.
     """
     oc = max(4, min(5, int(option_count)))
     tm = get_turkish_column_crop_template_mm()
@@ -1088,6 +1259,18 @@ def _detect_answers_lgs_turkish_column_crop(
         ]
         centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
         opts = _get_options(oc)
+        if refine_row_y:
+            cy_px = _refine_narrow_row_cy_max_hybrid_sum(
+                binary,
+                gray,
+                width,
+                height,
+                centers_x_px,
+                cy_px,
+                radius,
+                row_step_px,
+                binary_weight=0.46,
+            )
         slack_on = (
             _lgs_vertical_slack_enabled()
             if use_vertical_slack is None
@@ -1231,6 +1414,7 @@ def _debug_rows_turkish_narrow_column(
     option_count: int = 4,
     *,
     use_vertical_slack: bool | None = None,
+    refine_row_y: bool = False,
 ) -> list[dict[str, Any]]:
     oc = max(4, min(5, int(option_count)))
     tm = get_turkish_column_crop_template_mm()
@@ -1254,6 +1438,18 @@ def _debug_rows_turkish_narrow_column(
         ]
         centers_x_px = [cx / tm.page_w_mm * width for cx in centers_x_mm]
         opts = _get_options(oc)
+        if refine_row_y:
+            cy_px = _refine_narrow_row_cy_max_hybrid_sum(
+                binary,
+                gray,
+                width,
+                height,
+                centers_x_px,
+                cy_px,
+                radius,
+                row_step_px,
+                binary_weight=0.46,
+            )
         slack_on = (
             _lgs_vertical_slack_enabled()
             if use_vertical_slack is None
@@ -1275,7 +1471,7 @@ def _debug_rows_turkish_narrow_column(
             scores, _ = _row_scores_from_centers_hybrid(
                 binary, gray, width, height, centers_x_px, cy_px, radius, binary_weight=0.46
             )
-        best_idx = max(range(len(scores)), key=lambda i: scores[i]) if scores else 0
+        read = _row_read_lgs(scores, opts)
         data.append(
             {
                 "row": row + 1,
@@ -1284,7 +1480,7 @@ def _debug_rows_turkish_narrow_column(
                 "radius_px": radius,
                 "options": list(opts),
                 "scores": {opt: round(score, 4) for opt, score in zip(opts, scores)},
-                "predicted": opts[best_idx] if scores else "",
+                "predicted": read.answer,
             }
         )
     return data
@@ -1297,6 +1493,7 @@ def _write_turkish_debug_artifacts(
     reader: str,
     reads: List[QuestionRead],
     row_debug: list[dict[str, Any]],
+    scan_metadata: dict[str, Any] | None = None,
 ) -> None:
     import cv2
 
@@ -1340,7 +1537,7 @@ def _write_turkish_debug_artifacts(
     cv2.imwrite(str(_TURKISH_DEBUG_DIR / "last_turkish_crop.jpg"), crop_bgr)
     cv2.imwrite(str(_TURKISH_DEBUG_DIR / "last_turkish_overlay.jpg"), overlay)
 
-    payload = {
+    payload: dict[str, Any] = {
         "reader": reader,
         "crop_meta": crop_meta,
         "read_summary": _question_read_summary(reads),
@@ -1349,6 +1546,8 @@ def _write_turkish_debug_artifacts(
         "confidences": [round(r.confidence, 4) for r in reads],
         "rows": row_debug,
     }
+    if scan_metadata:
+        payload["scan_metadata"] = scan_metadata
     (_TURKISH_DEBUG_DIR / "last_turkish_debug.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -1430,6 +1629,7 @@ def _detect_answers_from_image(
         markers = _find_corner_markers(binary)
         markers_detected = markers is not None
         tmpl = (template or "").strip().lower()
+        scan_metadata: dict[str, Any] = {}
         lgs_magenta_dropout = False
         turkish_column_crop_meta: dict[str, Any] | None = None
         turkish_column_omr_used = False
@@ -1481,17 +1681,26 @@ def _detect_answers_from_image(
             # Dar Türkçe sütun modunda mobil taraf zaten yakın kadraj gönderiyor.
             # Köşe marker warp'ı bu modda gereksiz ekstra kırpmaya yol açabiliyor.
             work_bgr = bgr
+            qr_text = _try_decode_optional_qr_from_bgr(work_bgr)
+            if qr_text:
+                scan_metadata["qr_text"] = qr_text
             work_bgr, turkish_column_crop_meta = _try_crop_turkish_column_region(work_bgr)
-            gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
-            gh, gw = gray_lgs.shape[:2]
+            ih, iw = work_bgr.shape[:2]
             crop_kind = (
                 (turkish_column_crop_meta or {}).get("kind", "narrow_column")
                 if turkish_column_crop_meta is not None
                 else "narrow_column"
             )
             use_left_panel_reader = crop_kind == "left_panel" or (
-                gw >= _TURKISH_LEFT_PANEL_MIN_W_PX and gh >= _TURKISH_LEFT_PANEL_MIN_H_PX and (gw / float(max(gh, 1))) >= 0.52
+                iw >= _TURKISH_LEFT_PANEL_MIN_W_PX
+                and ih >= _TURKISH_LEFT_PANEL_MIN_H_PX
+                and (iw / float(max(ih, 1))) >= 0.52
             )
+            if not use_left_panel_reader:
+                work_bgr, deskew_meta = _maybe_deskew_bgr_light(work_bgr)
+                scan_metadata.update(deskew_meta)
+            gray_lgs, lgs_magenta_dropout = _bgr_to_gray_for_lgs(work_bgr)
+            gh, gw = gray_lgs.shape[:2]
             if use_left_panel_reader:
                 if gw < _TURKISH_LEFT_PANEL_MIN_W_PX or gh < _TURKISH_LEFT_PANEL_MIN_H_PX:
                     raise OpticalScanRejected(
@@ -1512,11 +1721,13 @@ def _detect_answers_from_image(
                 narrow_slack = _lgs_vertical_slack_enabled() and (
                     turkish_column_crop_meta is not None
                 )
+                refine_y = turkish_column_crop_meta is not None
                 reads = _detect_answers_lgs_turkish_column_crop(
                     gray_lgs,
                     question_count,
                     option_count,
                     use_vertical_slack=narrow_slack,
+                    refine_row_y=refine_y,
                 )
                 turkish_column_reader = "opencv"
             if turkish_column_crop_meta is not None:
@@ -1547,12 +1758,17 @@ def _detect_answers_from_image(
                 markers_detected = True
                 perspective_ok = True
 
+        if tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP:
+            _turkish_sentinel_check(reads, question_count)
+            _turkish_collapsed_consistency_check(reads, question_count)
+
         answers = [r.answer for r in reads]
         result = OpticalScanFullResult(
             answers=answers,
             markers_detected=markers_detected,
             perspective_ok=perspective_ok,
             per_question=reads,
+            scan_metadata=scan_metadata,
         )
 
         if tmpl == TEMPLATE_LGS_TURKISH_COLUMN_CROP and gray_lgs is not None:
@@ -1565,11 +1781,13 @@ def _detect_answers_from_image(
                     narrow_slack = _lgs_vertical_slack_enabled() and (
                         turkish_column_crop_meta is not None
                     )
+                    refine_y = turkish_column_crop_meta is not None
                     row_debug = _debug_rows_turkish_narrow_column(
                         gray_lgs,
                         question_count,
                         option_count,
                         use_vertical_slack=narrow_slack,
+                        refine_row_y=refine_y,
                     )
                 _write_turkish_debug_artifacts(
                     bgr,
@@ -1578,6 +1796,7 @@ def _detect_answers_from_image(
                     turkish_column_reader,
                     reads,
                     row_debug,
+                    scan_metadata=scan_metadata or None,
                 )
             except Exception as debug_exc:
                 logger.warning("Türkçe debug görselleri yazılamadı: %s", debug_exc)

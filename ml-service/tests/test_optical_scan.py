@@ -12,9 +12,11 @@ from ml_service.api.routes.optical_scan import (
     TEMPLATE_LGS_SOZEL_CROP_117X107,
     TEMPLATE_LGS_TURKISH_212X300,
     TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    OpticalScanFullResult,
     OpticalScanRejected,
     _detect_answers_from_image,
     _looks_like_collapsed_single_option,
+    _turkish_collapsed_consistency_check,
 )
 
 
@@ -419,3 +421,58 @@ def test_ambiguous_when_two_bubbles_filled_same_row():
     assert len(result.per_question) == 1
     assert result.per_question[0].status == "ambiguous"
     assert result.answers[0] == ""
+
+
+def test_turkish_sentinel_mismatch_raises(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_SENTINEL_ROW", "1")
+    monkeypatch.setenv("OPTICAL_TR_COL_SENTINEL_EXPECT", "B")
+    answers = [
+        "A",
+        "B",
+        "C",
+        "D",
+        "",
+        "A",
+        "A",
+        "A",
+        "B",
+        "B",
+        "C",
+        "C",
+        "D",
+        "D",
+        "",
+        "",
+        "A",
+        "B",
+        "C",
+        "D",
+    ]
+    image_bytes = _build_lgs_turkish_column_crop_synthetic(answers)
+    with pytest.raises(OpticalScanRejected):
+        _detect_answers_from_image(
+            image_bytes,
+            question_count=20,
+            option_count=4,
+            template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+        )
+
+
+def test_turkish_collapsed_consistency_env_raises(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_REJECT_COLLAPSED", "1")
+    reads = [QuestionRead("A", "ok", 0.88) for _ in range(20)]
+    with pytest.raises(OpticalScanRejected):
+        _turkish_collapsed_consistency_check(reads, 20)
+
+
+def test_optical_scan_full_result_includes_scan_metadata():
+    r = OpticalScanFullResult(
+        answers=["A"],
+        markers_detected=True,
+        perspective_ok=True,
+        per_question=[QuestionRead("A", "ok", 1.0)],
+        scan_metadata={"qr_text": "exam:1|student:2", "deskew_applied": False},
+    )
+    d = r.to_api_dict(1)
+    assert d["scan_metadata"]["qr_text"] == "exam:1|student:2"
+    assert d["scan_metadata"]["deskew_applied"] is False
