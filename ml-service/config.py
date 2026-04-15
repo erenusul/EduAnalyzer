@@ -172,6 +172,28 @@ MODEL_LOAD_ON_STARTUP = os.getenv("MODEL_LOAD_ON_STARTUP", "false").lower() == "
 MODEL_CACHE_SIZE = int(os.getenv("MODEL_CACHE_SIZE", "10"))
 
 
+def _load_ml_service_dotenv() -> None:
+    """ml-service/.env (KEY=VALUE) — python-dotenv bağımlılığı olmadan; mevcut ortam değişkenini ezmez."""
+    path = ML_SERVICE_ROOT / ".env"
+    if not path.is_file():
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        val = val.strip().strip("'").strip('"')
+        os.environ.setdefault(key, val)
 
 
+_load_ml_service_dotenv()
 

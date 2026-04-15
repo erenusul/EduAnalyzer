@@ -92,6 +92,8 @@ start_ml_service() {
     if [ -z "${OMR_CHECKER_COLUMN_TEMPLATE_JSON:-}" ] && [ -f "$ROOT/ml-service/omr_templates/lgs_turkish_column_20q_4pxmm.json" ]; then
       export OMR_CHECKER_COLUMN_TEMPLATE_JSON="$ROOT/ml-service/omr_templates/lgs_turkish_column_20q_4pxmm.json"
     fi
+    # Türkçe dar sütun: yamuk çekimde deskew (OPTICAL_TR_COL_DESKEW=0 ile kapatılır)
+    export OPTICAL_TR_COL_DESKEW="${OPTICAL_TR_COL_DESKEW:-1}"
     "$PYTHON_CMD" -m uvicorn ml_service.api.main:app --host 0.0.0.0 --port 8000 &
     ML_PID=$!
     if [ -z "$ML_PID" ] || ! kill -0 "$ML_PID" 2>/dev/null; then

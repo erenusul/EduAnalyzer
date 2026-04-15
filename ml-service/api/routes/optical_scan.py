@@ -165,17 +165,37 @@ def _looks_like_collapsed_single_option(reads: List[QuestionRead], question_coun
     return False
 
 
+def _min_area_skew_deg_from_xy(xy: Any) -> float:
+    """minAreaRect ile [-45,45] derece yaklaşık gövde eğikliği (Otsu veya Canny noktaları)."""
+    import cv2
+    import numpy as np
+
+    if xy is None or len(xy) < 30:
+        return 0.0
+    rect = cv2.minAreaRect(xy.astype(np.float32))
+    angle = float(rect[-1])
+    rw, rh = rect[1]
+    if rw < rh:
+        angle -= 90.0
+    while angle < -45.0:
+        angle += 90.0
+    while angle > 45.0:
+        angle -= 90.0
+    return float(angle)
+
+
 def _maybe_deskew_bgr_light(bgr) -> tuple[Any, dict[str, Any]]:
     """
-    Dar TÜRKÇE kadrajda çok küçük telefon eğikliği için hafit deskew (QR'daki hafif düzeltme fikri).
-    OPTICAL_TR_COL_DESKEW=0 ile kapatılır (varsayılan: açık).
+    Dar TÜRKÇE kadrajda çok küçük telefon eğikliği için hafif deskew (QR'daki hafif düzeltme fikri).
+    Varsayılan açık (OPTICAL_TR_COL_DESKEW=1); kapatmak için 0/false.
+    Otsu ön plan + Canny kontur ikili tahminden güçlü olanı seçer (daire ağırlıklı kadrajda Otsu bazen ~0 döner).
     """
     import cv2
     import numpy as np
 
     meta: dict[str, Any] = {"deskew_applied": False, "deskew_angle_deg": 0.0}
-    v = (os.environ.get("OPTICAL_TR_COL_DESKEW") or "0").strip().lower()
-    if v not in ("1", "true", "yes", "on"):
+    v = (os.environ.get("OPTICAL_TR_COL_DESKEW") or "1").strip().lower()
+    if v in ("0", "false", "no", "off"):
         return bgr, meta
     if bgr is None or bgr.size == 0:
         return bgr, meta
@@ -186,21 +206,20 @@ def _maybe_deskew_bgr_light(bgr) -> tuple[Any, dict[str, Any]]:
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     _, bw = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     ys, xs = np.where(bw > 0)
-    if len(xs) < 80:
-        return bgr, meta
-    coords = np.column_stack((xs, ys)).astype(np.float32)
-    rect = cv2.minAreaRect(coords)
-    angle = float(rect[-1])
-    rw, rh = rect[1]
-    if rw < rh:
-        angle -= 90.0
-    while angle < -45.0:
-        angle += 90.0
-    while angle > 45.0:
-        angle -= 90.0
+    ang1 = 0.0
+    if len(xs) >= 80:
+        coords = np.column_stack((xs, ys))
+        ang1 = _min_area_skew_deg_from_xy(coords)
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    edges = cv2.Canny(blur, 50, 150)
+    ey, ex = np.where(edges > 0)
+    ang2 = 0.0
+    if len(ex) >= 40:
+        ang2 = _min_area_skew_deg_from_xy(np.column_stack((ex, ey)))
+    angle = ang1 if abs(ang1) >= abs(ang2) else ang2
     max_abs = float(os.environ.get("OPTICAL_TR_COL_DESKEW_MAX_DEG", "5.5") or "5.5")
     dead = float(os.environ.get("OPTICAL_TR_COL_DESKEW_DEAD_DEG", "0.75") or "0.75")
-    if abs(angle) < dead:
+    if max(abs(ang1), abs(ang2)) < dead:
         return bgr, meta
     if abs(angle) > max_abs:
         angle = float(np.sign(angle) * max_abs)
