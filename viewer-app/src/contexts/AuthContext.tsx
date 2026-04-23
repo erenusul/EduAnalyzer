@@ -2,9 +2,10 @@
  * Auth Context - Backend API ile giriş
  */
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { AuthContextValue, User } from '../types/auth';
 import { authApi } from '../services/backendApi';
+import { setUnauthorizedHandler } from '../services/apiClient';
 
 const STORAGE_KEY = 'eduanalyzer_teacher_session';
 
@@ -66,6 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [logout]);
 
   const value: AuthContextValue = {
     user,

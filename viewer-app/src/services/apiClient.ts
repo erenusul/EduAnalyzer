@@ -2,6 +2,21 @@
  * Backend API HTTP client - JWT auth, error handling
  */
 
+type UnauthorizedHandler = () => void | Promise<void>;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+/** AuthProvider kaydeder; 401 yanıtında oturum temizlenir (döngüsel import yok). */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
+}
+
+async function notifyUnauthorized(): Promise<void> {
+  if (unauthorizedHandler) {
+    await unauthorizedHandler();
+  }
+}
+
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? '/backend' : 'http://localhost:5131');
 
@@ -58,6 +73,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     }
     if (response.status === 401) {
       message = 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
+      await notifyUnauthorized();
     }
     if (response.status === 403) {
       message = 'Oturum geçersiz. Lütfen tekrar giriş yapın.';
@@ -127,6 +143,9 @@ export async function apiUpload<T>(
     } catch {
       /* body okunamadı */
     }
+    if (response.status === 401) {
+      await notifyUnauthorized();
+    }
     throw { message, status: response.status } as ApiError;
   }
 
@@ -160,6 +179,9 @@ export async function apiUploadFormData<T>(path: string, formData: FormData): Pr
       }
     } catch {
       /* body okunamadı */
+    }
+    if (response.status === 401) {
+      await notifyUnauthorized();
     }
     throw { message, status: response.status } as ApiError;
   }
