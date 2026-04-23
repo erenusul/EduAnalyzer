@@ -62,4 +62,36 @@ public static class SchemaPatches
                 cancellationToken: ct);
         }
     }
+
+    public static async Task ApplyExamResultSuspiciousColumnsAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        if (db.Database.IsSqlite())
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync(ct);
+
+            await using var checkCmd = conn.CreateCommand();
+            checkCmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('ExamResults') WHERE name='SuspiciousQuestionsJson'";
+            var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(ct)) > 0;
+            if (!exists)
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE ExamResults ADD COLUMN SuspiciousQuestionsJson TEXT NOT NULL DEFAULT '[]'",
+                    cancellationToken: ct);
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE ExamResults ADD COLUMN SuspiciousReviewedAt TEXT NULL",
+                    cancellationToken: ct);
+            }
+        }
+        else if (db.Database.IsNpgsql())
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                ALTER TABLE "ExamResults" ADD COLUMN IF NOT EXISTS "SuspiciousQuestionsJson" TEXT NOT NULL DEFAULT '[]';
+                ALTER TABLE "ExamResults" ADD COLUMN IF NOT EXISTS "SuspiciousReviewedAt" timestamp with time zone NULL;
+                """,
+                cancellationToken: ct);
+        }
+    }
 }

@@ -4,7 +4,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Row, Col, ProgressBar, Form, Button } from 'react-bootstrap';
+import { Card, Row, Col, ProgressBar, Form, Button, Table, Badge } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 import {
   BarChart,
@@ -21,8 +21,13 @@ import {
 import { useTeacherData } from '../contexts/TeacherDataContext';
 
 export function Reports() {
-  const { students, classes, analyses, exams, examResults, getStudentsByClass } = useTeacherData();
+  const { students, classes, analyses, exams, examResults, getStudentsByClass, getStudentById, getClassById } =
+    useTeacherData();
   const [classFilter, setClassFilter] = useState<string>('');
+  const [examOverviewId, setExamOverviewId] = useState<string>('');
+  const [printSummaryClassId, setPrintSummaryClassId] = useState<string>('');
+
+  const readyExams = useMemo(() => exams.filter((e) => e.status === 'ready'), [exams]);
 
   const stats = useMemo(() => {
     const pdfAnalyses = analyses.filter((a) => a.type === 'pdf');
@@ -90,6 +95,112 @@ export function Reports() {
       }))
       .sort((a, b) => a.week.localeCompare(b.week));
   }, [examResults, exams, classFilter, getStudentsByClass]);
+
+  const examClassAverages = useMemo(() => {
+    if (!examOverviewId) return [];
+    const results = examResults.filter((r) => r.examId === examOverviewId);
+    const agg = new Map<string, { sumPct: number; n: number; label: string }>();
+    for (const r of results) {
+      const st = students.find((s) => s.id === r.studentId);
+      if (!st?.classId) continue;
+      const cls = classes.find((c) => c.id === st.classId);
+      if (!cls) continue;
+      const total = r.correctCount + r.wrongCount;
+      const pct = total > 0 ? (r.correctCount / total) * 100 : 0;
+      const cur = agg.get(st.classId);
+      if (cur) {
+        cur.sumPct += pct;
+        cur.n += 1;
+      } else {
+        agg.set(st.classId, { sumPct: pct, n: 1, label: cls.name });
+      }
+    }
+    return Array.from(agg.entries())
+      .map(([classId, v]) => ({
+        classId,
+        name: v.label.length > 16 ? v.label.slice(0, 16) + '…' : v.label,
+        fullName: v.label,
+        ort: Math.round((v.sumPct / v.n) * 10) / 10,
+        n: v.n,
+      }))
+      .sort((a, b) => b.ort - a.ort);
+  }, [examOverviewId, examResults, students, classes]);
+
+  const printClassSummary = useMemo(() => {
+    if (!examOverviewId) return null;
+    let rows = examResults.filter((r) => r.examId === examOverviewId);
+    if (printSummaryClassId) {
+      const ids = new Set(getStudentsByClass(printSummaryClassId).map((s) => s.id));
+      rows = rows.filter((r) => ids.has(r.studentId));
+    }
+    if (rows.length === 0) return null;
+    const exam = readyExams.find((e) => e.id === examOverviewId);
+    const totalCorrect = rows.reduce((s, r) => s + r.correctCount, 0);
+    const totalWrong = rows.reduce((s, r) => s + r.wrongCount, 0);
+    const denom = totalCorrect + totalWrong;
+    const ortPct = denom > 0 ? Math.round((totalCorrect / denom) * 1000) / 10 : 0;
+    const qMap = new Map<number, number>();
+    for (const r of rows) {
+      for (const w of r.wrongQuestions ?? []) {
+        qMap.set(w.questionIndex, (qMap.get(w.questionIndex) ?? 0) + 1);
+      }
+    }
+    const topWrong = [...qMap.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      .slice(0, 20);
+    const topicMap = new Map<string, number>();
+    for (const r of rows) {
+      for (const wt of r.wrongTopics ?? []) {
+        const label =
+          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
+        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+        topicMap.set(label, (topicMap.get(label) ?? 0) + n);
+      }
+    }
+    const topics = [...topicMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15);
+    const cls = printSummaryClassId ? getClassById(printSummaryClassId) : null;
+    return {
+      examTitle: exam?.title ?? 'Sınav',
+      week: exam?.weekLabel ?? '',
+      classLabel: cls?.name ?? 'Tüm sınıflar',
+      n: rows.length,
+      ortPct,
+      topWrong,
+      topics,
+    };
+  }, [
+    examOverviewId,
+    printSummaryClassId,
+    examResults,
+    readyExams,
+    getStudentsByClass,
+    getClassById,
+  ]);
+
+  const examStudentLeaderboard = useMemo(() => {
+    if (!examOverviewId) return [];
+    return examResults
+      .filter((r) => r.examId === examOverviewId)
+      .map((r) => {
+        const st = getStudentById(r.studentId);
+        const cl = st?.classId ? getClassById(st.classId) : undefined;
+        const total = r.correctCount + r.wrongCount;
+        const pct = total > 0 ? Math.round((r.correctCount / total) * 1000) / 10 : 0;
+        const net = Math.round((r.correctCount - r.wrongCount / 4) * 10) / 10;
+        return {
+          studentId: r.studentId,
+          ad: st ? `${st.firstName} ${st.lastName}` : '—',
+          sinif: cl?.name ?? '—',
+          pct,
+          net,
+          dogru: r.correctCount,
+          yanlis: r.wrongCount,
+        };
+      })
+      .sort((a, b) => b.pct - a.pct || b.net - a.net || a.ad.localeCompare(b.ad, 'tr'));
+  }, [examOverviewId, examResults, getStudentById, getClassById]);
 
   const handleExportExcel = useCallback(() => {
     const wb = XLSX.utils.book_new();
@@ -314,6 +425,208 @@ export function Reports() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </Card.Body>
+        </Card>
+      )}
+
+      <Card className="border-0 shadow-sm mb-4">
+        <Card.Header className="bg-white border-bottom py-3">
+          <h6 className="fw-semibold mb-0">
+            <i className="bi bi-columns-gap me-2" />
+            Sınav bazlı sınıf ve öğrenci karşılaştırması
+          </h6>
+          <p className="text-muted small mb-0 mt-2">
+            Tek bir sınav seçerek tüm sınıfların ortalama başarısını ve öğrencileri sıralı görün (sınıfı olan
+            öğrenciler).
+          </p>
+        </Card.Header>
+        <Card.Body>
+          <Form.Group className="mb-4" style={{ maxWidth: 420 }}>
+            <Form.Label htmlFor="reports-exam-overview" className="fw-medium">
+              Sınav
+            </Form.Label>
+            <Form.Select
+              id="reports-exam-overview"
+              value={examOverviewId}
+              onChange={(e) => setExamOverviewId(e.target.value)}
+              aria-label="Karşılaştırma için sınav seçin"
+            >
+              <option value="">Sınav seçin</option>
+              {readyExams.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title} ({e.weekLabel})
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+
+          <Form.Group className="mb-4" style={{ maxWidth: 420 }}>
+            <Form.Label htmlFor="reports-print-class" className="fw-medium">
+              Yazdırılabilir özet için sınıf (isteğe bağlı)
+            </Form.Label>
+            <Form.Select
+              id="reports-print-class"
+              value={printSummaryClassId}
+              onChange={(e) => setPrintSummaryClassId(e.target.value)}
+              aria-label="Özet raporda sınıf filtresi"
+            >
+              <option value="">Tüm sınıflar</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+
+          {!examOverviewId ? (
+            <p className="text-muted small mb-0">Karşılaştırma için yukarıdan bir sınav seçin.</p>
+          ) : examClassAverages.length === 0 && examStudentLeaderboard.length === 0 ? (
+            <p className="text-muted mb-0">Bu sınav için henüz kayıtlı sonuç yok.</p>
+          ) : (
+            <>
+              {examClassAverages.length > 0 && (
+                <div className="mb-4">
+                  <h6 className="fw-semibold small text-uppercase text-muted mb-3">Sınıf ortalamaları</h6>
+                  <div className="w-100" style={{ minWidth: 0 }}>
+                    <ResponsiveContainer width="100%" height={260} debounce={32}>
+                      <BarChart data={examClassAverages} layout="vertical" margin={{ left: 16, right: 16 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" domain={[0, 100]} />
+                        <YAxis type="category" dataKey="name" width={100} />
+                        <Tooltip
+                          formatter={(value: number | undefined) => [`${value ?? 0}%`, 'Ortalama başarı']}
+                          labelFormatter={(_, p) => p?.[0]?.payload?.fullName ?? ''}
+                        />
+                        <Bar dataKey="ort" fill="var(--bs-primary)" name="Ortalama %" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {examStudentLeaderboard.length > 0 && (
+                <>
+                  <h6 className="fw-semibold small text-uppercase text-muted mb-3">
+                    Öğrenciler (başarıya göre sıralı)
+                  </h6>
+                  <Table responsive hover size="sm" className="mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>#</th>
+                        <th>Öğrenci</th>
+                        <th>Sınıf</th>
+                        <th>D / Y</th>
+                        <th>Başarı %</th>
+                        <th>Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {examStudentLeaderboard.map((row, idx) => (
+                        <tr key={row.studentId}>
+                          <td className="text-muted">{idx + 1}</td>
+                          <td className="fw-medium">{row.ad}</td>
+                          <td>{row.sinif}</td>
+                          <td>
+                            {row.dogru} / {row.yanlis}
+                          </td>
+                          <td>
+                            <Badge bg={row.pct >= 70 ? 'success' : row.pct >= 50 ? 'warning' : 'danger'}>
+                              {row.pct}%
+                            </Badge>
+                          </td>
+                          <td>{row.net}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </>
+              )}
+            </>
+          )}
+        </Card.Body>
+      </Card>
+
+      {printClassSummary && (
+        <Card className="border-0 shadow-sm mb-4" id="class-summary-print">
+          <Card.Header className="bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h6 className="fw-semibold mb-0">
+              <i className="bi bi-printer me-2" />
+              Sınıf özeti (yazdır / PDF)
+            </h6>
+            <Button
+              variant="outline-primary"
+              size="sm"
+              type="button"
+              onClick={() => window.print()}
+              aria-label="Özeti yazdır veya PDF olarak kaydet"
+            >
+              <i className="bi bi-printer me-1" />
+              Yazdır
+            </Button>
+          </Card.Header>
+          <Card.Body>
+            <p className="small text-muted mb-3">
+              Tarayıcı yazdır penceresinde hedef olarak PDF seçerek kaydedebilirsiniz. Veriler seçili
+              sınav ve sınıf filtresine göredir.
+            </p>
+            <h5 className="fw-bold mb-1">{printClassSummary.examTitle}</h5>
+            <p className="small mb-3">
+              {printClassSummary.week && <span>{printClassSummary.week} · </span>}
+              {printClassSummary.classLabel} · {printClassSummary.n} öğrenci kaydı
+            </p>
+            <div className="mb-4">
+              <div className="text-muted small">Sınıf ortalaması (doğru oranı)</div>
+              <div className="fs-3 fw-bold text-primary">{printClassSummary.ortPct}%</div>
+            </div>
+            {printClassSummary.topWrong.length > 0 ? (
+              <div className="mb-4">
+                <h6 className="fw-semibold small text-uppercase text-muted mb-2">
+                  En çok yanlış yapılan sorular
+                </h6>
+                <Table size="sm" bordered className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Soru no</th>
+                      <th>Yanlış sayısı</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printClassSummary.topWrong.map(([q, c]) => (
+                      <tr key={q}>
+                        <td>{q}</td>
+                        <td>{c}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            ) : (
+              <p className="small text-muted mb-4">Bu kümeste yanlış soru kaydı yok.</p>
+            )}
+            {printClassSummary.topics.length > 0 && (
+              <div>
+                <h6 className="fw-semibold small text-uppercase text-muted mb-2">
+                  Konu bazlı yanlışlar
+                </h6>
+                <Table size="sm" bordered className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Konu</th>
+                      <th>Yanlış</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printClassSummary.topics.map(([t, c]) => (
+                      <tr key={t}>
+                        <td>{t}</td>
+                        <td>{c}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
           </Card.Body>
         </Card>
       )}

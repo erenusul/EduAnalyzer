@@ -16,6 +16,10 @@ public class ExamResult
     public string WrongQuestionsJson { get; set; } = "[]";
     /// <summary>Doğru cevaplanan sorular (JSON, WrongQuestionDto ile aynı şema).</summary>
     public string CorrectQuestionsJson { get; set; } = "[]";
+    /// <summary>Optik okumada öğretmen incelemesi önerilen sorular (SuspiciousQuestionHintDto JSON dizisi).</summary>
+    public string SuspiciousQuestionsJson { get; set; } = "[]";
+    /// <summary>Öğretmen şüpheli soru listesini onayladığında UTC zaman.</summary>
+    public DateTime? SuspiciousReviewedAt { get; set; }
     public string? Source { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

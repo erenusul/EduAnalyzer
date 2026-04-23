@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace EduAnalyzer.Application.DTOs;
 
 public record ExamDto(
@@ -17,8 +19,20 @@ public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswe
 /// <summary>ML optical-scan yanıtındaki tek soru satırı.</summary>
 public record OpticalPerQuestionReadDto(string Answer, string Status, double Confidence);
 
+/// <summary>ML optical-scan tam yanıtı (scan_metadata: Türkçe sütun hizalama vb.).</summary>
+public record OpticalScanResultDto(
+    IReadOnlyList<string> Answers,
+    int QuestionCount,
+    bool? MarkersDetected = null,
+    bool? PerspectiveOk = null,
+    IReadOnlyList<OpticalPerQuestionReadDto>? PerQuestion = null,
+    JsonElement? ScanMetadata = null);
+
 /// <param name="ExpectedAnswer">Yanlış sorularda cevap anahtarındaki doğru şık (optik karşılaştırma için).</param>
 public record WrongQuestionDto(int QuestionIndex, string StudentAnswer, string Topic, string? ExpectedAnswer = null);
+
+/// <summary>Optik okumada öğretmen incelemesi önerilen soru (düşük güven veya belirsiz durum).</summary>
+public record SuspiciousQuestionHintDto(int QuestionIndex, double Confidence, string? Status, string? Reason);
 
 public record ScanExamResponse(
     int CorrectCount,
@@ -26,7 +40,8 @@ public record ScanExamResponse(
     int TotalCount,
     IReadOnlyList<WrongQuestionDto> CorrectQuestions,
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
-    IReadOnlyList<WrongTopicDto> WrongTopics
+    IReadOnlyList<WrongTopicDto> WrongTopics,
+    IReadOnlyList<SuspiciousQuestionHintDto> SuspiciousQuestions
 );
 
 public record StudentWithResultsDto(StudentDto Student, IReadOnlyList<ExamResultDto> Results);
@@ -44,7 +59,9 @@ public record ExamResultDto(
     IReadOnlyList<WrongQuestionDto> CorrectQuestions,
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
     string? Source,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    IReadOnlyList<SuspiciousQuestionHintDto> SuspiciousQuestions,
+    DateTime? SuspiciousReviewedAt
 );
 
 public record CreateExamResultRequest(
@@ -58,7 +75,8 @@ public record CreateExamResultRequest(
 
 /// <summary>Öğretmenin manuel düzeltmesi (hatalı optik okuma vb.).</summary>
 public record UpdateExamResultRequest(
-    int CorrectCount,
-    int WrongCount,
-    IReadOnlyList<WrongTopicDto>? WrongTopics = null
+    int? CorrectCount = null,
+    int? WrongCount = null,
+    IReadOnlyList<WrongTopicDto>? WrongTopics = null,
+    bool? AcknowledgeSuspiciousReview = null
 );

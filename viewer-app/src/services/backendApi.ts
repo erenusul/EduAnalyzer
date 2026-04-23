@@ -70,8 +70,25 @@ export interface BackendExamResult {
   correctCount: number;
   wrongCount: number;
   wrongTopics?: { topic?: string | null; count?: number | null }[] | null;
-  correctQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
-  wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
+  correctQuestions?: {
+    questionIndex: number;
+    studentAnswer: string;
+    topic: string;
+    expectedAnswer?: string | null;
+  }[];
+  wrongQuestions?: {
+    questionIndex: number;
+    studentAnswer: string;
+    topic: string;
+    expectedAnswer?: string | null;
+  }[];
+  suspiciousQuestions?: {
+    questionIndex: number;
+    confidence: number;
+    status?: string | null;
+    reason?: string | null;
+  }[] | null;
+  suspiciousReviewedAt?: string | null;
   source?: string | null;
   createdAt: string;
 }
@@ -80,9 +97,25 @@ export interface ScanExamResponse {
   correctCount: number;
   wrongCount: number;
   totalCount: number;
-  correctQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
-  wrongQuestions?: { questionIndex: number; studentAnswer: string; topic: string }[];
+  correctQuestions?: {
+    questionIndex: number;
+    studentAnswer: string;
+    topic: string;
+    expectedAnswer?: string | null;
+  }[];
+  wrongQuestions?: {
+    questionIndex: number;
+    studentAnswer: string;
+    topic: string;
+    expectedAnswer?: string | null;
+  }[];
   wrongTopics: { topic: string; count: number }[];
+  suspiciousQuestions?: {
+    questionIndex: number;
+    confidence: number;
+    status?: string | null;
+    reason?: string | null;
+  }[];
 }
 
 function toStudent(d: BackendStudent): Student {
@@ -175,11 +208,17 @@ function normalizeWrongTopics(
     return [];
   }
   return raw.map((wt) => {
-    const t = wt?.topic;
-    const topic = typeof t === 'string' && t.trim() !== '' ? t.trim() : 'Bilinmiyor';
     const c = wt?.count;
     const count = typeof c === 'number' && Number.isFinite(c) && c >= 0 ? Math.trunc(c) : 0;
-    return { topic, count };
+    const t = wt?.topic;
+    if (t === null || t === undefined) {
+      return { topic: 'Bilinmiyor', count };
+    }
+    const trimmed = typeof t === 'string' ? t.trim() : '';
+    if (trimmed === '') {
+      return { topic: 'Konu atanmamış', count };
+    }
+    return { topic: trimmed, count };
   });
 }
 
@@ -197,16 +236,65 @@ function toExam(d: BackendExam): Exam {
   };
 }
 
+function readExpectedAnswer(
+  q: { expectedAnswer?: string | null; ExpectedAnswer?: string | null }
+): string | undefined {
+  const raw = q.expectedAnswer ?? q.ExpectedAnswer;
+  if (raw == null) return undefined;
+  const s = String(raw).trim();
+  if (!s) return undefined;
+  return s.toUpperCase().charAt(0);
+}
+
+function mapQuestionRows(
+  list:
+    | {
+        questionIndex: number;
+        studentAnswer: string;
+        topic: string;
+        expectedAnswer?: string | null;
+        ExpectedAnswer?: string | null;
+      }[]
+    | null
+    | undefined
+): ExamResult['correctQuestions'] {
+  if (list == null || !Array.isArray(list)) return undefined;
+  return list.map((q) => {
+    const exp = readExpectedAnswer(q);
+    return {
+      questionIndex: q.questionIndex,
+      studentAnswer: q.studentAnswer ?? '',
+      topic: typeof q.topic === 'string' && q.topic.trim() !== '' ? q.topic.trim() : 'Bilinmiyor',
+      ...(exp != null ? { expectedAnswer: exp } : {}),
+    };
+  });
+}
+
+function mapSuspicious(
+  list: BackendExamResult['suspiciousQuestions'] | ScanExamResponse['suspiciousQuestions']
+): ExamResult['suspiciousQuestions'] {
+  if (list == null || !Array.isArray(list)) return undefined;
+  return list.map((x) => ({
+    questionIndex: x.questionIndex,
+    confidence: typeof x.confidence === 'number' && Number.isFinite(x.confidence) ? x.confidence : 0,
+    status: x.status ?? undefined,
+    reason: x.reason ?? undefined,
+  }));
+}
+
 function toExamResult(d: BackendExamResult): ExamResult {
   return {
     id: d.id,
     studentId: d.studentId,
     examId: d.examId,
+    examTitle: d.examTitle ?? undefined,
     correctCount: d.correctCount,
     wrongCount: d.wrongCount,
     wrongTopics: normalizeWrongTopics(d.wrongTopics),
-    correctQuestions: d.correctQuestions,
-    wrongQuestions: d.wrongQuestions,
+    correctQuestions: mapQuestionRows(d.correctQuestions),
+    wrongQuestions: mapQuestionRows(d.wrongQuestions),
+    suspiciousQuestions: mapSuspicious(d.suspiciousQuestions),
+    suspiciousReviewedAt: d.suspiciousReviewedAt ?? undefined,
     createdAt: d.createdAt,
   };
 }
@@ -223,13 +311,37 @@ export interface StudentWithResults {
 
 export const meApi = {
   getMyResults: () => apiGet<BackendExamResult[]>('/api/me/results'),
+  /** Öğrencinin görebildiği sınavlar — hafta etiketi ve tarih için */
+  getMyExams: () => apiGet<BackendExam[]>('/api/me/exams'),
   getMyChildren: () => apiGet<StudentWithResults[]>('/api/me/children'),
 };
+
+/** Veli ekleme listesi (Teacher API). */
+export interface ParentCandidate {
+  parentId: string;
+  email: string;
+  displayName: string;
+}
+
+/** Öğrenciye bağlı veli satırı. */
+export interface StudentParentLink {
+  parentId: string;
+  email: string;
+  displayName: string;
+  isPrimary: boolean;
+}
 
 export const studentsApi = {
   getAll: () => apiGet<BackendStudent[]>('/api/students'),
   getById: (id: string) => apiGet<BackendStudent>(`/api/students/${id}`),
   getByClass: (classId: string) => apiGet<BackendStudent[]>(`/api/students/class/${classId}`),
+  getParentCandidates: () => apiGet<ParentCandidate[]>('/api/students/parent-candidates'),
+  getStudentParents: (studentId: string) =>
+    apiGet<StudentParentLink[]>(`/api/students/${studentId}/parents`),
+  linkStudentParent: (studentId: string, parentId: string) =>
+    apiPost<StudentParentLink[]>(`/api/students/${studentId}/parents`, { parentId }),
+  unlinkStudentParent: (studentId: string, parentId: string) =>
+    apiDelete(`/api/students/${studentId}/parents/${parentId}`),
   create: (data: NewStudentPayload) =>
     apiPost<BackendStudent>('/api/students', {
       studentNo: data.studentNo,
@@ -375,13 +487,20 @@ export const examsApi = {
     }),
   updateResult: (
     id: string,
-    payload: { correctCount: number; wrongCount: number; wrongTopics?: { topic: string; count: number }[] }
-  ) =>
-    apiPut<BackendExamResult>(`/api/exams/results/${id}`, {
-      correctCount: payload.correctCount,
-      wrongCount: payload.wrongCount,
-      wrongTopics: payload.wrongTopics ?? [],
-    }),
+    payload: {
+      correctCount?: number;
+      wrongCount?: number;
+      wrongTopics?: { topic: string; count: number }[];
+      acknowledgeSuspiciousReview?: boolean;
+    }
+  ) => {
+    const body: Record<string, unknown> = {};
+    if (payload.correctCount !== undefined) body.correctCount = payload.correctCount;
+    if (payload.wrongCount !== undefined) body.wrongCount = payload.wrongCount;
+    if (payload.wrongTopics !== undefined) body.wrongTopics = payload.wrongTopics;
+    if (payload.acknowledgeSuspiciousReview === true) body.acknowledgeSuspiciousReview = true;
+    return apiPut<BackendExamResult>(`/api/exams/results/${id}`, body);
+  },
   deleteResult: (id: string) => apiDelete(`/api/exams/results/${id}`),
   delete: (id: string) => apiDelete(`/api/exams/${id}`),
 };

@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -133,7 +134,8 @@ public class MlServiceClient : IMlServiceClient
             raw.QuestionCount,
             raw.MarkersDetected,
             raw.PerspectiveOk,
-            perQuestion);
+            perQuestion,
+            raw.ScanMetadata);
     }
 
     public async Task<HealthCheckDto> CheckHealthAsync(CancellationToken ct = default)
@@ -222,6 +224,9 @@ public class MlServiceClient : IMlServiceClient
         public bool? MarkersDetected { get; set; }
         public bool? PerspectiveOk { get; set; }
         public List<MlOpticalPerQuestion>? PerQuestion { get; set; }
+
+        [JsonPropertyName("scan_metadata")]
+        public JsonElement? ScanMetadata { get; set; }
     }
 
     private class MlOpticalPerQuestion

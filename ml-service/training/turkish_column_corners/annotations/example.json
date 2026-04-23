@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "image_file": "example_mobile_scan.jpg",
+  "image_size": {
+    "width": 1080,
+    "height": 1920
+  },
+  "corners_pixel": {
+    "order": ["TL", "TR", "BR", "BL"],
+    "points": [
+      [312.5, 420.0],
+      [756.0, 398.2],
+      [768.5, 1510.0],
+      [305.0, 1525.5]
+    ]
+  },
+  "notes": "points sırası: sol-üst, sağ-üst, sağ-alt, sol-alt — orijinal çözünürlükte piksel"
+}

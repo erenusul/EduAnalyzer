@@ -5,6 +5,7 @@
 import { Outlet } from 'react-router-dom';
 import { Dropdown } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
+import { ParentSidebar } from './ParentSidebar';
 
 export function ParentLayout() {
   const { user, logout } = useAuth();
@@ -46,11 +47,14 @@ export function ParentLayout() {
           </Dropdown.Menu>
         </Dropdown>
       </header>
-      <main className="flex-grow-1 overflow-auto p-4 bg-body">
-        <div className="container-fluid" style={{ maxWidth: 900 }}>
-          <Outlet />
-        </div>
-      </main>
+      <div className="d-flex flex-grow-1 overflow-hidden position-relative">
+        <ParentSidebar />
+        <main className="flex-grow-1 overflow-auto p-4 bg-body">
+          <div className="container-fluid" style={{ maxWidth: 1100 }}>
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

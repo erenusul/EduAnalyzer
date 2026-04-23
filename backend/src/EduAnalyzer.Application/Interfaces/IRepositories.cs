@@ -64,6 +64,20 @@ public interface IUserRepository
     Task DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
+public interface IStudentParentRepository
+{
+    Task<IReadOnlyList<StudentParent>> GetLinksWithParentAndUserAsync(Guid studentId, CancellationToken ct = default);
+    Task<bool> ExistsAsync(Guid studentId, Guid parentId, CancellationToken ct = default);
+    Task AddAsync(StudentParent entity, CancellationToken ct = default);
+    Task<bool> DeleteAsync(Guid studentId, Guid parentId, CancellationToken ct = default);
+}
+
+public interface IParentReadRepository
+{
+    Task<Parent?> GetByIdWithUserAsync(Guid parentId, CancellationToken ct = default);
+    Task<IReadOnlyList<Parent>> ListParentsWithUserAsync(CancellationToken ct = default);
+}
+
 public interface ITeacherRepository
 {
     Task<Teacher?> GetByIdAsync(Guid id, CancellationToken ct = default);

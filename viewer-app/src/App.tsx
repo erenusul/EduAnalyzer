@@ -11,6 +11,10 @@ import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { StudentResultDetail } from './pages/StudentResultDetail';
 import { ParentDashboard } from './pages/ParentDashboard';
+import { ChildDetail } from './pages/ChildDetail';
+import { ParentAnalysisScreen } from './pages/ParentAnalysisScreen';
+import { ParentHistoryScreen } from './pages/ParentHistoryScreen';
+import { ParentReportsScreen } from './pages/ParentReportsScreen';
 import { StudentTracking } from './pages/StudentTracking';
 import { StudentDetail } from './pages/StudentDetail';
 import { PdfExamAnalysis } from './pages/PdfExamAnalysis';
@@ -88,6 +92,13 @@ function App() {
               }
             >
               <Route index element={<ParentDashboard />} />
+              <Route path="student/:id" element={<ChildDetail />} />
+              <Route path="cocuklar" element={<ParentDashboard />} />
+              <Route path="analysis" element={<ParentAnalysisScreen />} />
+              <Route path="history" element={<ParentHistoryScreen />} />
+              <Route path="reports" element={<ParentReportsScreen />} />
+              <Route path="gecmis" element={<Navigate to="/parent/history" replace />} />
+              <Route path="raporlar" element={<Navigate to="/parent/reports" replace />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

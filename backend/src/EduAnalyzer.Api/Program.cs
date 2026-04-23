@@ -77,6 +77,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IStudentParentRepository, StudentParentRepository>();
+builder.Services.AddScoped<IParentReadRepository, ParentReadRepository>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IAnalysisRecordRepository, AnalysisRecordRepository>();
 builder.Services.AddScoped<IExamRepository, ExamRepository>();
@@ -86,6 +88,7 @@ builder.Services.AddHttpClient<IMlServiceClient, MlServiceClient>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IStudentParentLinkService, StudentParentLinkService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IAnalysisService, AnalysisService>();
@@ -118,6 +121,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     await EduAnalyzer.Infrastructure.Data.SchemaPatches.ApplyExamResultWrongQuestionsColumnAsync(db);
     await EduAnalyzer.Infrastructure.Data.SchemaPatches.ApplyExamResultCorrectQuestionsColumnAsync(db);
+    await EduAnalyzer.Infrastructure.Data.SchemaPatches.ApplyExamResultSuspiciousColumnsAsync(db);
     await EduAnalyzer.Infrastructure.Data.DataSeeder.SeedAsync(db);
 }
 

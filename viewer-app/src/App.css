@@ -16,3 +16,21 @@ code {
     monospace;
 }
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #class-summary-print,
+  #class-summary-print * {
+    visibility: visible !important;
+  }
+  #class-summary-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+

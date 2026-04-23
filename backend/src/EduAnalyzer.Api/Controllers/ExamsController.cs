@@ -83,7 +83,7 @@ public class ExamsController : ControllerBase
     [HttpPost("{id:guid}/results/scan")]
     public async Task<ActionResult<ScanExamResponse>> ScanResult(Guid id, [FromBody] ScanExamRequest request, CancellationToken ct)
     {
-        var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
+        var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, opticalPerQuestion: null, ct);
         return Ok(response);
     }
 
@@ -122,7 +122,7 @@ public class ExamsController : ControllerBase
                 ocrResult.Answers,
                 keyList);
             var request = new ScanExamRequest(studentId, normalizedAnswers);
-            var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ct);
+            var response = await _service.ScanAndSaveResultAsync(id, TeacherId, request, ocrResult.PerQuestion, ct);
             return Ok(response);
         }
         catch (HttpRequestException ex) when (!string.IsNullOrEmpty(ex.Message))

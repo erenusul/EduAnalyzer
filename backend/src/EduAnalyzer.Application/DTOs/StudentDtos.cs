@@ -35,3 +35,15 @@ public record UpdateStudentRequest(
     string? Notes,
     string? Password
 );
+
+/// <summary>Öğrenciye bağlı veli (StudentParent + kullanıcı bilgisi).</summary>
+public record StudentParentLinkDto(
+    Guid ParentId,
+    string Email,
+    string DisplayName,
+    bool IsPrimary);
+
+/// <summary>Veli ekleme listesinde seçilebilir Parent kayıtları.</summary>
+public record ParentCandidateDto(Guid ParentId, string Email, string DisplayName);
+
+public record AddStudentParentRequest(Guid ParentId);

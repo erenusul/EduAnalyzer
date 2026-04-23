@@ -7,6 +7,7 @@ import type { AvailableExam } from '../../types/exam';
 import type { AvailableExamsScreenProps } from '../../app/navigation/types';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
+import { isDatasetCollectorEnabled, isDatasetModeEnabled } from '../../services/dataset/datasetCapture';
 
 function buildStyles(colors: AppThemeColors) {
   return StyleSheet.create({
@@ -162,12 +163,44 @@ function buildStyles(colors: AppThemeColors) {
       fontWeight: '800',
       fontSize: 16,
     },
+    datasetEntry: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.accentMuted,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      padding: 16,
+      borderRadius: 18,
+      borderWidth: Platform.OS === 'android' ? 1 : 0,
+      borderColor: colors.border,
+    },
+    datasetEntryTitle: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '800',
+      flex: 1,
+      marginRight: 12,
+    },
+    datasetEntryHint: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+    datasetTools: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+      gap: 10,
+    },
   });
 }
 
 export function AvailableExamsScreen({ navigation }: AvailableExamsScreenProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => buildStyles(colors), [colors]);
+  const datasetModeOn = useMemo(() => isDatasetModeEnabled(), []);
+  const datasetCollectorOn = useMemo(() => isDatasetCollectorEnabled(), []);
   const [exams, setExams] = useState<AvailableExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -218,6 +251,39 @@ export function AvailableExamsScreen({ navigation }: AvailableExamsScreenProps) 
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={20} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {datasetModeOn || datasetCollectorOn ? (
+        <View style={styles.datasetTools}>
+          {datasetCollectorOn ? (
+            <Pressable
+              style={({ pressed }) => [styles.datasetEntry, pressed && { opacity: 0.92 }]}
+              onPress={() => navigation.navigate('DatasetCollector')}
+              accessibilityRole="button"
+              accessibilityLabel="Hızlı fotoğraf toplama"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.datasetEntryTitle}>Fotoğraf toplama</Text>
+                <Text style={styles.datasetEntryHint}>Sınav seçmeden çek — anında cihaza kaydedilir</Text>
+              </View>
+              <Ionicons name="camera" size={22} color={colors.accent} />
+            </Pressable>
+          ) : null}
+          {datasetModeOn ? (
+            <Pressable
+              style={({ pressed }) => [styles.datasetEntry, pressed && { opacity: 0.92 }]}
+              onPress={() => navigation.navigate('DatasetMode')}
+              accessibilityRole="button"
+              accessibilityLabel="Dataset modu: yerel veri toplama"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.datasetEntryTitle}>Dataset modu</Text>
+                <Text style={styles.datasetEntryHint}>Kadraj + duplicate kontrolü (AI eğitimi)</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={colors.accent} />
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 

@@ -15,7 +15,12 @@ public interface IExamService
     Task<IReadOnlyList<ExamDto>> GetByTeacherAsync(Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<ExamDto>> GetExamsAvailableForStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<ExamDto?> UpdateAnswerKeyAsync(Guid examId, Guid teacherId, IReadOnlyList<string> answerKey, CancellationToken ct = default);
-    Task<ScanExamResponse> ScanAndSaveResultAsync(Guid examId, Guid teacherId, ScanExamRequest request, CancellationToken ct = default);
+    Task<ScanExamResponse> ScanAndSaveResultAsync(
+        Guid examId,
+        Guid teacherId,
+        ScanExamRequest request,
+        IReadOnlyList<OpticalPerQuestionReadDto>? opticalPerQuestion = null,
+        CancellationToken ct = default);
     Task<ScanExamResponse> SubmitScanForStudentAsync(
         Guid examId,
         Guid studentId,
@@ -177,9 +182,6 @@ public class ExamService : IExamService
         UpdateExamResultRequest request,
         CancellationToken ct = default)
     {
-        if (request.CorrectCount < 0 || request.WrongCount < 0)
-            throw new ArgumentException("Doğru ve yanlış sayıları negatif olamaz.");
-
         var entity = await _resultRepo.GetByIdAsync(resultId, ct);
         if (entity == null)
             throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
@@ -192,13 +194,32 @@ public class ExamService : IExamService
         if (student == null || student.TeacherId != teacherId)
             throw new UnauthorizedAccessException("Öğrenci bulunamadı veya yetkiniz yok.");
 
+        if (request.AcknowledgeSuspiciousReview == true
+            && request.CorrectCount == null
+            && request.WrongCount == null)
+        {
+            entity.SuspiciousReviewedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _resultRepo.UpdateAsync(entity, ct);
+            return MapResultToDto(entity, student, exam);
+        }
+
+        if (!request.CorrectCount.HasValue || !request.WrongCount.HasValue)
+            throw new ArgumentException("Doğru ve yanlış sayıları gerekli.");
+
+        if (request.CorrectCount.Value < 0 || request.WrongCount.Value < 0)
+            throw new ArgumentException("Doğru ve yanlış sayıları negatif olamaz.");
+
         var topics = request.WrongTopics ?? [];
-        entity.CorrectCount = request.CorrectCount;
-        entity.WrongCount = request.WrongCount;
+        entity.CorrectCount = request.CorrectCount.Value;
+        entity.WrongCount = request.WrongCount.Value;
         entity.WrongTopicsJson = JsonSerializer.Serialize(topics.Select(w => new { w.Topic, w.Count }));
         entity.WrongQuestionsJson = "[]";
         entity.CorrectQuestionsJson = "[]";
+        entity.SuspiciousQuestionsJson = "[]";
+        entity.SuspiciousReviewedAt = null;
         entity.Source = "manual";
+        entity.UpdatedAt = DateTime.UtcNow;
         await _resultRepo.UpdateAsync(entity, ct);
 
         return MapResultToDto(entity, student, exam);
@@ -267,7 +288,12 @@ public class ExamService : IExamService
         return MapToDto(exam);
     }
 
-    public async Task<ScanExamResponse> ScanAndSaveResultAsync(Guid examId, Guid teacherId, ScanExamRequest request, CancellationToken ct = default)
+    public async Task<ScanExamResponse> ScanAndSaveResultAsync(
+        Guid examId,
+        Guid teacherId,
+        ScanExamRequest request,
+        IReadOnlyList<OpticalPerQuestionReadDto>? opticalPerQuestion = null,
+        CancellationToken ct = default)
     {
         var exam = await _examRepo.GetByIdAsync(examId, ct);
         if (exam == null || exam.TeacherId != teacherId)
@@ -284,26 +310,17 @@ public class ExamService : IExamService
         if (student == null || student.TeacherId != teacherId)
             throw new UnauthorizedAccessException("Öğrenci bulunamadı veya yetkiniz yok.");
 
-        List<QuestionAnalysisResultDto> results;
-        if (!string.IsNullOrEmpty(exam.SelectedResultsJson))
-        {
-            results = JsonSerializer.Deserialize<List<QuestionAnalysisResultDto>>(exam.SelectedResultsJson) ?? new List<QuestionAnalysisResultDto>();
-        }
-        else
-        {
-            var analysis = exam.Analysis;
-            var pdfResponse = JsonSerializer.Deserialize<PdfAnalysisResponseDto>(analysis.ResultsJson);
-            results = (pdfResponse?.Results ?? new List<QuestionAnalysisResultDto>()).ToList();
-        }
+        var selectedResults = DeserializeSelectedQuestionResults(exam.SelectedResultsJson);
+        var fullPdfResults = DeserializePdfResultsFromAnalysis(exam.Analysis.ResultsJson);
 
         var wrongQuestions = new List<WrongQuestionDto>();
         var correctQuestions = new List<WrongQuestionDto>();
-        var topicCounts = new Dictionary<string, int>();
-        var correctCount = 0;
-        var wrongCount = 0;
 
         for (var i = 0; i < Math.Max(answerKey.Count, request.StudentAnswers.Count); i++)
         {
+            var row = PickQuestionAnalysisRow(i, selectedResults, fullPdfResults);
+            var topicLabel = ResolveTopicLabel(row, i + 1);
+
             var correctAnswer = i < answerKey.Count ? (answerKey[i]?.Trim().ToUpperInvariant() ?? "") : "";
             var studentAnswer = i < request.StudentAnswers.Count ? (request.StudentAnswers[i]?.Trim().ToUpperInvariant() ?? "") : "";
             var studentChar = studentAnswer.Length > 0 ? studentAnswer[0].ToString() : "";
@@ -313,13 +330,7 @@ public class ExamService : IExamService
                 // Anahtarda bu soru boşsa önceden tamamen atlanıyordu; 19. soru gibi kayıplara yol açıyordu.
                 if (string.IsNullOrEmpty(studentChar))
                     continue;
-                wrongCount++;
-                var rawTopicEmptyKey = i < results.Count && results[i].Topic.Count > 0
-                    ? results[i].Topic[0].Label
-                    : null;
-                var topicEmptyKey = string.IsNullOrWhiteSpace(rawTopicEmptyKey) ? "Bilinmiyor" : rawTopicEmptyKey!;
-                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topicEmptyKey));
-                topicCounts[topicEmptyKey] = topicCounts.GetValueOrDefault(topicEmptyKey, 0) + 1;
+                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topicLabel));
                 continue;
             }
 
@@ -327,29 +338,22 @@ public class ExamService : IExamService
 
             if (isCorrect)
             {
-                correctCount++;
-                var rawTopicOk = i < results.Count && results[i].Topic.Count > 0
-                    ? results[i].Topic[0].Label
-                    : null;
-                var topicOk = string.IsNullOrWhiteSpace(rawTopicOk) ? "Bilinmiyor" : rawTopicOk!;
-                correctQuestions.Add(new WrongQuestionDto(i + 1, studentChar, topicOk));
+                correctQuestions.Add(new WrongQuestionDto(i + 1, studentChar, topicLabel));
             }
             else
             {
-                wrongCount++;
-                var rawTopic = i < results.Count && results[i].Topic.Count > 0
-                    ? results[i].Topic[0].Label
-                    : null;
-                var topic = string.IsNullOrWhiteSpace(rawTopic) ? "Bilinmiyor" : rawTopic!;
-                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topic, correctAnswer));
-                topicCounts[topic] = topicCounts.GetValueOrDefault(topic, 0) + 1;
+                wrongQuestions.Add(new WrongQuestionDto(i + 1, studentAnswer, topicLabel, correctAnswer));
             }
         }
 
-        var wrongTopics = topicCounts.Select(kv => new WrongTopicDto(kv.Key, kv.Value)).ToList();
+        var correctCount = correctQuestions.Count;
+        var wrongCount = wrongQuestions.Count;
+        var wrongTopics = BuildWrongTopicsFromWrongQuestions(wrongQuestions);
         var wrongTopicsJson = JsonSerializer.Serialize(wrongTopics.Select(w => new { w.Topic, w.Count }));
         var wrongQuestionsJson = JsonSerializer.Serialize(wrongQuestions, JsonStoreOptions);
         var correctQuestionsJson = JsonSerializer.Serialize(correctQuestions, JsonStoreOptions);
+        var suspicious = OcrSuspiciousQuestionMarker.Build(opticalPerQuestion);
+        var suspiciousJson = JsonSerializer.Serialize(suspicious, JsonStoreOptions);
 
         var entity = new ExamResult
         {
@@ -361,6 +365,8 @@ public class ExamService : IExamService
             WrongTopicsJson = wrongTopicsJson,
             WrongQuestionsJson = wrongQuestionsJson,
             CorrectQuestionsJson = correctQuestionsJson,
+            SuspiciousQuestionsJson = suspiciousJson,
+            SuspiciousReviewedAt = null,
             Source = "optical",
             CreatedAt = DateTime.UtcNow
         };
@@ -372,7 +378,8 @@ public class ExamService : IExamService
             answerKey.Count,
             correctQuestions,
             wrongQuestions,
-            wrongTopics
+            wrongTopics,
+            suspicious
         );
     }
 
@@ -428,8 +435,99 @@ public class ExamService : IExamService
             examId,
             exam.TeacherId,
             new ScanExamRequest(studentId, gradedAnswers),
+            ocrResult.PerQuestion,
             ct
         );
+    }
+
+    private static List<QuestionAnalysisResultDto> DeserializeSelectedQuestionResults(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+        return JsonSerializer.Deserialize<List<QuestionAnalysisResultDto>>(json, JsonStoreOptions) ?? [];
+    }
+
+    private static List<QuestionAnalysisResultDto> DeserializePdfResultsFromAnalysis(string? resultsJson)
+    {
+        if (string.IsNullOrWhiteSpace(resultsJson))
+            return [];
+        try
+        {
+            var pdf = JsonSerializer.Deserialize<PdfAnalysisResponseDto>(resultsJson, JsonStoreOptions);
+            return pdf?.Results?.ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Sınav sorusu sırası: önce seçilen alt küme (varsa), yoksa tam PDF analiz listesi — böylece indeks
+    /// taşması veya boş Topic dizisi yüzünden konu hep "Bilinmiyor" olmaz.
+    /// </summary>
+    private static QuestionAnalysisResultDto? PickQuestionAnalysisRow(
+        int slotIndex,
+        IReadOnlyList<QuestionAnalysisResultDto> selectedResults,
+        IReadOnlyList<QuestionAnalysisResultDto> fullPdfResults)
+    {
+        if (selectedResults.Count > 0 && slotIndex < selectedResults.Count)
+            return selectedResults[slotIndex];
+        if (fullPdfResults.Count > 0 && slotIndex < fullPdfResults.Count)
+            return fullPdfResults[slotIndex];
+        return null;
+    }
+
+    private static string ResolveTopicLabel(QuestionAnalysisResultDto? row, int questionNumber1Based)
+    {
+        if (row != null)
+        {
+            foreach (var t in row.Topic)
+            {
+                if (!string.IsNullOrWhiteSpace(t.Label))
+                    return t.Label.Trim();
+            }
+
+            foreach (var s in row.Subject)
+            {
+                if (!string.IsNullOrWhiteSpace(s.Label))
+                    return s.Label.Trim();
+            }
+        }
+
+        return FallbackTopicForQuestionNumber(questionNumber1Based);
+    }
+
+    /// <summary>ML konu üretmediğinde geçici dağılım (UI tamamen "Bilinmiyor" göstermesin diye).</summary>
+    private static string FallbackTopicForQuestionNumber(int questionNumber1Based)
+    {
+        string[] buckets =
+        [
+            "Sözcükte Anlam",
+            "Cümlede Anlam",
+            "Paragraf",
+            "Dil Bilgisi",
+            "Yazım ve Noktalama",
+            "Şiir / Edebiyat",
+            "Yazım Kuralları"
+        ];
+        var idx = Math.Max(0, questionNumber1Based - 1) % buckets.Length;
+        return buckets[idx];
+    }
+
+    /// <summary>
+    /// wrongTopics özetini yanlış soru listesinden türetir; toplam yanlış sayısı ile her zaman tutarlı kalır.
+    /// </summary>
+    private static List<WrongTopicDto> BuildWrongTopicsFromWrongQuestions(IReadOnlyList<WrongQuestionDto> wrongQuestions)
+    {
+        var topicCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var wq in wrongQuestions)
+        {
+            var key = string.IsNullOrWhiteSpace(wq.Topic) ? "Bilinmiyor" : wq.Topic.Trim();
+            topicCounts[key] = topicCounts.GetValueOrDefault(key, 0) + 1;
+        }
+
+        return topicCounts.Select(kv => new WrongTopicDto(kv.Key, kv.Value)).ToList();
     }
 
     private static ExamDto MapToDto(Exam e)
@@ -457,9 +555,16 @@ public class ExamService : IExamService
     {
         var topics = (JsonSerializer.Deserialize<List<WrongTopicDto>>(r.WrongTopicsJson)
                 ?? new List<WrongTopicDto>())
-            .Select(t => new WrongTopicDto(
-                string.IsNullOrWhiteSpace(t.Topic) ? "Bilinmiyor" : t.Topic,
-                t.Count))
+            .Select(t =>
+            {
+                var raw = t.Topic;
+                var label = raw is null
+                    ? "Bilinmiyor"
+                    : string.IsNullOrWhiteSpace(raw)
+                        ? "Konu atanmamış"
+                        : raw.Trim();
+                return new WrongTopicDto(label, t.Count);
+            })
             .ToList();
         var wrongQuestions = string.IsNullOrEmpty(r.WrongQuestionsJson)
             ? new List<WrongQuestionDto>()
@@ -467,6 +572,10 @@ public class ExamService : IExamService
         var correctQuestions = string.IsNullOrEmpty(r.CorrectQuestionsJson)
             ? new List<WrongQuestionDto>()
             : JsonSerializer.Deserialize<List<WrongQuestionDto>>(r.CorrectQuestionsJson, JsonStoreOptions) ?? new List<WrongQuestionDto>();
+        var suspiciousQuestions = string.IsNullOrEmpty(r.SuspiciousQuestionsJson)
+            ? new List<SuspiciousQuestionHintDto>()
+            : JsonSerializer.Deserialize<List<SuspiciousQuestionHintDto>>(r.SuspiciousQuestionsJson, JsonStoreOptions)
+              ?? new List<SuspiciousQuestionHintDto>();
         return new ExamResultDto(
             r.Id,
             r.StudentId,
@@ -480,7 +589,9 @@ public class ExamService : IExamService
             correctQuestions,
             wrongQuestions,
             r.Source,
-            r.CreatedAt
+            r.CreatedAt,
+            suspiciousQuestions,
+            r.SuspiciousReviewedAt
         );
     }
 }

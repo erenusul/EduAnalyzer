@@ -2,9 +2,9 @@
  * Öğrenci detay sayfası - bilgiler, sınav sonuçları, konu hataları, haftalık grafik
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Card, Form, Button, Badge, Row, Col, Table, Modal, Alert } from 'react-bootstrap';
+import { Card, Form, Button, Badge, Row, Col, Table, Modal, Alert, Spinner } from 'react-bootstrap';
 import {
   LineChart,
   Line,
@@ -18,6 +18,7 @@ import {
 import { useTeacherData } from '../contexts/TeacherDataContext';
 import { useToast } from '../contexts/ToastContext';
 import type { ApiError } from '../services/apiClient';
+import { studentsApi, type ParentCandidate, type StudentParentLink } from '../services/backendApi';
 import type { ExamResult } from '../types/teacher';
 
 export function StudentDetail() {
@@ -40,7 +41,16 @@ export function StudentDetail() {
   const [editWrong, setEditWrong] = useState(0);
   const [editKeepTopics, setEditKeepTopics] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [suspiciousTarget, setSuspiciousTarget] = useState<ExamResult | null>(null);
   const [resultActionLoading, setResultActionLoading] = useState(false);
+  const [linkedParents, setLinkedParents] = useState<StudentParentLink[]>([]);
+  const [parentsLoading, setParentsLoading] = useState(false);
+  const [parentsFetchError, setParentsFetchError] = useState<string | null>(null);
+  const [addParentModalOpen, setAddParentModalOpen] = useState(false);
+  const [parentCandidates, setParentCandidates] = useState<ParentCandidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState('');
+  const [parentActionLoading, setParentActionLoading] = useState(false);
 
   const student = id ? getStudentById(id) : null;
 
@@ -90,6 +100,54 @@ export function StudentDetail() {
       .filter(Boolean)
       .sort((a, b) => a!.week.localeCompare(b!.week));
   }, [studentResults, exams]);
+
+  const loadLinkedParents = useCallback(async () => {
+    if (!student?.id) return;
+    setParentsLoading(true);
+    setParentsFetchError(null);
+    try {
+      const data = await studentsApi.getStudentParents(student.id);
+      setLinkedParents(data);
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as ApiError).message)
+          : 'Veli listesi yüklenemedi.';
+      setParentsFetchError(msg);
+      setLinkedParents([]);
+    } finally {
+      setParentsLoading(false);
+    }
+  }, [student?.id]);
+
+  useEffect(() => {
+    void loadLinkedParents();
+  }, [loadLinkedParents]);
+
+  const openAddParentModal = async () => {
+    if (!student?.id) return;
+    setAddParentModalOpen(true);
+    setSelectedParentId('');
+    setCandidatesLoading(true);
+    try {
+      const [all, linked] = await Promise.all([
+        studentsApi.getParentCandidates(),
+        studentsApi.getStudentParents(student.id),
+      ]);
+      setLinkedParents(linked);
+      const linkedIds = new Set(linked.map((p) => p.parentId));
+      setParentCandidates(all.filter((c) => !linkedIds.has(c.parentId)));
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as ApiError).message)
+          : 'Veli adayları yüklenemedi.';
+      showToast(msg, 'danger');
+      setParentCandidates([]);
+    } finally {
+      setCandidatesLoading(false);
+    }
+  };
 
   if (!student) {
     return (
@@ -325,6 +383,22 @@ export function StudentDetail() {
                           >
                             {r.correctCount + r.wrongCount} soru
                           </Badge>
+                          {(r.suspiciousQuestions?.length ?? 0) > 0 && !r.suspiciousReviewedAt && (
+                            <Button
+                              variant="outline-warning"
+                              size="sm"
+                              className="px-2"
+                              title="Şüpheli okuma — incele"
+                              onClick={() => setSuspiciousTarget(r)}
+                            >
+                              <i className="bi bi-exclamation-triangle" aria-hidden />
+                            </Button>
+                          )}
+                          {(r.suspiciousQuestions?.length ?? 0) > 0 && r.suspiciousReviewedAt && (
+                            <Badge bg="secondary" className="small">
+                              İncelendi
+                            </Badge>
+                          )}
                           <Button
                             variant="outline-secondary"
                             size="sm"
@@ -353,6 +427,89 @@ export function StudentDetail() {
                     );
                   })}
                 </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col xs={12}>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <h6 className="fw-semibold mb-0">
+                <i className="bi bi-people me-2" />
+                Bağlı veliler
+              </h6>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => void openAddParentModal()}
+                disabled={parentActionLoading}
+              >
+                <i className="bi bi-person-plus me-1" />
+                Veli ekle
+              </Button>
+            </Card.Header>
+            <Card.Body>
+              <p className="small text-muted mb-3">
+                Veli hesabı olan kullanıcıları seçerek bağlayın. Veli, web panelinde bu öğrenciyi
+                görebilir.
+              </p>
+              {parentsFetchError && (
+                <Alert variant="warning" className="py-2 small mb-3">
+                  {parentsFetchError}
+                </Alert>
+              )}
+              {parentsLoading ? (
+                <div className="text-muted small">Yükleniyor…</div>
+              ) : linkedParents.length === 0 ? (
+                <div className="text-muted small">Henüz bağlı veli yok.</div>
+              ) : (
+                <Table responsive size="sm" className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Ad</th>
+                      <th>E-posta</th>
+                      <th style={{ width: 100 }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linkedParents.map((p) => (
+                      <tr key={p.parentId}>
+                        <td className="fw-medium">{p.displayName}</td>
+                        <td className="text-muted small">{p.email}</td>
+                        <td className="text-end">
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            disabled={parentActionLoading}
+                            onClick={() => {
+                              if (!window.confirm('Bu veli bağlantısını kaldırmak istiyor musunuz?')) {
+                                return;
+                              }
+                              setParentActionLoading(true);
+                              studentsApi
+                                .unlinkStudentParent(student.id, p.parentId)
+                                .then(() => {
+                                  showToast('Veli bağlantısı kaldırıldı.');
+                                  return loadLinkedParents();
+                                })
+                                .catch((err: unknown) => {
+                                  const msg =
+                                    err && typeof err === 'object' && 'message' in err
+                                      ? String((err as ApiError).message)
+                                      : 'Kaldırılamadı.';
+                                  showToast(msg, 'danger');
+                                })
+                                .finally(() => setParentActionLoading(false));
+                            }}
+                          >
+                            Kaldır
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               )}
             </Card.Body>
           </Card>
@@ -431,6 +588,84 @@ export function StudentDetail() {
           </Col>
         )}
       </Row>
+
+      <Modal
+        show={addParentModalOpen}
+        onHide={() => !parentActionLoading && setAddParentModalOpen(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Veli bağla</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="small text-muted mb-3">
+            Yalnızca sistemde kayıtlı veli (Parent) hesapları listelenir. Yeni veli oluşturma bu
+            sürümde yoktur.
+          </p>
+          {candidatesLoading ? (
+            <div className="d-flex justify-content-center py-3">
+              <Spinner animation="border" size="sm" />
+            </div>
+          ) : parentCandidates.length === 0 ? (
+            <p className="small text-muted mb-0">
+              Eklenebilecek veli kalmadı veya Parent rolünde kullanıcı bulunmuyor.
+            </p>
+          ) : (
+            <Form.Group>
+              <Form.Label htmlFor="parent-candidate-select">Veli seçin</Form.Label>
+              <Form.Select
+                id="parent-candidate-select"
+                value={selectedParentId}
+                onChange={(e) => setSelectedParentId(e.target.value)}
+                aria-label="Bağlanacak veli"
+              >
+                <option value="">Seçin…</option>
+                {parentCandidates.map((c) => (
+                  <option key={c.parentId} value={c.parentId}>
+                    {c.displayName} ({c.email})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setAddParentModalOpen(false)}
+            disabled={parentActionLoading}
+          >
+            Vazgeç
+          </Button>
+          <Button
+            variant="primary"
+            disabled={
+              !selectedParentId || parentActionLoading || candidatesLoading || parentCandidates.length === 0
+            }
+            onClick={() => {
+              if (!student || !selectedParentId) return;
+              setParentActionLoading(true);
+              studentsApi
+                .linkStudentParent(student.id, selectedParentId)
+                .then((list) => {
+                  setLinkedParents(list);
+                  showToast('Veli bağlandı.');
+                  setAddParentModalOpen(false);
+                })
+                .catch((err: unknown) => {
+                  const msg =
+                    err && typeof err === 'object' && 'message' in err
+                      ? String((err as ApiError).message)
+                      : 'Bağlanamadı.';
+                  showToast(msg, 'danger');
+                })
+                .finally(() => setParentActionLoading(false));
+            }}
+          >
+            {parentActionLoading ? 'Kaydediliyor…' : 'Bağla'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal
         show={editTarget != null}
@@ -519,6 +754,80 @@ export function StudentDetail() {
             }}
           >
             {resultActionLoading ? 'Kaydediliyor…' : 'Kaydet'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={suspiciousTarget != null}
+        onHide={() => !resultActionLoading && setSuspiciousTarget(null)}
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Şüpheli okuma — soru incelemesi</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {suspiciousTarget && (
+            <>
+              <p className="text-muted small mb-3">
+                {exams.find((e) => e.id === suspiciousTarget.examId)?.title ?? 'Sınav'} — aşağıdaki
+                sorularda optik okuma güveni sınırda veya belirsiz olarak işaretlendi. Cevapları
+                kontrol ettikten sonra incelemeyi onaylayabilirsiniz (puanları değiştirmez).
+              </p>
+              <Table responsive size="sm" bordered className="mb-0 small">
+                <thead className="table-light">
+                  <tr>
+                    <th>Soru</th>
+                    <th>Güven</th>
+                    <th>Durum</th>
+                    <th>Not</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(suspiciousTarget.suspiciousQuestions ?? []).map((s) => (
+                    <tr key={s.questionIndex}>
+                      <td className="fw-medium">{s.questionIndex}</td>
+                      <td>{(s.confidence * 100).toFixed(1)}%</td>
+                      <td>{s.status ?? '—'}</td>
+                      <td>{s.reason ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setSuspiciousTarget(null)}
+            disabled={resultActionLoading}
+          >
+            Kapat
+          </Button>
+          <Button
+            variant="primary"
+            disabled={resultActionLoading || !suspiciousTarget}
+            onClick={async () => {
+              if (!suspiciousTarget) return;
+              setResultActionLoading(true);
+              try {
+                await updateExamResult(suspiciousTarget.id, { acknowledgeSuspiciousReview: true });
+                showToast('İnceleme kaydedildi.');
+                setSuspiciousTarget(null);
+              } catch (err) {
+                const msg =
+                  err && typeof err === 'object' && 'message' in err
+                    ? String((err as ApiError).message)
+                    : 'Kaydedilemedi.';
+                showToast(msg, 'danger');
+              } finally {
+                setResultActionLoading(false);
+              }
+            }}
+          >
+            {resultActionLoading ? 'Kaydediliyor…' : 'İncelemeyi onayla'}
           </Button>
         </Modal.Footer>
       </Modal>

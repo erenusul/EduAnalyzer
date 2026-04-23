@@ -47,6 +47,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "opticalTestSaveEnabled": false,
+      "datasetModeEnabled": false,
+      "datasetCollectorEnabled": false
     }
   }
 }

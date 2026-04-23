@@ -2,10 +2,14 @@
  * Optik tarama sayfası - sınav seç, öğrenci seç, cevap girişi, Scan API
  */
 
-import { useState, useMemo } from 'react';
-import { Card, Form, Button, Row, Col, Alert } from 'react-bootstrap';
+import { useMemo, useState } from 'react';
+import { Card, Form, Button, Row, Col, Alert, Collapse, Badge, Table } from 'react-bootstrap';
 import { useTeacherData } from '../contexts/TeacherDataContext';
-import { examsApi, OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107 } from '../services/backendApi';
+import {
+  examsApi,
+  OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107,
+  type ScanExamResponse,
+} from '../services/backendApi';
 import { useToast } from '../contexts/ToastContext';
 import { CameraCapture } from '../components/CameraCapture';
 
@@ -14,6 +18,16 @@ const OPTIONS = ['A', 'B', 'C', 'D'];
 function optionCountFromAnswerKey(answerKey: string[] | undefined): number {
   if (!answerKey?.length) return 4;
   return answerKey.some((a) => /^E$/i.test(String(a ?? '').trim())) ? 5 : 4;
+}
+
+function summarizeScan(res: ScanExamResponse): {
+  wrongIndices: number[];
+  blanksCountedWrong: number;
+} {
+  const wrongList = res.wrongQuestions ?? [];
+  const wrongIndices = [...new Set(wrongList.map((w) => w.questionIndex))].sort((a, b) => a - b);
+  const blanksCountedWrong = wrongList.filter((w) => !(w.studentAnswer ?? '').trim()).length;
+  return { wrongIndices, blanksCountedWrong };
 }
 
 export function OpticScan() {
@@ -27,6 +41,9 @@ export function OpticScan() {
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastScan, setLastScan] = useState<ScanExamResponse | null>(null);
+  const [lastScanExamTitle, setLastScanExamTitle] = useState('');
+  const [scanSummaryOpen, setScanSummaryOpen] = useState(true);
 
   const readyExams = useMemo(
     () => exams.filter((e) => e.status === 'ready'),
@@ -78,7 +95,7 @@ export function OpticScan() {
     setOcrLoading(true);
     setError(null);
     try {
-      await examsApi.scanImage(
+      const scanRes = await examsApi.scanImage(
         selectedExamId,
         selectedStudentId,
         capturedBlob,
@@ -86,6 +103,9 @@ export function OpticScan() {
         optionCountFromAnswerKey(exam.answerKey),
         OPTICAL_TEMPLATE_LGS_SOZEL_CROP_117X107
       );
+      setLastScan(scanRes);
+      setLastScanExamTitle(exam.title);
+      setScanSummaryOpen(true);
       await refresh();
       showToast('Optik form OCR ile okundu ve kaydedildi.');
       if (capturedImage) URL.revokeObjectURL(capturedImage);
@@ -123,7 +143,10 @@ export function OpticScan() {
     setError(null);
     try {
       const normalized = answers.slice(0, questionCount).map((a) => a.trim().toUpperCase() || '');
-      await examsApi.scan(selectedExamId, selectedStudentId, normalized);
+      const scanRes = await examsApi.scan(selectedExamId, selectedStudentId, normalized);
+      setLastScan(scanRes);
+      setLastScanExamTitle(exam.title);
+      setScanSummaryOpen(true);
       await refresh();
       showToast('Optik tarama sonucu kaydedildi.');
       setAnswers(Array(questionCount).fill(''));
@@ -136,6 +159,8 @@ export function OpticScan() {
       setLoading(false);
     }
   };
+
+  const scanSummary = useMemo(() => (lastScan ? summarizeScan(lastScan) : null), [lastScan]);
 
   return (
     <div>
@@ -150,6 +175,99 @@ export function OpticScan() {
         <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4">
           {error}
         </Alert>
+      )}
+
+      {lastScan && scanSummary && (
+        <Card className="border-0 shadow-sm mb-4 border-success border-opacity-50">
+          <Card.Header className="bg-white border-bottom py-3">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-link text-decoration-none text-dark fw-semibold p-0 text-start"
+                onClick={() => setScanSummaryOpen(!scanSummaryOpen)}
+                aria-expanded={scanSummaryOpen}
+              >
+                <i className="bi bi-check2-circle text-success me-2" />
+                Son kayıt özeti
+                {lastScanExamTitle ? (
+                  <span className="text-muted fw-normal ms-2">— {lastScanExamTitle}</span>
+                ) : null}
+              </button>
+              <div className="d-flex gap-2">
+                <Button variant="outline-secondary" size="sm" onClick={() => setLastScan(null)}>
+                  Özeti kapat
+                </Button>
+              </div>
+            </div>
+          </Card.Header>
+          <Collapse in={scanSummaryOpen}>
+            <Card.Body className="pt-0">
+              <Row className="g-3 mb-3">
+                <Col xs={6} md={3}>
+                  <div className="text-muted small">Doğru</div>
+                  <div className="fs-4 fw-bold text-success">{lastScan.correctCount}</div>
+                </Col>
+                <Col xs={6} md={3}>
+                  <div className="text-muted small">Yanlış</div>
+                  <div className="fs-4 fw-bold text-danger">{lastScan.wrongCount}</div>
+                </Col>
+                <Col xs={6} md={3}>
+                  <div className="text-muted small">Toplam soru</div>
+                  <div className="fs-4 fw-bold">{lastScan.totalCount}</div>
+                </Col>
+                <Col xs={6} md={3}>
+                  <div className="text-muted small">Boş (yanlış sayılan)</div>
+                  <div className="fs-4 fw-bold text-warning">{scanSummary.blanksCountedWrong}</div>
+                </Col>
+              </Row>
+              <p className="small text-muted mb-2">
+                Boş bırakılan işaretler yanlış olarak sayılır. Aşağıda şüpheli işaretli sorular
+                varsa öğrenci kaydında incelemeniz önerilir.
+              </p>
+              {(lastScan.suspiciousQuestions?.length ?? 0) > 0 && (
+                <Alert variant="warning" className="small py-2 mb-3">
+                  <strong>İnceleme önerilen sorular:</strong>{' '}
+                  {lastScan.suspiciousQuestions!.map((s) => s.questionIndex).join(', ')} (düşük güven
+                  veya belirsiz okuma). Kayıt yine de oluşturuldu; öğrenci detayından onay
+                  verebilirsiniz.
+                </Alert>
+              )}
+              <div className="mb-3">
+                <span className="small text-muted me-2">Yanlış soru numaraları:</span>
+                {scanSummary.wrongIndices.length > 0 ? (
+                  <span className="small fw-medium">
+                    {scanSummary.wrongIndices.join(', ')}
+                  </span>
+                ) : (
+                  <Badge bg="success">Yok</Badge>
+                )}
+              </div>
+              {(lastScan.wrongTopics ?? []).length > 0 ? (
+                <>
+                  <h6 className="fw-semibold small mb-2">Yanlış konu özeti</h6>
+                  <Table responsive size="sm" bordered hover className="mb-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Konu</th>
+                        <th style={{ width: 100 }}>Yanlış</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(lastScan.wrongTopics ?? []).map((wt) => (
+                        <tr key={wt.topic}>
+                          <td>{wt.topic}</td>
+                          <td>{wt.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </>
+              ) : (
+                <p className="small text-muted mb-0">Konu özeti yok (tümü doğru veya konu atanmamış).</p>
+              )}
+            </Card.Body>
+          </Collapse>
+        </Card>
       )}
 
       <Card className="border-0 shadow-sm mb-4">

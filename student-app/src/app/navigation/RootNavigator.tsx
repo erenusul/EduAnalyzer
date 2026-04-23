@@ -16,6 +16,8 @@ import { ResultDetailScreen } from '../../screens/results/ResultDetailScreen';
 import { ProgressChartScreen } from '../../screens/results/ProgressChartScreen';
 import { AvailableExamsScreen } from '../../screens/scan/AvailableExamsScreen';
 import { ScanScreen } from '../../screens/scan/ScanScreen';
+import { DatasetModeScreen } from '../../screens/scan/DatasetModeScreen';
+import { DatasetCollectorScreen } from '../../screens/scan/DatasetCollectorScreen';
 import { ProfileScreen } from '../../screens/profile/ProfileScreen';
 import { HelpScreen } from '../../screens/profile/HelpScreen';
 import { SettingsScreen } from '../../screens/profile/SettingsScreen';
@@ -78,6 +80,8 @@ function ScanNavigator() {
     >
       <ScanStack.Screen name="AvailableExams" component={AvailableExamsScreen} options={{ title: 'Sınav Seç' }} />
       <ScanStack.Screen name="ScanExam" component={ScanScreen} options={{ title: 'Optik Tara' }} />
+      <ScanStack.Screen name="DatasetMode" component={DatasetModeScreen} options={{ title: 'Dataset modu' }} />
+      <ScanStack.Screen name="DatasetCollector" component={DatasetCollectorScreen} options={{ title: 'Fotoğraf toplama' }} />
     </ScanStack.Navigator>
   );
 }

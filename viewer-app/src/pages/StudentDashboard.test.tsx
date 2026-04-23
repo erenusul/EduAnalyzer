@@ -10,6 +10,7 @@ vi.mock('../services/backendApi', async (importOriginal) => {
     meApi: {
       ...actual.meApi,
       getMyResults: vi.fn(),
+      getMyExams: vi.fn(),
     },
   };
 });
@@ -19,6 +20,8 @@ const { meApi } = await import('../services/backendApi');
 describe('StudentDashboard', () => {
   beforeEach(() => {
     vi.mocked(meApi.getMyResults).mockReset();
+    vi.mocked(meApi.getMyExams).mockReset();
+    vi.mocked(meApi.getMyExams).mockResolvedValue([]);
   });
 
   it('shows empty state when no results', async () => {

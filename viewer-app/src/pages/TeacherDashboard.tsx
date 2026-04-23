@@ -2,8 +2,18 @@
  * Öğretmen dashboard ana sayfa
  */
 
+import { useMemo } from 'react';
 import { Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeacherData } from '../contexts/TeacherDataContext';
 
@@ -54,9 +64,35 @@ const FEATURE_CARDS = [
 
 export function TeacherDashboard() {
   const { user } = useAuth();
-  const { students, classes, analyses } = useTeacherData();
+  const { students, classes, analyses, examResults } = useTeacherData();
 
   const totalQuestions = analyses.reduce((sum, a) => sum + a.analyzedQuestions, 0);
+
+  const topWrongQuestions = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const r of examResults) {
+      for (const w of r.wrongQuestions ?? []) {
+        const idx = w.questionIndex;
+        counts.set(idx, (counts.get(idx) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      .slice(0, 10)
+      .map(([questionIndex, yanlis]) => ({
+        name: `S${questionIndex}`,
+        soruNo: questionIndex,
+        yanlis,
+      }));
+  }, [examResults]);
+
+  const pendingSuspiciousResults = useMemo(
+    () =>
+      examResults.filter(
+        (r) => (r.suspiciousQuestions?.length ?? 0) > 0 && !r.suspiciousReviewedAt
+      ).length,
+    [examResults]
+  );
 
   return (
     <div>
@@ -121,6 +157,67 @@ export function TeacherDashboard() {
           </Card>
         </div>
       </div>
+
+      {(topWrongQuestions.length > 0 || pendingSuspiciousResults > 0) && (
+        <div className="row g-3 mb-4">
+          {pendingSuspiciousResults > 0 && (
+            <div className="col-12">
+              <Card className="border-0 shadow-sm border-warning border-opacity-50">
+                <Card.Body className="py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-eye-slash text-warning fs-4" aria-hidden />
+                    <div>
+                      <div className="fw-semibold">İncelenmesi önerilen optik kayıtlar</div>
+                      <div className="small text-muted mb-0">
+                        {pendingSuspiciousResults} sonuçta düşük güven veya belirsiz okuma işaretli.
+                        Öğrenci detayından soru listesini kontrol edip onaylayabilirsiniz.
+                      </div>
+                    </div>
+                  </div>
+                  <Link to="/dashboard/ogrenci-takibi" className="btn btn-outline-warning btn-sm">
+                    Öğrenci takibine git
+                  </Link>
+                </Card.Body>
+              </Card>
+            </div>
+          )}
+          {topWrongQuestions.length > 0 && (
+            <div className="col-12">
+              <Card className="border-0 shadow-sm h-100">
+                <Card.Header className="bg-white border-bottom py-3">
+                  <h6 className="fw-semibold mb-0">
+                    <i className="bi bi-hash me-2" />
+                    En çok yanlış yapılan sorular
+                  </h6>
+                  <p className="text-muted small mb-0 mt-2">
+                    Tüm kayıtlı sınavlarda soru numarasına göre toplam yanlış sayısı (öğretmen paneli
+                    verisi).
+                  </p>
+                </Card.Header>
+                <Card.Body>
+                  <div className="w-100" style={{ minWidth: 0, height: 280 }}>
+                    <ResponsiveContainer width="100%" height="100%" debounce={32}>
+                      <BarChart data={topWrongQuestions} margin={{ left: 8, right: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip
+                          formatter={(v: number | undefined) => [v ?? 0, 'Yanlış sayısı']}
+                          labelFormatter={(_, p) => {
+                            const row = p?.[0]?.payload as { soruNo?: number } | undefined;
+                            return row?.soruNo != null ? `Soru ${row.soruNo}` : '';
+                          }}
+                        />
+                        <Bar dataKey="yanlis" fill="var(--bs-danger)" name="Yanlış" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card.Body>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
 
       <h5 className="fw-semibold mb-3">Özellikler</h5>
       <div className="row g-3">

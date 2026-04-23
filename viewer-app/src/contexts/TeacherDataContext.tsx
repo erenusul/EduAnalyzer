@@ -55,7 +55,9 @@ interface TeacherDataContextValue {
   addExamResult: (result: Omit<ExamResult, 'id' | 'createdAt'>) => Promise<ExamResult>;
   updateExamResult: (
     id: string,
-    payload: { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
+    payload:
+      | { acknowledgeSuspiciousReview: true }
+      | { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
   ) => Promise<ExamResult>;
   deleteExamResult: (id: string) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
@@ -67,7 +69,7 @@ interface TeacherDataContextValue {
 const TeacherDataContext = createContext<TeacherDataContextValue | null>(null);
 
 export function TeacherDataProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
@@ -80,6 +82,17 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) return;
+    // Veli / öğrenci oturumunda öğretmen API'leri 403 döner; logout tetiklenmemeli.
+    if (user?.role !== 'Teacher') {
+      setStudents([]);
+      setClasses([]);
+      setAnalyses([]);
+      setExams([]);
+      setExamResults([]);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -118,7 +131,7 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, logout]);
+  }, [isAuthenticated, logout, user?.role]);
 
   useEffect(() => {
     refresh();
@@ -317,9 +330,18 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
   const updateExamResult = useCallback(
     async (
       id: string,
-      payload: { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
+      payload:
+        | { acknowledgeSuspiciousReview: true }
+        | { correctCount: number; wrongCount: number; wrongTopics?: WrongTopic[] }
     ) => {
-      const res = await examsApi.updateResult(id, payload);
+      const res =
+        'acknowledgeSuspiciousReview' in payload && payload.acknowledgeSuspiciousReview
+          ? await examsApi.updateResult(id, { acknowledgeSuspiciousReview: true })
+          : await examsApi.updateResult(id, {
+              correctCount: (payload as { correctCount: number }).correctCount,
+              wrongCount: (payload as { wrongCount: number }).wrongCount,
+              wrongTopics: (payload as { wrongTopics?: WrongTopic[] }).wrongTopics ?? [],
+            });
       const result = mappers.toExamResult(res);
       await refresh();
       return result;

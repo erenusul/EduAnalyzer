@@ -1,8 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '../contexts/ToastContext';
 import { StudentDetail } from './StudentDetail';
+
+vi.mock('../services/backendApi', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../services/backendApi')>();
+  return {
+    ...mod,
+    studentsApi: {
+      ...mod.studentsApi,
+      getParentCandidates: vi.fn(() => Promise.resolve([])),
+      getStudentParents: vi.fn(() => Promise.resolve([])),
+      linkStudentParent: vi.fn(() => Promise.resolve([])),
+      unlinkStudentParent: vi.fn(() => Promise.resolve(undefined)),
+    },
+  };
+});
 
 vi.mock('../contexts/TeacherDataContext', () => ({
   useTeacherData: vi.fn(),
@@ -63,7 +77,7 @@ describe('StudentDetail', () => {
     expect(screen.getByText(/öğrenci bulunamadı/i)).toBeInTheDocument();
   });
 
-  it('renders student info when student exists', () => {
+  it('renders student info when student exists', async () => {
     mockTeacherData({
       id: '1',
       studentNo: '1001',
@@ -87,5 +101,8 @@ describe('StudentDetail', () => {
 
     expect(screen.getByText(/ahmet yılmaz/i)).toBeInTheDocument();
     expect(screen.getByText(/1001/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/bağlı veliler/i)).toBeInTheDocument();
+    });
   });
 });

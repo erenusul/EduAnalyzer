@@ -1,12 +1,17 @@
 /**
- * Öğrenci sonuç detay sayfası - tek sınav sonucu, konu dağılımı
+ * Öğrenci sonuç detay sayfası - tek sınav sonucu, konu dağılımı ve soru listesi
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, Button, Table, Spinner, Alert } from 'react-bootstrap';
 import { meApi, mappers } from '../services/backendApi';
-import type { ExamResult } from '../types/teacher';
+import type { ExamResult, WrongQuestion } from '../types/teacher';
+
+function sortQuestions(list: WrongQuestion[] | undefined): WrongQuestion[] {
+  if (!list?.length) return [];
+  return [...list].sort((a, b) => a.questionIndex - b.questionIndex);
+}
 
 export function StudentResultDetail() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +39,12 @@ export function StudentResultDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  const correctSorted = useMemo(
+    () => sortQuestions(result?.correctQuestions),
+    [result?.correctQuestions]
+  );
+  const wrongSorted = useMemo(() => sortQuestions(result?.wrongQuestions), [result?.wrongQuestions]);
 
   if (loading) {
     return (
@@ -63,6 +74,10 @@ export function StudentResultDetail() {
     );
   }
 
+  const total = result.correctCount + result.wrongCount;
+  const net = total > 0 ? result.correctCount - result.wrongCount / 4 : 0;
+  const basariPct = total > 0 ? Math.round((result.correctCount / total) * 1000) / 10 : 0;
+
   return (
     <div>
       <div className="mb-4">
@@ -72,7 +87,7 @@ export function StudentResultDetail() {
         >
           <i className="bi bi-arrow-left me-1" /> Sonuçlarıma dön
         </Link>
-        <h4 className="fw-bold mb-1">Sınav Sonucu Detayı</h4>
+        <h4 className="fw-bold mb-1">{result.examTitle ?? 'Sınav Sonucu Detayı'}</h4>
         <p className="text-muted mb-0">
           {new Date(result.createdAt).toLocaleDateString('tr-TR', {
             day: 'numeric',
@@ -101,16 +116,22 @@ export function StudentResultDetail() {
             </div>
             <div>
               <div className="text-muted small">Toplam</div>
-              <div className="fs-4 fw-bold">
-                {result.correctCount + result.wrongCount}
-              </div>
+              <div className="fs-4 fw-bold">{total}</div>
+            </div>
+            <div>
+              <div className="text-muted small">Başarı</div>
+              <div className="fs-4 fw-bold text-primary">{basariPct}%</div>
+            </div>
+            <div>
+              <div className="text-muted small">Net (Türkçe/LGS)</div>
+              <div className="fs-4 fw-bold text-info">{Math.round(net * 10) / 10}</div>
             </div>
           </div>
         </Card.Body>
       </Card>
 
       {result.wrongTopics && result.wrongTopics.length > 0 && (
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm mb-4">
           <Card.Header className="bg-white border-bottom py-3">
             <h6 className="fw-semibold mb-0">
               <i className="bi bi-exclamation-triangle me-2" />
@@ -134,6 +155,84 @@ export function StudentResultDetail() {
                 ))}
               </tbody>
             </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {correctSorted.length > 0 && (
+        <Card className="border-0 shadow-sm mb-4">
+          <Card.Header className="bg-white border-bottom py-3">
+            <h6 className="fw-semibold mb-0 text-success">
+              <i className="bi bi-check2-circle me-2" />
+              Doğru sorular ({correctSorted.length})
+            </h6>
+          </Card.Header>
+          <Card.Body className="p-0">
+            <Table responsive hover className="mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th style={{ width: 110 }}>#</th>
+                  <th>Öğrencinin cevabı</th>
+                  <th>Doğru cevap</th>
+                  <th>Konu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {correctSorted.map((q) => (
+                  <tr key={`c-${q.questionIndex}`}>
+                    <td className="fw-semibold">{q.questionIndex}</td>
+                    <td>{q.studentAnswer?.trim() || '—'}</td>
+                    <td className="text-success fw-medium">
+                      {q.expectedAnswer?.trim() || q.studentAnswer?.trim() || '—'}
+                    </td>
+                    <td>{q.topic}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {wrongSorted.length > 0 && (
+        <Card className="border-0 shadow-sm mb-4">
+          <Card.Header className="bg-white border-bottom py-3">
+            <h6 className="fw-semibold mb-0 text-danger">
+              <i className="bi bi-x-circle me-2" />
+              Yanlış sorular ({wrongSorted.length})
+            </h6>
+          </Card.Header>
+          <Card.Body className="p-0">
+            <Table responsive hover className="mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th style={{ width: 110 }}>#</th>
+                  <th>Öğrencinin cevabı</th>
+                  <th>Doğru cevap</th>
+                  <th>Konu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wrongSorted.map((q) => (
+                  <tr key={`w-${q.questionIndex}`}>
+                    <td className="fw-semibold">{q.questionIndex}</td>
+                    <td>{q.studentAnswer?.trim() || '(boş)'}</td>
+                    <td className="fw-medium text-success">
+                      {q.expectedAnswer?.trim() || '—'}
+                    </td>
+                    <td>{q.topic}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {correctSorted.length === 0 && wrongSorted.length === 0 && (
+        <Card className="border-0 shadow-sm bg-body-tertiary">
+          <Card.Body className="text-muted small py-4">
+            Bu sınav için soru bazlı detay listelenmiyor (eski kayıt veya özet kayıt).
           </Card.Body>
         </Card>
       )}

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using EduAnalyzer.Application.DTOs;
 using EduAnalyzer.Application.Exceptions;
@@ -491,5 +492,210 @@ public class ExamServiceTests
         Assert.Equal(1, saved.WrongCount);
         Assert.Equal(0, response.CorrectCount);
         Assert.Equal(1, response.WrongCount);
+    }
+
+    [Fact]
+    public async Task SubmitScanForStudentAsync_UsesQuestionTopicMapping_AndWrongTopicsStayConsistent()
+    {
+        var teacherId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var pdfPayload = new PdfAnalysisResponseDto(
+            TotalQuestions: 3,
+            AnalyzedQuestions: 3,
+            Results: new List<QuestionAnalysisResultDto>
+            {
+                new("1", "S1", new List<PredictionItemDto>(), new List<PredictionItemDto> { new("Sözcükte Anlam", 0.99) }, false),
+                new("2", "S2", new List<PredictionItemDto>(), new List<PredictionItemDto> { new("Paragraf", 0.98) }, false),
+                new("3", "S3", new List<PredictionItemDto>(), new List<PredictionItemDto> { new("Dil Bilgisi", 0.97) }, false),
+            },
+            Warning: null);
+        var analysis = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            ClassId = null,
+            ResultsJson = JsonSerializer.Serialize(pdfPayload),
+            Title = "t",
+            Date = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = analysis.Id,
+            TeacherId = teacherId,
+            Status = ExamStatus.Ready,
+            Title = "Türkçe",
+            WeekLabel = "W",
+            Date = DateTime.UtcNow,
+            AnswerKeyJson = JsonSerializer.Serialize(new List<string> { "A", "B", "C" }),
+            CreatedAt = DateTime.UtcNow,
+            Analysis = analysis
+        };
+        var student = new Student
+        {
+            Id = studentId,
+            TeacherId = teacherId,
+            StudentNo = "1",
+            FirstName = "a",
+            LastName = "b",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>())).ReturnsAsync(exam);
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByStudentIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExamResult>());
+        resultRepo
+            .Setup(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ExamResult e, CancellationToken _) => e);
+        var studentRepo = new Mock<IStudentRepository>();
+        studentRepo.Setup(x => x.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        var mlClient = new Mock<IMlServiceClient>();
+        var per = new List<OpticalPerQuestionReadDto>
+        {
+            new("A", "ok", 0.95),
+            new("D", "ok", 0.95),
+            new("", "ok", 0.95),
+        };
+        mlClient
+            .Setup(x => x.ScanOpticalFormAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OpticalScanResultDto(
+                new[] { "A", "D", "" },
+                3,
+                true,
+                true,
+                per));
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        var response = await service.SubmitScanForStudentAsync(
+            examId,
+            studentId,
+            new MemoryStream(),
+            3,
+            4,
+            null,
+            null,
+            default);
+
+        Assert.Equal(1, response.CorrectCount);
+        Assert.Equal(2, response.WrongCount);
+        Assert.Equal(2, response.WrongQuestions.Count);
+        Assert.Equal("Paragraf", response.WrongQuestions[0].Topic);
+        Assert.Equal("Dil Bilgisi", response.WrongQuestions[1].Topic);
+
+        var totalByTopics = response.WrongTopics.Sum(x => x.Count);
+        Assert.Equal(response.WrongCount, totalByTopics);
+        Assert.Contains(response.WrongTopics, x => x.Topic == "Paragraf" && x.Count == 1);
+        Assert.Contains(response.WrongTopics, x => x.Topic == "Dil Bilgisi" && x.Count == 1);
+    }
+
+    [Fact]
+    public async Task SubmitScanForStudentAsync_UsesSubjectThenFallback_WhenTopicMissing()
+    {
+        var teacherId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var examId = Guid.NewGuid();
+        var pdfPayload = new PdfAnalysisResponseDto(
+            TotalQuestions: 2,
+            AnalyzedQuestions: 2,
+            Results: new List<QuestionAnalysisResultDto>
+            {
+                // Topic boş, Subject dolu => Subject kullanılmalı.
+                new("1", "S1", new List<PredictionItemDto> { new("Fiilde Çatı", 0.9) }, new List<PredictionItemDto>(), false),
+                // Topic + Subject boş => fallback map kullanılmalı.
+                new("2", "S2", new List<PredictionItemDto>(), new List<PredictionItemDto>(), false),
+            },
+            Warning: null);
+        var analysis = new AnalysisRecord
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            ClassId = null,
+            ResultsJson = JsonSerializer.Serialize(pdfPayload),
+            Title = "t",
+            Date = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        var exam = new Exam
+        {
+            Id = examId,
+            AnalysisId = analysis.Id,
+            TeacherId = teacherId,
+            Status = ExamStatus.Ready,
+            Title = "Türkçe",
+            WeekLabel = "W",
+            Date = DateTime.UtcNow,
+            AnswerKeyJson = JsonSerializer.Serialize(new List<string> { "A", "B" }),
+            CreatedAt = DateTime.UtcNow,
+            Analysis = analysis
+        };
+        var student = new Student
+        {
+            Id = studentId,
+            TeacherId = teacherId,
+            StudentNo = "1",
+            FirstName = "a",
+            LastName = "b",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var examRepo = new Mock<IExamRepository>();
+        examRepo.Setup(x => x.GetByIdAsync(examId, It.IsAny<CancellationToken>())).ReturnsAsync(exam);
+        var resultRepo = new Mock<IExamResultRepository>();
+        resultRepo.Setup(x => x.GetByStudentIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExamResult>());
+        resultRepo
+            .Setup(x => x.AddAsync(It.IsAny<ExamResult>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ExamResult e, CancellationToken _) => e);
+        var studentRepo = new Mock<IStudentRepository>();
+        studentRepo.Setup(x => x.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        var mlClient = new Mock<IMlServiceClient>();
+        var per = new List<OpticalPerQuestionReadDto>
+        {
+            new("D", "ok", 0.95),
+            new("D", "ok", 0.95),
+        };
+        mlClient
+            .Setup(x => x.ScanOpticalFormAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OpticalScanResultDto(
+                new[] { "D", "D" },
+                2,
+                true,
+                true,
+                per));
+
+        var service = new ExamService(examRepo.Object, resultRepo.Object, studentRepo.Object, mlClient.Object);
+
+        var response = await service.SubmitScanForStudentAsync(
+            examId,
+            studentId,
+            new MemoryStream(),
+            2,
+            4,
+            null,
+            null,
+            default);
+
+        Assert.Equal(2, response.WrongQuestions.Count);
+        Assert.Equal("Fiilde Çatı", response.WrongQuestions[0].Topic);
+        Assert.NotEqual("Bilinmiyor", response.WrongQuestions[1].Topic);
+        Assert.False(string.IsNullOrWhiteSpace(response.WrongQuestions[1].Topic));
+        Assert.Equal(response.WrongCount, response.WrongTopics.Sum(x => x.Count));
     }
 }

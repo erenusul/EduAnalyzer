@@ -68,14 +68,27 @@ export interface WrongQuestion {
   expectedAnswer?: string | null;
 }
 
+/** Optik okumada öğretmen incelemesi önerilen soru. */
+export interface SuspiciousQuestionHint {
+  questionIndex: number;
+  confidence: number;
+  status?: string | null;
+  reason?: string | null;
+}
+
 export interface ExamResult {
   id: string;
   studentId: string;
   examId: string;
+  /** Kayıtlı sınav başlığı (API dolu gönderiyorsa) */
+  examTitle?: string;
   correctCount: number;
   wrongCount: number;
   wrongTopics: WrongTopic[];
   correctQuestions?: WrongQuestion[];
   wrongQuestions?: WrongQuestion[];
+  suspiciousQuestions?: SuspiciousQuestionHint[];
+  /** Öğretmen şüpheli listesini onayladıysa ISO tarih */
+  suspiciousReviewedAt?: string | null;
   createdAt: string;
 }

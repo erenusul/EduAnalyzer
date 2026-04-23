@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { Accelerometer } from 'expo-sensors';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP } from '../../constants/opticalTurkishColumn';
@@ -22,94 +22,23 @@ import {
   OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
   submitScan,
 } from '../../services/api/examsApi';
-import { TurkishColumnScanOverlay, getTurkishColumnOverlayFrame } from './TurkishColumnScanOverlay';
+import { TurkishColumnScanOverlay } from './TurkishColumnScanOverlay';
 import { TurkishFullPageScanOverlay } from './TurkishFullPageScanOverlay';
 import { getApiBaseUrl, type ApiError } from '../../services/api/apiClient';
+import {
+  getOpticalTestSaveFlagStatus,
+  getOpticalTestsRootUri,
+  isOpticalTestSaveEnabled,
+  saveOpticalTestCapture,
+  shareOpticalTestsExport,
+} from '../../services/debug/opticalTestCapture';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
+import { cropTurkishColumnPhoto, getImageSizeAsync, type ViewportSize } from '../../utils/turkishColumnPhotoCrop';
 
 type OpticalScanMode = 'fullPage' | 'turkishColumn';
-type ViewportSize = { width: number; height: number };
-
-function getImageSizeAsync(uri: string): Promise<ViewportSize> {
-  return new Promise((resolve, reject) => {
-    Image.getSize(
-      uri,
-      (width, height) => resolve({ width, height }),
-      (error) => reject(error)
-    );
-  });
-}
-
-function getCenteredCoverCropRect(
-  imageSize: ViewportSize,
-  viewportSize: ViewportSize,
-  frameSize: ViewportSize
-): { originX: number; originY: number; width: number; height: number } | null {
-  if (
-    imageSize.width <= 0 ||
-    imageSize.height <= 0 ||
-    viewportSize.width <= 0 ||
-    viewportSize.height <= 0 ||
-    frameSize.width <= 0 ||
-    frameSize.height <= 0
-  ) {
-    return null;
-  }
-
-  const scale = Math.max(
-    viewportSize.width / imageSize.width,
-    viewportSize.height / imageSize.height
-  );
-  const displayedWidth = imageSize.width * scale;
-  const displayedHeight = imageSize.height * scale;
-  const offsetX = Math.max(0, (displayedWidth - viewportSize.width) / 2);
-  const offsetY = Math.max(0, (displayedHeight - viewportSize.height) / 2);
-  const frameX = (viewportSize.width - frameSize.width) / 2;
-  const frameY = (viewportSize.height - frameSize.height) / 2;
-
-  const originX = Math.max(0, Math.round((offsetX + frameX) / scale));
-  const originY = Math.max(0, Math.round((offsetY + frameY) / scale));
-  const width = Math.min(
-    imageSize.width - originX,
-    Math.max(1, Math.round(frameSize.width / scale))
-  );
-  const height = Math.min(
-    imageSize.height - originY,
-    Math.max(1, Math.round(frameSize.height / scale))
-  );
-
-  if (width <= 1 || height <= 1) {
-    return null;
-  }
-
-  return { originX, originY, width, height };
-}
-
-async function cropTurkishColumnPhoto(
-  photoUri: string,
-  imageSize: ViewportSize,
-  viewportSize: ViewportSize
-): Promise<string> {
-  const frameSize = getTurkishColumnOverlayFrame(viewportSize.width, viewportSize.height);
-  const cropRect = getCenteredCoverCropRect(imageSize, viewportSize, frameSize);
-  if (!cropRect) {
-    return photoUri;
-  }
-
-  const result = await manipulateAsync(
-    photoUri,
-    [{ crop: cropRect }],
-    {
-      compress: 0.95,
-      format: SaveFormat.JPEG,
-    }
-  );
-
-  return result.uri;
-}
 
 function buildOpticalErrorHint(rawMessage: string, scanMode: OpticalScanMode): string {
   const message = rawMessage.trim();
@@ -138,6 +67,18 @@ function buildOpticalErrorHint(rawMessage: string, scanMode: OpticalScanMode): s
   return scanMode === 'turkishColumn'
     ? `${message}\n\nİpucu: soldaki 1-20 turuncu paneli yakın çekin; üst başlık, sol siyah işaret şeridi ve alt kenar görünür olsun.`
     : message;
+}
+
+function toOpticalCaptureError(err: unknown): { message: string; status?: number } {
+  const status =
+    err && typeof err === 'object' && 'status' in err && typeof (err as ApiError).status === 'number'
+      ? (err as ApiError).status
+      : undefined;
+  const message =
+    (err && typeof err === 'object' && 'message' in err
+      ? String((err as { message?: unknown }).message ?? '')
+      : '') || (err instanceof Error ? err.message : 'Optik tarama gönderilemedi.');
+  return { message, status };
 }
 
 function buildStyles(colors: AppThemeColors) {
@@ -289,6 +230,19 @@ function buildStyles(colors: AppThemeColors) {
       height: 440,
       backgroundColor: '#000',
       marginBottom: 16,
+    },
+    tiltHintBanner: {
+      backgroundColor: colors.accentMuted,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      marginBottom: 12,
+    },
+    tiltHintText: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
     },
     camera: {
       flex: 1,
@@ -523,6 +477,54 @@ function buildStyles(colors: AppThemeColors) {
       marginTop: 4,
       lineHeight: 15,
     },
+    debugCaptureBanner: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      gap: 10,
+    },
+    debugCaptureHint: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    debugExportButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    debugExportButtonText: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    opticalDebugPanel: {
+      marginTop: 12,
+      marginBottom: 4,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: colors.inputBackground,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      gap: 6,
+    },
+    opticalDebugTitle: {
+      color: colors.textPrimary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    opticalDebugLine: {
+      color: colors.textMuted,
+      fontSize: 11,
+      lineHeight: 16,
+    },
   });
 }
 
@@ -531,6 +533,8 @@ export function ScanScreen({ route }: ScanScreenProps) {
   const { colors } = useAppTheme();
   const { width: windowWidth } = useWindowDimensions();
   const styles = useMemo(() => buildStyles(colors), [colors]);
+  const opticalSaveFlagStatus = useMemo(() => getOpticalTestSaveFlagStatus(), []);
+  const opticalTestsRootUri = useMemo(() => getOpticalTestsRootUri(), []);
   const cameraRef = useRef<CameraView | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -539,6 +543,12 @@ export function ScanScreen({ route }: ScanScreenProps) {
   const [scanMode, setScanMode] = useState<OpticalScanMode>('fullPage');
   const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
   const [isFlashEnabled, setIsFlashEnabled] = useState(false);
+  /** Türkçe sütun modunda ivmeölçer ile aşırı yatay eğim uyarısı (m/s² yatay bileşen). */
+  const [tiltWarning, setTiltWarning] = useState(false);
+  const [exportingOpticalTests, setExportingOpticalTests] = useState(false);
+  const [lastSavedOpticalRunPath, setLastSavedOpticalRunPath] = useState<string | null>(null);
+  /** Yalnızca saveOpticalTestCapture gerçekten çağrıldığında güncellenir (null = bu oturumda henüz deneme yok). */
+  const [lastOpticalSaveSucceeded, setLastOpticalSaveSucceeded] = useState<boolean | null>(null);
   const [cameraViewportSize, setCameraViewportSize] = useState<ViewportSize>({ width: 0, height: 440 });
   const cameraViewportWidth = cameraViewportSize.width > 0 ? cameraViewportSize.width : Math.max(200, windowWidth - 64);
   const cameraViewportHeight = cameraViewportSize.height > 0 ? cameraViewportSize.height : 440;
@@ -555,6 +565,40 @@ export function ScanScreen({ route }: ScanScreenProps) {
       return widthChanged || heightChanged ? { width, height } : current;
     });
   };
+
+  useEffect(() => {
+    let subscription: { remove: () => void } | undefined;
+
+    if (scanMode !== 'turkishColumn' || !permission?.granted) {
+      setTiltWarning(false);
+      return () => {
+        subscription?.remove();
+      };
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const available = await Accelerometer.isAvailableAsync();
+        if (!available || cancelled) {
+          return;
+        }
+        Accelerometer.setUpdateInterval(500);
+        subscription = Accelerometer.addListener(({ x, y }) => {
+          const lateral = Math.sqrt(x * x + y * y);
+          setTiltWarning(lateral > 3.4);
+        });
+      } catch {
+        setTiltWarning(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
+  }, [scanMode, permission?.granted]);
 
   const handleScanModeChange = (mode: OpticalScanMode) => {
     if (mode === scanMode) return;
@@ -607,21 +651,89 @@ export function ScanScreen({ route }: ScanScreenProps) {
     }
   };
 
+  const handleExportOpticalTests = async () => {
+    setExportingOpticalTests(true);
+    try {
+      const r = await shareOpticalTestsExport();
+      if (!r.ok && r.message) {
+        Alert.alert('Dışa aktarma', r.message);
+      }
+    } finally {
+      setExportingOpticalTests(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!photoUri) return;
 
+    const questionCount = exam.answerKey?.length;
+    const opticalTemplate =
+      scanMode === 'fullPage'
+        ? OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER
+        : OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP;
+    const optionCount = getOpticalSubmitOptionCount(opticalTemplate, exam.answerKey);
+    const questionCountForCapture =
+      typeof questionCount === 'number' && questionCount > 0 ? questionCount : 20;
+    const shouldPersistOpticalTest = isOpticalTestSaveEnabled() && scanMode === 'turkishColumn';
+
+    if (opticalSaveFlagStatus.enabled && scanMode !== 'turkishColumn') {
+      console.log('[OpticalTestCapture] optical test save çalışmıyor (mode farklı)');
+    }
+
+    const runOpticalCapture = async (p: Parameters<typeof saveOpticalTestCapture>[0]) => {
+      const cap = await saveOpticalTestCapture(p);
+      if (cap.saved) {
+        setLastSavedOpticalRunPath(cap.runDirectoryUri);
+        setLastOpticalSaveSucceeded(true);
+        console.log(
+          `[OpticalTestCapture] saved:\n` +
+            `  - runDirectoryUri: ${cap.runDirectoryUri}\n` +
+            `  - scanFileUri: ${cap.scanFileUri}\n` +
+            `  - metadataFileUri: ${cap.metadataFileUri}`
+        );
+      } else {
+        setLastOpticalSaveSucceeded(false);
+        if (cap.reason === 'write_failed') {
+          setLastSavedOpticalRunPath(null);
+        }
+        console.error(
+          `[OpticalTestCapture] failed:\n` +
+            `  - reason: ${cap.reason}\n` +
+            `  - message: ${cap.message ?? ''}`
+        );
+      }
+    };
+
     setSubmitting(true);
     try {
-      const questionCount = exam.answerKey?.length;
-      const opticalTemplate =
-        scanMode === 'fullPage'
-          ? OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER
-          : OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP;
-      const optionCount = getOpticalSubmitOptionCount(opticalTemplate, exam.answerKey);
       const result = await submitScan(exam.id, photoUri, questionCount, optionCount, opticalTemplate);
       setScanResult(result);
+      if (shouldPersistOpticalTest) {
+        await runOpticalCapture({
+          examId: exam.id,
+          photoUri,
+          opticalTemplate,
+          questionCount: questionCountForCapture,
+          optionCount,
+          scanMode: 'turkish_column',
+          scanResult: result,
+        });
+      }
       Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
     } catch (err) {
+      if (shouldPersistOpticalTest) {
+        await runOpticalCapture({
+          examId: exam.id,
+          photoUri,
+          opticalTemplate,
+          questionCount: questionCountForCapture,
+          optionCount,
+          scanMode: 'turkish_column',
+          scanResult: null,
+          error: toOpticalCaptureError(err),
+        });
+      }
+
       const rawMessage =
         (err && typeof err === 'object' && 'message' in err
           ? String((err as { message?: unknown }).message ?? '')
@@ -744,6 +856,40 @@ export function ScanScreen({ route }: ScanScreenProps) {
           </Pressable>
         </View>
 
+        <View
+          style={styles.opticalDebugPanel}
+          accessibilityLabel="Optik test kayıt debug bilgisi"
+        >
+          <Text style={styles.opticalDebugTitle}>Optik test kayıt (debug)</Text>
+          <Text style={styles.opticalDebugLine} selectable>
+            optical test save enabled: {opticalSaveFlagStatus.enabled ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.opticalDebugLine} selectable>
+            flag kaynağı:{' '}
+            {opticalSaveFlagStatus.source === 'app.json extra'
+              ? 'app.json (expo.extra.opticalTestSaveEnabled)'
+              : opticalSaveFlagStatus.source === 'EXPO_PUBLIC env'
+                ? 'env (EXPO_PUBLIC_OPTICAL_TEST_SAVE_ENABLED)'
+                : 'kapalı'}
+          </Text>
+          <Text style={styles.opticalDebugLine} selectable>
+            kayıt koşulu (flag ∧ TÜRKÇE sütunu):{' '}
+            {opticalSaveFlagStatus.enabled && scanMode === 'turkishColumn' ? 'evet' : 'hayır'}
+          </Text>
+          {opticalSaveFlagStatus.enabled && scanMode !== 'turkishColumn' ? (
+            <Text style={styles.opticalDebugLine} selectable>
+              optical test save çalışmıyor (mode farklı)
+            </Text>
+          ) : null}
+          <Text style={styles.opticalDebugLine} selectable>
+            last saved run path: {lastSavedOpticalRunPath ?? '—'}
+          </Text>
+          <Text style={styles.opticalDebugLine} selectable>
+            son kayıt başarılı mı:{' '}
+            {lastOpticalSaveSucceeded === null ? '—' : lastOpticalSaveSucceeded ? 'evet' : 'hayır'}
+          </Text>
+        </View>
+
         <View style={styles.instructionsContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
             <Ionicons name="bulb-outline" size={20} color={colors.textPrimary} style={{ marginRight: 8 }} />
@@ -787,6 +933,33 @@ export function ScanScreen({ route }: ScanScreenProps) {
             <Text style={styles.instructionsText}>Telefonu kağıda paralel tutun, flaş ve gölgeden kaçının.</Text>
           </View>
         </View>
+        {isOpticalTestSaveEnabled() ? (
+          <View style={styles.debugCaptureBanner}>
+            <Text style={styles.debugCaptureHint}>
+              Bu ZIP yalnızca optical_tests/ içerir (scan.jpg). AI dataset (image.jpg) için: Tarama → Sınav Seç → Fotoğraf
+              toplama veya Dataset modu.
+            </Text>
+            <Text style={styles.opticalDebugLine} selectable>
+              optical_tests kökü: {opticalTestsRootUri || '—'}
+            </Text>
+            <Pressable
+              style={[styles.debugExportButton, exportingOpticalTests && styles.buttonDisabled]}
+              onPress={() => void handleExportOpticalTests()}
+              disabled={exportingOpticalTests}
+              accessibilityRole="button"
+              accessibilityLabel="optical_tests klasörünü zip olarak dışa aktar"
+            >
+              {exportingOpticalTests ? (
+                <ActivityIndicator color={colors.accent} size="small" />
+              ) : (
+                <Ionicons name="archive-outline" size={20} color={colors.accent} style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.debugExportButtonText}>
+                {exportingOpticalTests ? 'Hazırlanıyor…' : 'optical_tests → ZIP (scan.jpg)'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       {photoUri ? (
@@ -870,6 +1043,13 @@ export function ScanScreen({ route }: ScanScreenProps) {
               )}
             </View>
           </View>
+          {scanMode === 'turkishColumn' && tiltWarning ? (
+            <View style={styles.tiltHintBanner} accessibilityLiveRegion="polite">
+              <Text style={styles.tiltHintText}>
+                Telefonu daha düz tutun; aşırı eğim optik okumayı zorlaştırır.
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.cameraActionsRow}>
             <Pressable
               style={[styles.secondaryButton, styles.primaryButtonFlex]}

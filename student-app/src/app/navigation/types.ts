@@ -12,6 +12,8 @@ export type ResultsStackParamList = {
 export type ScanStackParamList = {
   AvailableExams: undefined;
   ScanExam: { exam: AvailableExam };
+  DatasetMode: undefined;
+  DatasetCollector: undefined;
 };
 
 export type ProfileStackParamList = {
@@ -35,6 +37,8 @@ export type ResultDetailScreenProps = NativeStackScreenProps<ResultsStackParamLi
 export type ProgressChartScreenProps = NativeStackScreenProps<ResultsStackParamList, 'ProgressChart'>;
 export type AvailableExamsScreenProps = NativeStackScreenProps<ScanStackParamList, 'AvailableExams'>;
 export type ScanScreenProps = NativeStackScreenProps<ScanStackParamList, 'ScanExam'>;
+export type DatasetModeScreenProps = NativeStackScreenProps<ScanStackParamList, 'DatasetMode'>;
+export type DatasetCollectorScreenProps = NativeStackScreenProps<ScanStackParamList, 'DatasetCollector'>;
 export type ProfileScreenProps = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'>;
 export type HelpScreenProps = NativeStackScreenProps<ProfileStackParamList, 'Help'>;
 export type SettingsScreenProps = NativeStackScreenProps<ProfileStackParamList, 'Settings'>;

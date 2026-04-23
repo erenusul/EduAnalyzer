@@ -373,6 +373,27 @@ def test_lgs_turkish_column_crop_reads_five_options():
     assert result.perspective_ok is True
 
 
+def test_lgs_turkish_column_crop_tolerates_small_affine_shift():
+    """Hizalama ızgarası küçük kaydırmayı tolere etmeli (kenar beyaz dolgu)."""
+    answers = ["A", "B", "C", "D", "", "A", "A", "A", "B", "B", "C", "C", "D", "D", "", "", "A", "B", "C", "D"]
+    image_bytes = _build_lgs_turkish_column_crop_synthetic(answers)
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+    assert img is not None
+    h, w = img.shape[:2]
+    m = np.float32([[1.0, 0.0, 6.0], [0.0, 1.0, -5.0]])
+    shifted = cv2.warpAffine(img, m, (w, h), borderValue=255)
+    ok, buf = cv2.imencode(".png", shifted)
+    assert ok
+    result = _detect_answers_from_image(
+        buf.tobytes(),
+        question_count=20,
+        option_count=4,
+        template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    )
+    assert result.answers == answers
+
+
 def test_collapsed_single_option_guard_flags_all_a_pattern():
     reads = [QuestionRead("A", "ok", 0.88) for _ in range(18)] + [
         QuestionRead("", "empty", 0.0),

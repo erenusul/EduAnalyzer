@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ParentDashboard } from './ParentDashboard';
 
-vi.mock('../services/backendApi', () => ({
-  meApi: {
-    getMyChildren: vi.fn(),
-  },
-}));
+vi.mock('../services/backendApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/backendApi')>();
+  return {
+    ...actual,
+    meApi: {
+      ...actual.meApi,
+      getMyChildren: vi.fn(),
+    },
+  };
+});
 
 const { meApi } = await import('../services/backendApi');
 
@@ -17,7 +23,11 @@ describe('ParentDashboard', () => {
 
   it('shows empty state when no children', async () => {
     vi.mocked(meApi.getMyChildren).mockResolvedValue([]);
-    render(<ParentDashboard />);
+    render(
+      <MemoryRouter>
+        <ParentDashboard />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText(/henüz bağlı öğrenciniz bulunmuyor/i)).toBeInTheDocument();
   });
@@ -33,21 +43,32 @@ describe('ParentDashboard', () => {
           classId: null,
           email: null,
           createdAt: '',
+          phone: null,
+          notes: null,
         },
         results: [
           {
             id: 'r1',
+            studentId: '1',
+            examId: 'e1',
             correctCount: 8,
             wrongCount: 2,
+            wrongTopics: [],
             createdAt: '2025-01-15T10:00:00Z',
           },
         ],
       },
     ] as never);
-    render(<ParentDashboard />);
+    render(
+      <MemoryRouter>
+        <ParentDashboard />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText(/ahmet yılmaz/i)).toBeInTheDocument();
-    expect(screen.getByText(/doğru: 8 \/ yanlış: 2/i)).toBeInTheDocument();
+    expect(screen.getByText('8')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /detaylı gelişim raporu/i })).toBeInTheDocument();
   });
 
   it('shows child with no results', async () => {
@@ -61,13 +82,19 @@ describe('ParentDashboard', () => {
           classId: null,
           email: null,
           createdAt: '',
+          phone: null,
+          notes: null,
         },
         results: [],
       },
     ] as never);
-    render(<ParentDashboard />);
+    render(
+      <MemoryRouter>
+        <ParentDashboard />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText(/mehmet demir/i)).toBeInTheDocument();
-    expect(screen.getByText(/henüz sınav sonucu yok/i)).toBeInTheDocument();
+    expect(screen.getByText(/henüz sınav sonucu bulunmuyor/i)).toBeInTheDocument();
   });
 });
