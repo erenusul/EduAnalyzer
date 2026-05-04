@@ -13,7 +13,7 @@ import { useAppTheme } from '../../theme/AppThemeContext';
 import { LoginScreen } from '../../screens/auth/LoginScreen';
 import { ResultsScreen } from '../../screens/results/ResultsScreen';
 import { ResultDetailScreen } from '../../screens/results/ResultDetailScreen';
-import { ProgressChartScreen } from '../../screens/results/ProgressChartScreen';
+import { PerformanceInsightsScreen } from '../../screens/insights/PerformanceInsightsScreen';
 import { AvailableExamsScreen } from '../../screens/scan/AvailableExamsScreen';
 import { ScanScreen } from '../../screens/scan/ScanScreen';
 import { DatasetModeScreen } from '../../screens/scan/DatasetModeScreen';
@@ -23,6 +23,7 @@ import { HelpScreen } from '../../screens/profile/HelpScreen';
 import { SettingsScreen } from '../../screens/profile/SettingsScreen';
 import type {
   AuthStackParamList,
+  InsightsStackParamList,
   ProfileStackParamList,
   ResultsStackParamList,
   ScanStackParamList,
@@ -31,6 +32,7 @@ import type {
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const ResultsStack = createNativeStackNavigator<ResultsStackParamList>();
+const InsightsStack = createNativeStackNavigator<InsightsStackParamList>();
 const ScanStack = createNativeStackNavigator<ScanStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const Tabs = createBottomTabNavigator<StudentTabParamList>();
@@ -55,8 +57,34 @@ function ResultsNavigator() {
     >
       <ResultsStack.Screen name="ResultsList" component={ResultsScreen} options={{ title: 'Sonuçlarım' }} />
       <ResultsStack.Screen name="ResultDetail" component={ResultDetailScreen} options={{ title: 'Sınav Detayı' }} />
-      <ResultsStack.Screen name="ProgressChart" component={ProgressChartScreen} options={{ title: 'Gelişim' }} />
     </ResultsStack.Navigator>
+  );
+}
+
+function InsightsNavigator() {
+  const { colors } = useAppTheme();
+  return (
+    <InsightsStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colors.headerBackground,
+        },
+        headerTitleStyle: {
+          color: colors.textPrimary,
+          fontWeight: '900',
+          fontSize: 18,
+        },
+        headerTintColor: colors.accent,
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <InsightsStack.Screen
+        name="PerformanceInsights"
+        component={PerformanceInsightsScreen}
+        options={{ title: 'Gelişim & analiz' }}
+      />
+    </InsightsStack.Navigator>
   );
 }
 
@@ -126,6 +154,8 @@ function StudentTabs() {
 
           if (route.name === 'ResultsTab') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
+          } else if (route.name === 'InsightsTab') {
+            iconName = focused ? 'analytics' : 'analytics-outline';
           } else if (route.name === 'ScanTab') {
             iconName = focused ? 'scan-circle' : 'scan-circle-outline';
           } else if (route.name === 'ProfileTab') {
@@ -156,6 +186,7 @@ function StudentTabs() {
       })}
     >
       <Tabs.Screen name="ResultsTab" component={ResultsNavigator} options={{ title: 'Sonuçlar' }} />
+      <Tabs.Screen name="InsightsTab" component={InsightsNavigator} options={{ title: 'Gelişim' }} />
       <Tabs.Screen name="ScanTab" component={ScanNavigator} options={{ title: 'Tarama' }} />
       <Tabs.Screen name="ProfileTab" component={ProfileNavigator} options={{ title: 'Profil' }} />
     </Tabs.Navigator>

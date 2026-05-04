@@ -10,6 +10,12 @@ public interface IStudentRepository
     Task<IReadOnlyList<Student>> GetByTeacherIdAsync(Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByClassIdAsync(Guid classId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByParentIdAsync(Guid parentId, CancellationToken ct = default);
+    /// <summary>Aynı öğretmen + öğrenci numarası kaydı var mı (güncellemede mevcut öğrenci hariç).</summary>
+    Task<bool> ExistsByTeacherAndStudentNoAsync(
+        Guid teacherId,
+        string studentNo,
+        Guid? excludeStudentId,
+        CancellationToken ct = default);
     Task<Student> AddAsync(Student entity, User? appUser = null, CancellationToken ct = default);
     Task UpdateAsync(Student entity, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
@@ -76,6 +82,7 @@ public interface IParentReadRepository
 {
     Task<Parent?> GetByIdWithUserAsync(Guid parentId, CancellationToken ct = default);
     Task<IReadOnlyList<Parent>> ListParentsWithUserAsync(CancellationToken ct = default);
+    Task<Parent> AddAsync(Parent entity, CancellationToken ct = default);
 }
 
 public interface ITeacherRepository

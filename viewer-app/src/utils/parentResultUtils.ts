@@ -68,11 +68,53 @@ export function aggregateWrongTopics(results: ExamResult[]): WrongTopic[] {
     .sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Tüm sınavları birleştirerek konu bazlı yanlış özeti — önce soru bazlı (wrongQuestions),
+ * yoksa sınav düzeyinde wrongTopics kullanılır ({@link wrongTopicBreakdownForExamResult}).
+ */
+export function aggregateWrongTopicsFromResults(results: ExamResult[]): WrongTopic[] {
+  const map = new Map<string, number>();
+  for (const r of results) {
+    const rows = wrongTopicBreakdownForExamResult(r);
+    for (const row of rows) {
+      map.set(row.topic, (map.get(row.topic) ?? 0) + row.count);
+    }
+  }
+  return Array.from(map.entries())
+    .map(([topic, count]) => ({ topic, count }))
+    .sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic, 'tr'));
+}
+
 /** Son sınavın wrongTopics listesi (sınav içi sayıya göre) */
 export function weakTopicsFromLatestExam(results: ExamResult[]): WrongTopic[] {
   const latest = sortResultsByDateDesc(results)[0];
   if (!latest?.wrongTopics?.length) return [];
   return [...latest.wrongTopics]
+    .map((wt) => ({
+      topic: wt.topic?.trim() ? wt.topic.trim() : 'Bilinmiyor',
+      count: typeof wt.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0,
+    }))
+    .filter((w) => w.count > 0)
+    .sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic, 'tr'));
+}
+
+/**
+ * Tek bir sınav sonucu için konu bazlı yanlış dökümü.
+ * Önce soru bazlı kayıt (wrongQuestions) varsa ondan toplanır; yoksa wrongTopics kullanılır.
+ */
+export function wrongTopicBreakdownForExamResult(result: ExamResult): WrongTopic[] {
+  const wq = result.wrongQuestions ?? [];
+  if (wq.length > 0) {
+    const map = new Map<string, number>();
+    for (const q of wq) {
+      const t = q.topic?.trim() ? q.topic.trim() : 'Bilinmiyor';
+      map.set(t, (map.get(t) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic, 'tr'));
+  }
+  return (result.wrongTopics ?? [])
     .map((wt) => ({
       topic: wt.topic?.trim() ? wt.topic.trim() : 'Bilinmiyor',
       count: typeof wt.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0,
@@ -93,6 +135,26 @@ export function repeatedWeakTopicNames(results: ExamResult[], lastN: number): st
       const c = typeof wt.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
       if (c <= 0) continue;
       const name = wt.topic?.trim() ? wt.topic.trim() : 'Bilinmiyor';
+      if (seen.has(name)) continue;
+      seen.add(name);
+      freq.set(name, (freq.get(name) ?? 0) + 1);
+    }
+  }
+  return [...freq.entries()]
+    .filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr'))
+    .map(([t]) => t);
+}
+
+/** Son N sınavda tekrar eden konular — breakdown ile (wrongQuestions dahil). */
+export function repeatedWeakTopicNamesFromResults(results: ExamResult[], lastN: number): string[] {
+  const slice = sortResultsByDateDesc(results).slice(0, Math.max(1, lastN));
+  const freq = new Map<string, number>();
+  for (const r of slice) {
+    const seen = new Set<string>();
+    for (const row of wrongTopicBreakdownForExamResult(r)) {
+      if (row.count <= 0) continue;
+      const name = row.topic;
       if (seen.has(name)) continue;
       seen.add(name);
       freq.set(name, (freq.get(name) ?? 0) + 1);
@@ -150,13 +212,13 @@ export function buildParentInsights(results: ExamResult[]): ParentInsights {
     netDelta = `Son sınav bir öncekine göre ${sign}${d} net.`;
   }
 
-  const agg = aggregateWrongTopics(sorted);
+  const agg = aggregateWrongTopicsFromResults(sorted);
   let hardestTopic: string | null = null;
   if (agg.length > 0 && agg[0].count > 0) {
     hardestTopic = `En çok zorlandığı konu: ${agg[0].topic} (toplam ${agg[0].count} yanlış).`;
   }
 
-  const repeated = repeatedWeakTopicNames(sorted, 3);
+  const repeated = repeatedWeakTopicNamesFromResults(sorted, 3);
   let repeatedWeak: string | null = null;
   if (repeated.length > 0) {
     const list = repeated.slice(0, 3).join(', ');

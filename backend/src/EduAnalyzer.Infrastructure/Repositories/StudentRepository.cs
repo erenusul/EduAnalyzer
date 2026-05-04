@@ -54,6 +54,19 @@ public class StudentRepository : IStudentRepository
         return pairs.Select(sp => sp.Student).OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList();
     }
 
+    public async Task<bool> ExistsByTeacherAndStudentNoAsync(
+        Guid teacherId,
+        string studentNo,
+        Guid? excludeStudentId,
+        CancellationToken ct = default)
+    {
+        var query = _context.Students.AsNoTracking()
+            .Where(s => s.TeacherId == teacherId && s.StudentNo == studentNo);
+        if (excludeStudentId.HasValue)
+            query = query.Where(s => s.Id != excludeStudentId.Value);
+        return await query.AnyAsync(ct);
+    }
+
     public async Task<Student> AddAsync(Student entity, User? appUser = null, CancellationToken ct = default)
     {
         if (appUser != null)

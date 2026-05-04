@@ -96,8 +96,8 @@ export function TeacherDashboard() {
 
   return (
     <div>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">Hoş geldiniz, {user?.displayName}</h4>
+      <div className="mb-4 min-w-0">
+        <h4 className="fw-bold mb-1 text-break">Hoş geldiniz, {user?.displayName}</h4>
         <p className="text-muted mb-0">
           Sınav analizi ve öğrenci takip araçlarına aşağıdan ulaşabilirsiniz.
         </p>
@@ -195,8 +195,8 @@ export function TeacherDashboard() {
                   </p>
                 </Card.Header>
                 <Card.Body>
-                  <div className="w-100" style={{ minWidth: 0, height: 280 }}>
-                    <ResponsiveContainer width="100%" height="100%" debounce={32}>
+                  <div className="w-100" style={{ minWidth: 0 }}>
+                    <ResponsiveContainer width="100%" height={280} debounce={32}>
                       <BarChart data={topWrongQuestions} margin={{ left: 8, right: 8 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" />
@@ -228,7 +228,7 @@ export function TeacherDashboard() {
               to={card.to}
               className="text-decoration-none text-dark border-0 shadow-sm card-hover h-100"
             >
-              <Card.Body className="p-4">
+              <Card.Body className="p-3 p-lg-4">
                 <div
                   className={`d-inline-flex align-items-center justify-content-center rounded-3 ${card.iconClass} mb-3`}
                   style={{ width: 48, height: 48 }}

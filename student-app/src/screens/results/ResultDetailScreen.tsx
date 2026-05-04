@@ -9,13 +9,21 @@ import {
   View,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ResultDetailScreenProps } from '../../app/navigation/types';
-import { deleteMyResult } from '../../services/api/meApi';
+import { deleteMyResult, getMyResults } from '../../services/api/meApi';
 import { clearResultsCache } from '../../services/storage/resultsCache';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
+import type { ExamResult } from '../../types/exam';
+import { sortResultsByDateDesc } from '../../utils/performanceInsights';
+import {
+  getPreviousExamResult,
+  isSameTopicWrongAgain,
+  listTopicImprovementsSincePrevious,
+  normTopicKey,
+} from '../../utils/topicProgressFeedback';
 
 function buildStyles(colors: AppThemeColors) {
   return StyleSheet.create({
@@ -199,6 +207,36 @@ function buildStyles(colors: AppThemeColors) {
       fontSize: 14,
       fontWeight: '500',
     },
+    feedbackLine: {
+      fontSize: 13,
+      fontWeight: '700',
+      marginTop: 8,
+      lineHeight: 20,
+    },
+    feedbackSuccess: {
+      color: colors.success,
+    },
+    feedbackRepeat: {
+      color: colors.warning,
+    },
+    improvementBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: 'rgba(126, 217, 87, 0.15)',
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 20,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(126, 217, 87, 0.35)',
+      gap: 10,
+    },
+    improvementBannerText: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '600',
+      lineHeight: 22,
+    },
     correctQRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -273,6 +311,33 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
   const { result } = route.params;
   const navigation = useNavigation();
   const [deleting, setDeleting] = useState(false);
+  const [timeline, setTimeline] = useState<ExamResult[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void getMyResults()
+        .then((list) => {
+          if (!cancelled) setTimeline(sortResultsByDateDesc(list));
+        })
+        .catch(() => {
+          if (!cancelled) setTimeline([]);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
+
+  const previousExam = useMemo(() => getPreviousExamResult(timeline, result), [timeline, result]);
+  const topicImprovements = useMemo(
+    () => listTopicImprovementsSincePrevious(result, previousExam),
+    [result, previousExam]
+  );
+  const improvementKeySet = useMemo(
+    () => new Set(topicImprovements.map((x) => x.topicKey)),
+    [topicImprovements]
+  );
   const total = result.correctCount + result.wrongCount;
   const correctQuestions = useMemo(() => {
     const list = result.correctQuestions ?? [];
@@ -348,6 +413,17 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
         </View>
       </View>
 
+      {topicImprovements.length > 0 ? (
+        <View style={styles.improvementBanner}>
+          <Ionicons name="trending-up" size={24} color={colors.success} style={{ marginTop: 2 }} />
+          <Text style={styles.improvementBannerText}>
+            Bir önceki sınavda hata yaptığın{' '}
+            <Text style={{ fontWeight: '900' }}>{topicImprovements.map((x) => x.displayName).join(', ')}</Text>{' '}
+            konularında bu sınavda yanlış kaydın yok; aynı konularda doğru yanıtlamış veya hata yapmamışsın.
+          </Text>
+        </View>
+      ) : null}
+
       {correctQuestions.length > 0 ? (
         <View style={styles.topicCard}>
           <View style={styles.sectionHeader}>
@@ -362,6 +438,11 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
               <View style={styles.correctQBody}>
                 <Text style={styles.correctQTopic}>{cq.topic}</Text>
                 <Text style={styles.correctQMeta}>İşaretlenen: {cq.studentAnswer || '—'}</Text>
+                {improvementKeySet.has(normTopicKey(cq.topic)) ? (
+                  <Text style={[styles.feedbackLine, styles.feedbackSuccess]}>
+                    Bir önceki sınavda bu konuda yanlış yapmıştın; bu sınavda doğru yaptın.
+                  </Text>
+                ) : null}
               </View>
             </View>
           ))}
@@ -385,6 +466,11 @@ export function ResultDetailScreen({ route }: ResultDetailScreenProps) {
                   İşaretlenen: {wq.studentAnswer || '—'}
                   {wq.expectedAnswer ? ` · Doğru şık: ${wq.expectedAnswer}` : ''}
                 </Text>
+                {previousExam && isSameTopicWrongAgain(wq, previousExam) ? (
+                  <Text style={[styles.feedbackLine, styles.feedbackRepeat]}>
+                    Bu konuda bir önceki sınavda da yanlış yapmıştın.
+                  </Text>
+                ) : null}
               </View>
             </View>
           ))}

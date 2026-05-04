@@ -393,6 +393,334 @@ def _env_optical_tr_col_int(name: str, default: int) -> int:
         return default
 
 
+def _turkish_pair_override_gap_metrics(
+    option_scores: list[float], options: list[str]
+) -> tuple[float, str, float, float]:
+    """
+    pair_confidence = gap_1_2 / best, en iyi şık, gap_1_2 (1.–2.), gap_2_3 (2.–3.; <3 şıkta 0).
+    """
+    if not option_scores or not options:
+        return 0.0, "", 0.0, 0.0
+    eps = 1e-9
+    n = min(len(options), len(option_scores))
+    pairs: list[tuple[str, float]] = [
+        (str(options[i]), float(option_scores[i])) for i in range(n)
+    ]
+    pairs.sort(key=lambda p: p[1], reverse=True)
+    best = pairs[0][1]
+    second = pairs[1][1] if len(pairs) > 1 else best
+    third = pairs[2][1] if len(pairs) > 2 else second
+    best_opt = pairs[0][0] if pairs else ""
+    gap_1_2 = float(best - second)
+    gap_2_3 = float(second - third) if len(pairs) >= 3 else 0.0
+    pair_conf = float(gap_1_2 / max(best, eps))
+    return pair_conf, best_opt, gap_1_2, gap_2_3
+
+
+def _turkish_pair_confidence_and_best_option(
+    option_scores: list[float], options: list[str]
+) -> tuple[float, str]:
+    """gap_1_2 / best ve en yüksek skorlu şık (pair override / shadow ortak)."""
+    pc, bo, _, _ = _turkish_pair_override_gap_metrics(option_scores, options)
+    return pc, bo
+
+
+def _blend_override_read_confidence(margin_conf: float, pair_conf: float) -> float:
+    """QuestionRead.confidence için margin + pair_conf karışımı (üretim güveni)."""
+    w_m = _env_optical_tr_col_float("OPTICAL_TR_COL_OVERRIDE_READ_CONF_MARGIN_WEIGHT", 0.5)
+    w_p = _env_optical_tr_col_float("OPTICAL_TR_COL_OVERRIDE_READ_CONF_PAIR_WEIGHT", 0.5)
+    return min(1.0, w_m * float(margin_conf) + w_p * float(pair_conf))
+
+
+def _pair_shadow_expected_answer_status(detail: dict[str, Any]) -> tuple[str, str]:
+    """dynamic_pair_gap_shadow metadata varsa beklenen (answer, status) çifti."""
+    code = str(detail.get("dynamic_pair_gap_shadow") or "")
+    if code == "ok_shadow":
+        return ((detail.get("dynamic_suggested_answer") or "").strip().upper(), "ok")
+    if code == "empty_shadow":
+        return ("", "empty")
+    if code == "ambiguous_shadow":
+        return ("", "ambiguous")
+    return ("", "")
+
+
+def _dynamic_would_change_vs_pair_shadow(read: QuestionRead, detail: dict[str, Any]) -> bool:
+    exp_ans, exp_st = _pair_shadow_expected_answer_status(detail)
+    if not exp_st:
+        return False
+    ba = (read.answer or "").strip().upper()
+    st = (read.status or "").strip().lower()
+    return ba != exp_ans or st != exp_st
+
+
+def _enrich_override_debug_fields(
+    detail: dict[str, Any],
+    *,
+    before_read: QuestionRead,
+    after_read: QuestionRead,
+    baseline_decision_code: str,
+    pair_conf: float,
+    best_opt: str,
+    gap_1_2: float,
+    gap_2_3: float,
+    applied: bool,
+    skip_reason: str | None,
+    margin_conf: float | None,
+    read_confidence: float | None,
+) -> None:
+    detail["override_applied"] = applied
+    detail["override_baseline_decision_code"] = baseline_decision_code
+    detail["override_best_option"] = (best_opt or "").strip().upper()
+    detail["override_gap_1_2"] = round(float(gap_1_2), 5)
+    detail["override_gap_2_3"] = round(float(gap_2_3), 5)
+    detail["override_confidence"] = round(float(pair_conf), 5)
+    if applied:
+        detail["override_reason"] = "pair_confidence"
+        detail.pop("override_skip_reason", None)
+    else:
+        detail.pop("override_reason", None)
+        if skip_reason:
+            detail["override_skip_reason"] = skip_reason
+    if margin_conf is not None:
+        detail["override_margin_confidence"] = round(float(margin_conf), 5)
+    if read_confidence is not None:
+        detail["override_read_confidence"] = round(float(read_confidence), 5)
+    else:
+        detail.pop("override_read_confidence", None)
+    ba = (before_read.answer or "").strip().upper()
+    bst = (before_read.status or "").strip().lower()
+    aa = (after_read.answer or "").strip().upper()
+    ast = (after_read.status or "").strip().lower()
+    detail["override_changed_output"] = bool(ba != aa or bst != ast)
+    detail["dynamic_would_change_after_override"] = _dynamic_would_change_vs_pair_shadow(
+        after_read, detail
+    )
+
+
+def _pair_confidence_production_override_enabled() -> bool:
+    v = (os.environ.get("OPTICAL_TR_COL_ENABLE_PAIR_OVERRIDE") or "").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
+def _maybe_apply_pair_confidence_production_override(
+    read: QuestionRead,
+    detail: dict[str, Any],
+    option_scores: list[float],
+    options: list[str],
+) -> QuestionRead:
+    """
+    Yalnız çok güvenli satırlarda boş/below_min_best → ok doldurma (varsayılan kapalı).
+    ambiguous_two_strong ve no_scores hariç. gap_2_3 > gap_1_2 ise güvenlik nedeniyle uygulanmaz.
+    """
+    if not _pair_confidence_production_override_enabled():
+        return read
+
+    code = str(detail.get("decision_code", ""))
+    if code in ("ambiguous_two_strong", "no_scores"):
+        return read
+    st = (read.status or "").strip().lower()
+    if not (code == "below_min_best" or st == "empty"):
+        return read
+
+    before_read = read
+    baseline_code = code
+    pair_conf, best_opt, gap_1_2, gap_2_3 = _turkish_pair_override_gap_metrics(
+        option_scores, options
+    )
+    thr = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_CONF_OVERRIDE_MIN", 0.30)
+    ans = (best_opt or "").strip().upper()
+    best_score = float(detail.get("best_score", read.fill_ratio_best or 0.0) or 0.0)
+    second_score = float(detail.get("second_score", 0.0) or 0.0)
+    margin_conf = _confidence_from_margin(best_score, second_score, scale=0.08)
+
+    def _skip(skip: str) -> QuestionRead:
+        _enrich_override_debug_fields(
+            detail,
+            before_read=before_read,
+            after_read=read,
+            baseline_decision_code=baseline_code,
+            pair_conf=pair_conf,
+            best_opt=best_opt,
+            gap_1_2=gap_1_2,
+            gap_2_3=gap_2_3,
+            applied=False,
+            skip_reason=skip,
+            margin_conf=margin_conf,
+            read_confidence=None,
+        )
+        return read
+
+    if gap_2_3 > gap_1_2:
+        return _skip("gap_2_3_exceeds_gap_1_2")
+    if pair_conf < thr or len(ans) != 1:
+        return _skip("below_pair_conf_threshold_or_invalid_option")
+
+    read_conf = _blend_override_read_confidence(margin_conf, pair_conf)
+    detail["decision_code"] = "pair_conf_override"
+    after = QuestionRead(
+        ans,
+        "ok",
+        read_conf,
+        second_score=second_score,
+        fill_ratio_best=best_score,
+    )
+    _enrich_override_debug_fields(
+        detail,
+        before_read=before_read,
+        after_read=after,
+        baseline_decision_code=baseline_code,
+        pair_conf=pair_conf,
+        best_opt=best_opt,
+        gap_1_2=gap_1_2,
+        gap_2_3=gap_2_3,
+        applied=True,
+        skip_reason=None,
+        margin_conf=margin_conf,
+        read_confidence=read_conf,
+    )
+    return after
+
+
+def _env_optical_tr_col_dynamic_thresh_mode() -> str:
+    """
+    Dinamik eşik deneyi: varsayılan off. Yalnızca 'shadow' iken decision_detail genişletilir;
+    üretim kararı (QuestionRead) değişmez. 'apply' ayrılmıştır (şimdilik off ile aynı).
+    """
+    raw = (os.environ.get("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE") or "").strip().lower()
+    if raw in ("shadow", "apply", "off"):
+        return raw
+    return "off"
+
+
+def _maybe_enrich_decision_detail_dynamic_threshold_shadow(
+    detail: dict[str, Any],
+    option_scores: list[float],
+    options: list[str],
+    read: QuestionRead,
+) -> None:
+    """
+    Shadow: iki katman — (1) dynamic_global_gap_* eski global max-gap modeli (yalnız teşhis),
+    (2) gap_1_2 / gap_2_3 pair-gap modeli — dynamic_suggested_* ve dynamic_would_change buna göre.
+    (3) pair_confidence = gap_1_2 / best (göreli ayrım; yalnız pair_confidence_decision metadata).
+    Üretim kararı değişmez.
+    """
+    mode = _env_optical_tr_col_dynamic_thresh_mode()
+    if mode != "shadow":
+        return
+
+    baseline_decision_code = str(detail.get("decision_code", ""))
+    min_gap_global = _env_optical_tr_col_float("OPTICAL_TR_COL_DYNAMIC_THRESH_MIN_GAP", 0.02)
+    tau_ok = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_GAP_OK_MIN", 0.12)
+    tau_small = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_GAP_SMALL_MAX", 0.03)
+    tau_flat = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_SCORE_SPAN_EMPTY_MAX", 0.08)
+    eps = 1e-9
+
+    detail["dynamic_thresh_mode"] = "shadow"
+    detail["baseline_decision_code"] = baseline_decision_code
+
+    if not option_scores or not options:
+        detail["dynamic_score_sorted"] = []
+        detail["dynamic_global_gap_gaps"] = []
+        detail["dynamic_global_gap_argmax"] = -1
+        detail["dynamic_global_gap_suggested_decision_code"] = "empty_shadow"
+        detail["dynamic_global_gap_shadow"] = "empty_shadow"
+        detail["gap_1_2"] = 0.0
+        detail["gap_2_3"] = 0.0
+        detail["gap_ratio_1_2"] = 0.0
+        detail["gap_ratio_2_3"] = 0.0
+        detail["dynamic_suggested_answer"] = ""
+        detail["dynamic_suggested_decision_code"] = "empty_shadow"
+        detail["dynamic_pair_gap_shadow"] = "empty_shadow"
+        detail["pair_confidence"] = 0.0
+        detail["pair_confidence_decision"] = "empty_shadow"
+        detail["dynamic_would_change"] = False
+        return
+
+    n = min(len(options), len(option_scores))
+    pairs: list[tuple[str, float]] = [
+        (str(options[i]), float(option_scores[i])) for i in range(n)
+    ]
+    pairs.sort(key=lambda p: p[1], reverse=True)
+    dynamic_score_sorted = [{"option": p[0], "score": round(p[1], 5)} for p in pairs]
+    scores_only = [p[1] for p in pairs]
+    best_opt = pairs[0][0] if pairs else ""
+    best = scores_only[0]
+    second = scores_only[1] if len(scores_only) > 1 else best
+    third = scores_only[2] if len(scores_only) > 2 else second
+    worst = scores_only[-1]
+
+    gap_1_2 = float(best - second)
+    gap_2_3 = float(second - third) if len(scores_only) >= 3 else 0.0
+    ratio_12 = float(best / max(second, eps))
+    ratio_23 = float(second / max(third, eps)) if len(scores_only) >= 3 else 0.0
+
+    detail["dynamic_score_sorted"] = dynamic_score_sorted
+    detail["gap_1_2"] = round(gap_1_2, 5)
+    detail["gap_2_3"] = round(gap_2_3, 5)
+    detail["gap_ratio_1_2"] = round(ratio_12, 5)
+    detail["gap_ratio_2_3"] = round(ratio_23, 5)
+
+    pair_conf, _ = _turkish_pair_confidence_and_best_option(option_scores, options)
+    detail["pair_confidence"] = round(pair_conf, 5)
+    conf_ok = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_CONF_OK_MIN", 0.25)
+    conf_amb = _env_optical_tr_col_float("OPTICAL_TR_COL_PAIR_CONF_AMBIG_MIN", 0.15)
+    if pair_conf >= conf_ok:
+        conf_decision = "ok_shadow"
+    elif pair_conf >= conf_amb:
+        conf_decision = "ambiguous_shadow"
+    else:
+        conf_decision = "empty_shadow"
+    detail["pair_confidence_decision"] = conf_decision
+
+    # --- dynamic_global_gap_shadow (eski model, yalnız metadata) ---
+    global_gaps = [scores_only[i] - scores_only[i + 1] for i in range(len(scores_only) - 1)]
+    if global_gaps:
+        g_argmax = max(range(len(global_gaps)), key=lambda i: global_gaps[i])
+        g_max = global_gaps[g_argmax]
+    else:
+        g_argmax = -1
+        g_max = 0.0
+
+    if g_max < min_gap_global:
+        global_code = "empty_shadow"
+    elif g_argmax == 0:
+        global_code = "ok_shadow"
+    else:
+        global_code = "ambiguous_shadow"
+
+    detail["dynamic_global_gap_gaps"] = [round(g, 5) for g in global_gaps]
+    detail["dynamic_global_gap_argmax"] = g_argmax
+    detail["dynamic_global_gap_suggested_decision_code"] = global_code
+    detail["dynamic_global_gap_shadow"] = global_code
+
+    # --- dynamic_pair_gap_shadow (1.–2. ve 2.–3. farkları) ---
+    span = float(best - worst)
+    if gap_1_2 >= tau_ok:
+        pair_code = "ok_shadow"
+    elif span <= tau_flat:
+        pair_code = "empty_shadow"
+    elif gap_1_2 <= tau_small and gap_2_3 <= tau_small:
+        pair_code = "ambiguous_shadow"
+    else:
+        pair_code = "ambiguous_shadow"
+
+    detail["dynamic_suggested_answer"] = best_opt if pair_code == "ok_shadow" else ""
+    detail["dynamic_suggested_decision_code"] = pair_code
+    detail["dynamic_pair_gap_shadow"] = pair_code
+
+    if pair_code == "ok_shadow":
+        shadow_ans, shadow_st = best_opt, "ok"
+    elif pair_code == "empty_shadow":
+        shadow_ans, shadow_st = "", "empty"
+    else:
+        shadow_ans, shadow_st = "", "ambiguous"
+
+    ba = (read.answer or "").strip().upper()
+    sa = (shadow_ans or "").strip().upper()
+    st = (read.status or "").strip().lower()
+    detail["dynamic_would_change"] = bool(ba != sa or st != shadow_st)
+
+
 def _optical_tr_col_is_tail_row(row_index: int, question_count: int) -> bool:
     """Son N satır (varsayılan 3): 18–20 gibi alt bant; indeks 0 tabanlı."""
     tail = _env_optical_tr_col_int("OPTICAL_TR_COL_TAIL_ROWS", 3)
@@ -1269,9 +1597,16 @@ def _evaluate_turkish_column_lgs_row(
     detail: karar kodu ve eşikler (scan_metadata row_debug için).
     """
     detail: dict[str, Any] = {"decision_code": "ok"}
+    read: QuestionRead
+
     if not option_scores:
         detail["decision_code"] = "no_scores"
-        return QuestionRead("", "empty", 0.0), detail
+        read = QuestionRead("", "empty", 0.0)
+        _maybe_enrich_decision_detail_dynamic_threshold_shadow(detail, option_scores, options, read)
+        read = _maybe_apply_pair_confidence_production_override(
+            read, detail, option_scores, options
+        )
+        return read, detail
 
     best_index = max(range(len(option_scores)), key=lambda i: option_scores[i])
     sorted_scores = sorted(option_scores, reverse=True)
@@ -1311,25 +1646,29 @@ def _evaluate_turkish_column_lgs_row(
 
     if best_score < min_best:
         detail["decision_code"] = "below_min_best"
-        return QuestionRead("", "empty", best_score), detail
+        read = QuestionRead("", "empty", best_score)
+    else:
+        strong2 = min_best * amb_second_mul
+        if second_score >= strong2 and (best_score - second_score) < max(
+            amb_gap_abs, second_score * amb_margin_rel
+        ):
+            detail["decision_code"] = "ambiguous_two_strong"
+            read = QuestionRead(
+                "", "ambiguous", min(1.0, (best_score + second_score) / 2.0)
+            )
+        elif best_score < max(second_score * dom_ratio, second_score + dom_gap):
+            detail["decision_code"] = "not_dominant"
+            read = QuestionRead("", "empty", best_score)
+        else:
+            conf = _confidence_from_margin(best_score, second_score, scale=0.08)
+            detail["decision_code"] = "ok"
+            read = QuestionRead(options[best_index], "ok", conf)
 
-    strong2 = min_best * amb_second_mul
-    if second_score >= strong2 and (best_score - second_score) < max(
-        amb_gap_abs, second_score * amb_margin_rel
-    ):
-        detail["decision_code"] = "ambiguous_two_strong"
-        return (
-            QuestionRead("", "ambiguous", min(1.0, (best_score + second_score) / 2.0)),
-            detail,
-        )
-
-    if best_score < max(second_score * dom_ratio, second_score + dom_gap):
-        detail["decision_code"] = "not_dominant"
-        return QuestionRead("", "empty", best_score), detail
-
-    conf = _confidence_from_margin(best_score, second_score, scale=0.08)
-    detail["decision_code"] = "ok"
-    return QuestionRead(options[best_index], "ok", conf), detail
+    _maybe_enrich_decision_detail_dynamic_threshold_shadow(detail, option_scores, options, read)
+    read = _maybe_apply_pair_confidence_production_override(
+        read, detail, option_scores, options
+    )
+    return read, detail
 
 
 def _row_read_lgs(option_scores: list[float], options: list[str]) -> QuestionRead:

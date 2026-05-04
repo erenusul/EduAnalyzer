@@ -30,7 +30,9 @@ public class StudentParentLinkServiceTests
         var service = new StudentParentLinkService(
             studentRepo.Object,
             Mock.Of<IStudentParentRepository>(),
-            Mock.Of<IParentReadRepository>());
+            Mock.Of<IParentReadRepository>(),
+            Mock.Of<IUserRepository>(),
+            Mock.Of<IAuthService>());
 
         var r = await service.GetLinkedParentsAsync(sid, tid);
         Assert.Null(r);
@@ -75,7 +77,12 @@ public class StudentParentLinkServiceTests
         var parentRepo = new Mock<IParentReadRepository>();
         parentRepo.Setup(x => x.GetByIdWithUserAsync(pid, It.IsAny<CancellationToken>())).ReturnsAsync(parent);
 
-        var service = new StudentParentLinkService(studentRepo.Object, linkRepo.Object, parentRepo.Object);
+        var service = new StudentParentLinkService(
+            studentRepo.Object,
+            linkRepo.Object,
+            parentRepo.Object,
+            Mock.Of<IUserRepository>(),
+            Mock.Of<IAuthService>());
         var list = await service.LinkParentAsync(sid, pid, tid);
 
         Assert.NotNull(list);
@@ -94,7 +101,9 @@ public class StudentParentLinkServiceTests
         var service = new StudentParentLinkService(
             studentRepo.Object,
             Mock.Of<IStudentParentRepository>(),
-            Mock.Of<IParentReadRepository>());
+            Mock.Of<IParentReadRepository>(),
+            Mock.Of<IUserRepository>(),
+            Mock.Of<IAuthService>());
 
         var ok = await service.UnlinkParentAsync(sid, Guid.NewGuid(), Guid.NewGuid());
         Assert.False(ok);
@@ -117,7 +126,9 @@ public class StudentParentLinkServiceTests
         var service = new StudentParentLinkService(
             studentRepo.Object,
             linkRepo.Object,
-            Mock.Of<IParentReadRepository>());
+            Mock.Of<IParentReadRepository>(),
+            Mock.Of<IUserRepository>(),
+            Mock.Of<IAuthService>());
 
         var ok = await service.UnlinkParentAsync(sid, pid, tid);
         Assert.True(ok);

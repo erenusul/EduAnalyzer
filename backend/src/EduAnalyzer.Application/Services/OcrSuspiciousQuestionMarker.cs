@@ -12,6 +12,12 @@ public static class OcrSuspiciousQuestionMarker
     /// </summary>
     public const double SoftConfidenceThreshold = 0.42;
 
+    /// <summary>ML &quot;ok&quot; değil veya belirsiz/boş — mobilde yalnızca bu maddeler elle düzeltilebilir.</summary>
+    public const string BelirsizOrEmptyReason = "Belirsiz veya boş okuma";
+
+    /// <summary>Okuma &quot;ok&quot; kabul edildi ancak güven sınırda — elle düzeltme gerekli değil.</summary>
+    public const string BorderlineConfidenceReason = "Sınırda güven skoru";
+
     public static IReadOnlyList<SuspiciousQuestionHintDto> Build(
         IReadOnlyList<OpticalPerQuestionReadDto>? perQuestion)
     {
@@ -29,7 +35,7 @@ public static class OcrSuspiciousQuestionMarker
                     i + 1,
                     q.Confidence,
                     q.Status,
-                    "Belirsiz veya boş okuma"));
+                    BelirsizOrEmptyReason));
                 continue;
             }
 
@@ -40,7 +46,7 @@ public static class OcrSuspiciousQuestionMarker
                     i + 1,
                     q.Confidence,
                     q.Status,
-                    "Sınırda güven skoru"));
+                    BorderlineConfidenceReason));
             }
         }
 

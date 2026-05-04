@@ -47,3 +47,10 @@ public record StudentParentLinkDto(
 public record ParentCandidateDto(Guid ParentId, string Email, string DisplayName);
 
 public record AddStudentParentRequest(Guid ParentId);
+
+/// <summary>Öğretmenin oluşturduğu yeni veli giriş hesabı (User + Parent).</summary>
+public record CreateParentAccountRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    string? Phone = null);

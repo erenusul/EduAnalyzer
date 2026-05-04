@@ -92,6 +92,47 @@ public class MeController : ControllerBase
         }
     }
 
+    /// <summary>Optik taramada yalnızca &quot;belirsiz veya boş okuma&quot; maddeleri için elle şık düzeltmesi.</summary>
+    [HttpPatch("results/{id:guid}/optical-corrections")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ScanExamResponse>> ApplyOpticalReadingCorrections(
+        Guid id,
+        [FromBody] ApplyOpticalReadingCorrectionsRequest? request,
+        CancellationToken ct)
+    {
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
+            return Forbid();
+        if (request == null)
+            return BadRequest(new { message = "İstek gövdesi gerekli." });
+
+        try
+        {
+            var response = await _examService.ApplyOpticalReadingCorrectionsForStudentAsync(
+                id,
+                studentId.Value,
+                request,
+                ct);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("results/{id:guid}")]
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> DeleteMyResult(Guid id, CancellationToken ct)

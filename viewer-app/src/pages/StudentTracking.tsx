@@ -106,7 +106,7 @@ export function StudentTracking() {
       <Card className="border-0 shadow-sm mb-4">
         <Card.Body className="p-3">
           <div className="row g-3">
-            <div className="col-md-6">
+            <div className="col-12 col-md-6">
               <InputGroup>
                 <InputGroup.Text>
                   <i className="bi bi-search" aria-hidden />
@@ -119,7 +119,7 @@ export function StudentTracking() {
                 />
               </InputGroup>
             </div>
-            <div className="col-md-4">
+            <div className="col-12 col-md-4">
               <Form.Select
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
@@ -167,7 +167,7 @@ export function StudentTracking() {
                       <td>
                         <Link
                           to={`/dashboard/ogrenci/${s.id}`}
-                          className="text-decoration-none text-dark fw-medium"
+                          className="text-decoration-none text-dark fw-semibold"
                         >
                           {s.firstName} {s.lastName}
                         </Link>
@@ -197,7 +197,13 @@ export function StudentTracking() {
                       </td>
                       <td className="text-end">
                         <Link to={`/dashboard/ogrenci/${s.id}`}>
-                          <Button variant="outline-primary" size="sm" className="me-1">
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="me-1"
+                            title="Öğrenci detayı"
+                            aria-label="Öğrenci detayı"
+                          >
                             <i className="bi bi-eye" />
                           </Button>
                         </Link>

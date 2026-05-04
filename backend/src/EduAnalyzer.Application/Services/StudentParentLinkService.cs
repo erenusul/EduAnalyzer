@@ -7,6 +7,7 @@ namespace EduAnalyzer.Application.Services;
 public interface IStudentParentLinkService
 {
     Task<IReadOnlyList<ParentCandidateDto>> GetParentCandidatesAsync(CancellationToken ct = default);
+    Task<ParentCandidateDto> CreateParentAccountAsync(CreateParentAccountRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<StudentParentLinkDto>?> GetLinkedParentsAsync(Guid studentId, Guid teacherId, CancellationToken ct = default);
     Task<IReadOnlyList<StudentParentLinkDto>?> LinkParentAsync(Guid studentId, Guid parentId, Guid teacherId, CancellationToken ct = default);
     Task<bool> UnlinkParentAsync(Guid studentId, Guid parentId, Guid teacherId, CancellationToken ct = default);
@@ -14,18 +15,26 @@ public interface IStudentParentLinkService
 
 public class StudentParentLinkService : IStudentParentLinkService
 {
+    private const int MinPasswordLength = 6;
+
     private readonly IStudentRepository _studentRepo;
     private readonly IStudentParentRepository _linkRepo;
     private readonly IParentReadRepository _parentRepo;
+    private readonly IUserRepository _userRepo;
+    private readonly IAuthService _auth;
 
     public StudentParentLinkService(
         IStudentRepository studentRepo,
         IStudentParentRepository linkRepo,
-        IParentReadRepository parentRepo)
+        IParentReadRepository parentRepo,
+        IUserRepository userRepo,
+        IAuthService auth)
     {
         _studentRepo = studentRepo;
         _linkRepo = linkRepo;
         _parentRepo = parentRepo;
+        _userRepo = userRepo;
+        _auth = auth;
     }
 
     public async Task<IReadOnlyList<ParentCandidateDto>> GetParentCandidatesAsync(CancellationToken ct = default)
@@ -34,6 +43,51 @@ public class StudentParentLinkService : IStudentParentLinkService
         return parents
             .Select(p => new ParentCandidateDto(p.Id, p.User.Email, p.User.DisplayName))
             .ToList();
+    }
+
+    public async Task<ParentCandidateDto> CreateParentAccountAsync(
+        CreateParentAccountRequest request,
+        CancellationToken ct = default)
+    {
+        var email = (request.Email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(email))
+            throw new InvalidOperationException("E-posta zorunludur.");
+
+        if (string.IsNullOrEmpty(request.Password) || request.Password.Length < MinPasswordLength)
+            throw new InvalidOperationException($"Şifre en az {MinPasswordLength} karakter olmalıdır.");
+
+        if (await _userRepo.GetByEmailAsync(email, ct) != null)
+            throw new InvalidOperationException("Bu e-posta adresi zaten kayıtlı.");
+
+        var display = (request.DisplayName ?? "").Trim();
+        if (string.IsNullOrEmpty(display))
+        {
+            var at = email.IndexOf('@');
+            display = at > 0 ? email[..at] : email;
+        }
+
+        var userId = Guid.NewGuid();
+        var user = new User
+        {
+            Id = userId,
+            Email = email,
+            DisplayName = display,
+            PasswordHash = _auth.HashPassword(request.Password),
+            Role = UserRole.Parent,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await _userRepo.AddAsync(user, ct);
+
+        var parent = new Parent
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+            CreatedAt = DateTime.UtcNow,
+        };
+        await _parentRepo.AddAsync(parent, ct);
+
+        return new ParentCandidateDto(parent.Id, email, display);
     }
 
     public async Task<IReadOnlyList<StudentParentLinkDto>?> GetLinkedParentsAsync(

@@ -60,4 +60,24 @@ public class StudentServiceTests
         Assert.Equal("Yılmaz", result[0].LastName);
         Assert.False(result[0].HasAppAccount);
     }
+
+    [Fact]
+    public async Task CreateAsync_Throws_WhenStudentNoAlreadyUsedForTeacher()
+    {
+        var teacherId = Guid.NewGuid();
+        var repo = new Mock<IStudentRepository>();
+        repo.Setup(x => x.ExistsByTeacherAndStudentNoAsync(teacherId, "1001", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var classRepo = new Mock<IClassRepository>();
+        var userRepo = new Mock<IUserRepository>();
+        var auth = new Mock<IAuthService>();
+        var service = new StudentService(repo.Object, classRepo.Object, userRepo.Object, auth.Object);
+
+        var req = new CreateStudentRequest("1001", "A", "B", null, null, null, null, null);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(teacherId, req));
+        Assert.Contains("1001", ex.Message);
+        repo.Verify(x => x.AddAsync(It.IsAny<Student>(), It.IsAny<User?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

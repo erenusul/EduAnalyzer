@@ -15,6 +15,7 @@ from ml_service.api.routes.optical_scan import (
     OpticalScanFullResult,
     OpticalScanRejected,
     _detect_answers_from_image,
+    _evaluate_turkish_column_lgs_row,
     _looks_like_collapsed_single_option,
     _turkish_collapsed_consistency_check,
 )
@@ -497,3 +498,184 @@ def test_optical_scan_full_result_includes_scan_metadata():
     d = r.to_api_dict(1)
     assert d["scan_metadata"]["qr_text"] == "exam:1|student:2"
     assert d["scan_metadata"]["deskew_applied"] is False
+
+
+def test_turkish_column_dynamic_thresh_off_no_shadow_keys(monkeypatch):
+    monkeypatch.delenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", raising=False)
+    _, det = _evaluate_turkish_column_lgs_row([0.2, 0.1, 0.08, 0.07], ["A", "B", "C", "D"])
+    assert "dynamic_thresh_mode" not in det
+    assert "baseline_decision_code" not in det
+
+
+def test_turkish_column_dynamic_thresh_apply_no_shadow_keys(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "apply")
+    _, det = _evaluate_turkish_column_lgs_row([0.2, 0.1, 0.08, 0.07], ["A", "B", "C", "D"])
+    assert "dynamic_thresh_mode" not in det
+
+
+def test_turkish_column_pair_confidence_override_default_off(monkeypatch):
+    monkeypatch.delenv("OPTICAL_TR_COL_ENABLE_PAIR_OVERRIDE", raising=False)
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    scores = [0.075, 0.02, 0.019, 0.018]
+    opts = ["A", "B", "C", "D"]
+    read, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert read.status == "empty"
+    assert det.get("override_applied") is None
+
+
+def test_turkish_column_pair_confidence_override_fills_below_min_best(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_ENABLE_PAIR_OVERRIDE", "1")
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "off")
+    scores = [0.075, 0.02, 0.019, 0.018]
+    opts = ["A", "B", "C", "D"]
+    read, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert read.status == "ok"
+    assert read.answer == "A"
+    assert det.get("decision_code") == "pair_conf_override"
+    assert det.get("override_applied") is True
+    assert det.get("override_reason") == "pair_confidence"
+    assert float(det.get("override_confidence", 0)) >= 0.30
+    assert det.get("override_gap_1_2") == pytest.approx(0.055, rel=1e-3)
+    assert det.get("override_gap_2_3") == pytest.approx(0.001, rel=1e-2)
+    assert det.get("override_best_option") == "A"
+    assert det.get("override_changed_output") is True
+    assert "override_read_confidence" in det
+    m = float(det["override_margin_confidence"])
+    p = float(det["override_confidence"])
+    assert float(det["override_read_confidence"]) == pytest.approx(0.5 * m + 0.5 * p, rel=1e-5)
+    assert read.confidence == pytest.approx(0.5 * m + 0.5 * p, rel=1e-5)
+
+
+def test_turkish_column_pair_confidence_override_skips_when_gap_23_exceeds_gap_12(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_ENABLE_PAIR_OVERRIDE", "1")
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "off")
+    scores = [0.075, 0.05, 0.01, 0.009]
+    opts = ["A", "B", "C", "D"]
+    read, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert read.status == "empty"
+    assert det.get("override_applied") is False
+    assert det.get("override_skip_reason") == "gap_2_3_exceeds_gap_1_2"
+    assert float(det["override_gap_2_3"]) > float(det["override_gap_1_2"])
+
+
+def test_turkish_column_pair_confidence_override_debug_after_shadow(monkeypatch):
+    monkeypatch.setenv("OPTICAL_TR_COL_ENABLE_PAIR_OVERRIDE", "1")
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    scores = [0.075, 0.02, 0.019, 0.018]
+    opts = ["A", "B", "C", "D"]
+    read, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert read.status == "ok"
+    assert det.get("override_applied") is True
+    assert det.get("dynamic_would_change_after_override") is True
+    assert det.get("dynamic_pair_gap_shadow") == "empty_shadow"
+
+
+def test_turkish_column_pair_confidence_decision_relative_gap(monkeypatch):
+    """pair_confidence = gap_1_2 / best; eşikler 0.25 / 0.15 (shadow metadata)."""
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    scores = [0.1, 0.1, 0.9, 0.1]
+    opts = ["A", "B", "C", "D"]
+    _, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert det["pair_confidence_decision"] == "ok_shadow"
+    assert float(det["pair_confidence"]) >= 0.25
+
+    scores_flat = [0.41, 0.4, 0.39, 0.38]
+    _, det2 = _evaluate_turkish_column_lgs_row(scores_flat, opts)
+    assert det2["pair_confidence_decision"] == "empty_shadow"
+    assert float(det2["pair_confidence"]) < 0.15
+
+
+def test_turkish_column_pair_gap_shadow_ok_when_first_second_dominates(monkeypatch):
+    """Global max-gap başka çiftteyken 1.–2. farkı yeterliyse pair model ok_shadow (S.19 senaryosu)."""
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    scores = [0.269, 0.751, 0.969, 0.301]
+    opts = ["A", "B", "C", "D"]
+    _, det = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert det["dynamic_global_gap_shadow"] == "ambiguous_shadow"
+    assert det["dynamic_pair_gap_shadow"] == "ok_shadow"
+    assert det["dynamic_suggested_answer"] == "C"
+    assert round(float(det["gap_1_2"]), 3) == 0.218
+    assert det["pair_confidence_decision"] == "ambiguous_shadow"
+    assert 0.22 < float(det["pair_confidence"]) < 0.23
+
+
+def test_turkish_column_dynamic_thresh_shadow_same_question_read(monkeypatch):
+    scores = [0.2, 0.1, 0.08, 0.07]
+    opts = ["A", "B", "C", "D"]
+    monkeypatch.delenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", raising=False)
+    read_off, _ = _evaluate_turkish_column_lgs_row(scores, opts)
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    read_sh, det_sh = _evaluate_turkish_column_lgs_row(scores, opts)
+    assert read_off == read_sh
+    assert det_sh.get("dynamic_thresh_mode") == "shadow"
+    assert det_sh.get("baseline_decision_code") == det_sh.get("decision_code")
+    assert "dynamic_global_gap_gaps" in det_sh
+    assert isinstance(det_sh.get("dynamic_global_gap_argmax"), int)
+    assert "gap_1_2" in det_sh
+    assert "gap_2_3" in det_sh
+    assert "gap_ratio_1_2" in det_sh
+    assert "gap_ratio_2_3" in det_sh
+    assert det_sh.get("dynamic_pair_gap_shadow") == det_sh.get("dynamic_suggested_decision_code")
+    assert "pair_confidence" in det_sh
+    assert "pair_confidence_decision" in det_sh
+
+
+def test_turkish_column_dynamic_thresh_full_pipeline_ab_identical(monkeypatch):
+    """Aynı görüntü: off vs shadow — cevap ve status aynı; shadow yalnızca row_debug metadata."""
+    answers = [
+        "A",
+        "B",
+        "C",
+        "D",
+        "",
+        "A",
+        "A",
+        "A",
+        "B",
+        "B",
+        "C",
+        "C",
+        "D",
+        "D",
+        "",
+        "",
+        "A",
+        "B",
+        "C",
+        "D",
+    ]
+    image_bytes = _build_lgs_turkish_column_crop_synthetic(answers)
+    monkeypatch.delenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", raising=False)
+    r_off = _detect_answers_from_image(
+        image_bytes,
+        question_count=20,
+        option_count=4,
+        template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    )
+    monkeypatch.setenv("OPTICAL_TR_COL_DYNAMIC_THRESH_MODE", "shadow")
+    r_sh = _detect_answers_from_image(
+        image_bytes,
+        question_count=20,
+        option_count=4,
+        template=TEMPLATE_LGS_TURKISH_COLUMN_CROP,
+    )
+    assert r_off.answers == r_sh.answers
+    assert [pq.status for pq in r_off.per_question] == [pq.status for pq in r_sh.per_question]
+
+    tc_off = (r_off.scan_metadata or {}).get("turkish_column") or {}
+    tc_sh = (r_sh.scan_metadata or {}).get("turkish_column") or {}
+    rows_off = tc_off.get("row_debug_align") or []
+    rows_sh = tc_sh.get("row_debug_align") or []
+    assert len(rows_sh) >= 20
+    if rows_off:
+        dd0 = (rows_off[0].get("decision_detail") or {})
+        assert "dynamic_thresh_mode" not in dd0
+    dd1 = (rows_sh[14].get("decision_detail") or {})
+    assert dd1.get("dynamic_thresh_mode") == "shadow"
+    assert "dynamic_suggested_answer" in dd1
+    assert "dynamic_would_change" in dd1
+    assert "dynamic_global_gap_shadow" in dd1
+    assert "dynamic_pair_gap_shadow" in dd1
+    assert "gap_1_2" in dd1
+    assert "pair_confidence" in dd1
+    assert "pair_confidence_decision" in dd1

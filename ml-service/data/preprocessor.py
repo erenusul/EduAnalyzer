@@ -7,6 +7,9 @@ from typing import Dict, List, Optional
 from ml_service.config import ALL_TOPICS
 from ml_service.data.turkish_nlp import TurkishNLP
 
+# pdf_extractor.question_parser.PAGE_BREAK_MARK ile aynı (classifier girdisine sızmamalı)
+_INTERNAL_PDF_PAGE_SENTINEL = "__EDU_PAGE_BREAK__"
+
 
 class TextPreprocessor:
     """
@@ -58,13 +61,33 @@ class TextPreprocessor:
         if not text:
             return ""
 
-        text = re.sub(r"^\s*\d+[\)\.\-]\s*", "", text)
-        text = re.sub(r"(?mi)^\s*[A-Da-d]\s*[\)\.\-]\s*.*$", "", text)
-        text = re.sub(r"\([A-Da-d]\)\s*[^.!?]*$", "", text)
-        text = re.sub(r"\s+[A-Da-d]\)\s*[^\n]*", " ", text)
-        text = re.sub(r"\b[ABCDabcd]\b\s*$", "", text)
-        text = re.sub(r"\s+", " ", text).strip()
-        return text
+        t = (
+            text.replace("\u00A0", " ")
+            .replace("\u200b", "")
+            .replace("\u200c", "")
+            .replace("\u200d", "")
+            .strip()
+        )
+        if _INTERNAL_PDF_PAGE_SENTINEL in t:
+            t = re.sub(r"\s+", " ", t.replace(_INTERNAL_PDF_PAGE_SENTINEL, " ")).strip()
+        # Yalnızca baştaki soru numarası (bir kez)
+        t = re.sub(r"^\s*\d+[\)\.\-]\s*", "", t, count=1)
+
+        # Sondaki yapışık şık bloğu: en az iki şık ve anlamlı kök kalsın
+        glued_suffix = re.compile(r"(?is)(?:\s+[A-D]\)\s+.+){{2,}}\s*$")
+        m = glued_suffix.search(t)
+        if m is not None and m.start() >= 12:
+            head = t[: m.start()].strip()
+            if len(head) >= 12:
+                t = head
+
+        # Tek şık kalıntısı (kökün en az ~yarısı kalacak şekilde)
+        one_opt = re.sub(r"\s+[A-Da-d]\)\s+.{2,80}\s*$", "", t)
+        if len(one_opt.strip()) >= max(14, int(len(t) * 0.42)):
+            t = one_opt.strip()
+
+        t = re.sub(r"\s+", " ", t).strip()
+        return t
 
     @staticmethod
     def preprocess_for_classification(text: str, use_context: bool = True) -> str:

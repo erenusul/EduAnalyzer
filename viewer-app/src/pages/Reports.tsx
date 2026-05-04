@@ -584,7 +584,7 @@ export function Reports() {
                 <h6 className="fw-semibold small text-uppercase text-muted mb-2">
                   En çok yanlış yapılan sorular
                 </h6>
-                <Table size="sm" bordered className="mb-0">
+                <Table responsive size="sm" bordered className="mb-0">
                   <thead className="table-light">
                     <tr>
                       <th>Soru no</th>
@@ -609,7 +609,7 @@ export function Reports() {
                 <h6 className="fw-semibold small text-uppercase text-muted mb-2">
                   Konu bazlı yanlışlar
                 </h6>
-                <Table size="sm" bordered className="mb-0">
+                <Table responsive size="sm" bordered className="mb-0">
                   <thead className="table-light">
                     <tr>
                       <th>Konu</th>

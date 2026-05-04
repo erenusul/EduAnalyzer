@@ -1,9 +1,9 @@
 {
-  "reader": "opencv",
+  "reader": "opencv_grid_align",
   "crop_meta": null,
   "read_summary": {
     "total": 20,
-    "non_empty": 6,
+    "non_empty": 17,
     "unique_answers": [
       "A",
       "B",
@@ -11,623 +11,5410 @@
       "D"
     ],
     "dominant_answer": "A",
-    "dominant_count": 2,
-    "dominant_ratio": 0.3333333333333333
+    "dominant_count": 5,
+    "dominant_ratio": 0.29411764705882354
   },
   "answers": [
-    "",
     "A",
-    "",
-    "",
-    "A",
-    "",
-    "",
+    "B",
     "C",
+    "D",
     "",
-    "",
-    "",
+    "A",
+    "A",
+    "A",
+    "B",
+    "B",
+    "C",
+    "C",
+    "D",
     "D",
     "",
     "",
+    "A",
     "B",
-    "",
-    "",
-    "",
-    "",
-    "B"
+    "C",
+    "D"
   ],
   "statuses": [
-    "ambiguous",
     "ok",
-    "empty",
-    "empty",
     "ok",
-    "ambiguous",
-    "ambiguous",
+    "ok",
     "ok",
     "ambiguous",
-    "ambiguous",
-    "ambiguous",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
     "ok",
     "ambiguous",
     "ambiguous",
     "ok",
-    "empty",
-    "ambiguous",
-    "ambiguous",
-    "ambiguous",
+    "ok",
+    "ok",
     "ok"
   ],
   "confidences": [
-    0.7067,
     1.0,
-    0.7136,
-    0.7288,
     1.0,
-    0.7021,
-    0.7159,
     1.0,
-    0.6831,
-    0.7563,
-    0.7834,
     1.0,
-    0.7074,
-    0.7055,
+    0.7059,
     1.0,
-    0.7947,
-    0.7189,
-    0.7037,
-    0.6161,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.7884,
+    0.7727,
+    1.0,
+    1.0,
+    1.0,
     1.0
   ],
   "rows": [
     {
+      "question_index": 1,
       "row": 1,
-      "cy_px": 168.73,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 44.11,
+      "pre_refine_cy_px": 44.11,
+      "expected_cy_px": 44.11,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 44.11,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 44.11,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 44.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 44.11,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 44.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 44.11,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 44.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 44.11,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 44.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.7084,
-        "B": 0.6508,
-        "C": 0.7049,
-        "D": 0.5449,
-        "E": 0.0821
+        "A": 1.0,
+        "B": 0.1567,
+        "C": 0.2184,
+        "D": 0.1605
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 1.0,
+        "B": 0.1567,
+        "C": 0.2184,
+        "D": 0.1605
+      },
+      "selected_option": "A",
+      "predicted": "A",
+      "confidence": 1.0,
+      "second_score": 0.2184,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.2184,
+        "score_margin": 0.7816,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 1.0
+          },
+          {
+            "option": "C",
+            "score": 0.2184
+          },
+          {
+            "option": "D",
+            "score": 0.16054
+          },
+          {
+            "option": "B",
+            "score": 0.15671
+          }
+        ],
+        "dynamic_gaps": [
+          0.7816,
+          0.05786,
+          0.00383
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "A",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 2,
       "row": 2,
-      "cy_px": 223.12,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 60.79,
+      "pre_refine_cy_px": 60.79,
+      "expected_cy_px": 60.79,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 60.79,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 60.79,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 60.79,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 60.79,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 60.79,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 60.79,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 60.79,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 60.79,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 60.79,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.6979,
-        "B": 0.5384,
-        "C": 0.5052,
-        "D": 0.3877,
-        "E": 0.0739
+        "A": 0.2216,
+        "B": 1.0,
+        "C": 0.2028,
+        "D": 0.142
       },
-      "predicted": "A"
+      "raw_scores": {
+        "A": 0.2216,
+        "B": 1.0,
+        "C": 0.2028,
+        "D": 0.142
+      },
+      "selected_option": "B",
+      "predicted": "B",
+      "confidence": 1.0,
+      "second_score": 0.2216,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.22158,
+        "score_margin": 0.77842,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "B",
+            "score": 1.0
+          },
+          {
+            "option": "A",
+            "score": 0.22158
+          },
+          {
+            "option": "C",
+            "score": 0.20279
+          },
+          {
+            "option": "D",
+            "score": 0.14201
+          }
+        ],
+        "dynamic_gaps": [
+          0.77842,
+          0.01879,
+          0.06078
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "B",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 3,
       "row": 3,
-      "cy_px": 286.26,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 77.47,
+      "pre_refine_cy_px": 77.47,
+      "expected_cy_px": 77.47,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 77.47,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 77.47,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 77.47,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 77.47,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 77.47,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 77.47,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 77.47,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 77.47,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 77.47,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.7136,
-        "B": 0.6168,
-        "C": 0.6299,
-        "D": 0.5223,
-        "E": 0.0772
+        "A": 0.2162,
+        "B": 0.1667,
+        "C": 1.0,
+        "D": 0.1738
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2162,
+        "B": 0.1667,
+        "C": 1.0,
+        "D": 0.1738
+      },
+      "selected_option": "C",
+      "predicted": "C",
+      "confidence": 1.0,
+      "second_score": 0.2162,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.21623,
+        "score_margin": 0.78377,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "C",
+            "score": 1.0
+          },
+          {
+            "option": "A",
+            "score": 0.21623
+          },
+          {
+            "option": "D",
+            "score": 0.17376
+          },
+          {
+            "option": "B",
+            "score": 0.16671
+          }
+        ],
+        "dynamic_gaps": [
+          0.78377,
+          0.04247,
+          0.00705
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "C",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 4,
       "row": 4,
-      "cy_px": 363.4,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 94.14,
+      "pre_refine_cy_px": 94.14,
+      "expected_cy_px": 94.14,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 94.14,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 94.14,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 94.14,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 94.14,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 94.14,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 94.14,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 94.14,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 94.14,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 94.14,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.6182,
-        "B": 0.7288,
-        "C": 0.4772,
-        "D": 0.5074,
-        "E": 0.0493
+        "A": 0.2246,
+        "B": 0.1729,
+        "C": 0.2056,
+        "D": 1.0
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2246,
+        "B": 0.1729,
+        "C": 0.2056,
+        "D": 1.0
+      },
+      "selected_option": "D",
+      "predicted": "D",
+      "confidence": 1.0,
+      "second_score": 0.2246,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.22459,
+        "score_margin": 0.77541,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 1.0
+          },
+          {
+            "option": "A",
+            "score": 0.22459
+          },
+          {
+            "option": "C",
+            "score": 0.20562
+          },
+          {
+            "option": "B",
+            "score": 0.17289
+          }
+        ],
+        "dynamic_gaps": [
+          0.77541,
+          0.01897,
+          0.03274
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "D",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 5,
       "row": 5,
-      "cy_px": 412.54,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 110.82,
+      "pre_refine_cy_px": 110.82,
+      "expected_cy_px": 110.82,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 110.82,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 110.82,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 110.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 110.82,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 110.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 110.82,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 110.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 110.82,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 110.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.7917,
-        "B": 0.3194,
-        "C": 0.3399,
-        "D": 0.3004,
-        "E": 0.0387
+        "A": 0.719,
+        "B": 0.1389,
+        "C": 0.6928,
+        "D": 0.1465
       },
-      "predicted": "A"
+      "raw_scores": {
+        "A": 0.719,
+        "B": 0.1389,
+        "C": 0.6928,
+        "D": 0.1465
+      },
+      "selected_option": "",
+      "predicted": "",
+      "confidence": 0.7059,
+      "second_score": 0.6928,
+      "fill_ratio_best": 0.719,
+      "is_ambiguous": true,
+      "status": "ambiguous",
+      "decision_detail": {
+        "decision_code": "ambiguous_two_strong",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.71905,
+        "second_score": 0.69279,
+        "score_margin": 0.02625,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ambiguous_two_strong",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 0.71905
+          },
+          {
+            "option": "C",
+            "score": 0.69279
+          },
+          {
+            "option": "D",
+            "score": 0.14653
+          },
+          {
+            "option": "B",
+            "score": 0.13893
+          }
+        ],
+        "dynamic_gaps": [
+          0.02625,
+          0.54626,
+          0.00761
+        ],
+        "dynamic_gap_argmax": 1,
+        "dynamic_suggested_answer": "",
+        "dynamic_suggested_decision_code": "ambiguous_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 6,
       "row": 6,
-      "cy_px": 475.68,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 127.5,
+      "pre_refine_cy_px": 127.5,
+      "expected_cy_px": 127.5,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 127.5,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 127.5,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 127.5,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 127.5,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 127.5,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 127.5,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 127.5,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 127.5,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 127.5,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.6468,
-        "B": 0.7187,
-        "C": 0.6855,
-        "D": 0.5502,
-        "E": 0.011
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2011,
+        "D": 0.1764
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2011,
+        "D": 0.1764
+      },
+      "selected_option": "A",
+      "predicted": "A",
+      "confidence": 1.0,
+      "second_score": 0.2011,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.20107,
+        "score_margin": 0.79893,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 1.0
+          },
+          {
+            "option": "C",
+            "score": 0.20107
+          },
+          {
+            "option": "D",
+            "score": 0.17644
+          },
+          {
+            "option": "B",
+            "score": 0.1698
+          }
+        ],
+        "dynamic_gaps": [
+          0.79893,
+          0.02462,
+          0.00665
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "A",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 7,
       "row": 7,
-      "cy_px": 545.82,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 144.18,
+      "pre_refine_cy_px": 144.18,
+      "expected_cy_px": 144.18,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 144.18,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 144.18,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 144.18,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 144.18,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 144.18,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 144.18,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 144.18,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 144.18,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 144.18,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.4176,
-        "B": 0.7227,
-        "C": 0.7091,
-        "D": 0.4844,
-        "E": 0.0045
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2009,
+        "D": 0.1767
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2009,
+        "D": 0.1767
+      },
+      "selected_option": "A",
+      "predicted": "A",
+      "confidence": 1.0,
+      "second_score": 0.2009,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.2009,
+        "score_margin": 0.79909,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 1.0
+          },
+          {
+            "option": "C",
+            "score": 0.2009
+          },
+          {
+            "option": "D",
+            "score": 0.1767
+          },
+          {
+            "option": "B",
+            "score": 0.1698
+          }
+        ],
+        "dynamic_gaps": [
+          0.79909,
+          0.02421,
+          0.0069
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "A",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 8,
       "row": 8,
-      "cy_px": 615.97,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 160.86,
+      "pre_refine_cy_px": 160.86,
+      "expected_cy_px": 160.86,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 160.86,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 160.86,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 160.86,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 160.86,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 160.86,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 160.86,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 160.86,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 160.86,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 160.86,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.2502,
-        "B": 0.3831,
-        "C": 0.7375,
-        "D": 0.3415,
-        "E": 0.0418
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2013,
+        "D": 0.1771
       },
-      "predicted": "C"
+      "raw_scores": {
+        "A": 1.0,
+        "B": 0.1698,
+        "C": 0.2013,
+        "D": 0.1771
+      },
+      "selected_option": "A",
+      "predicted": "A",
+      "confidence": 1.0,
+      "second_score": 0.2013,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.2013,
+        "score_margin": 0.7987,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 1.0
+          },
+          {
+            "option": "C",
+            "score": 0.2013
+          },
+          {
+            "option": "D",
+            "score": 0.1771
+          },
+          {
+            "option": "B",
+            "score": 0.1698
+          }
+        ],
+        "dynamic_gaps": [
+          0.7987,
+          0.02419,
+          0.0073
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "A",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 9,
       "row": 9,
-      "cy_px": 665.11,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 177.54,
+      "pre_refine_cy_px": 177.54,
+      "expected_cy_px": 177.54,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 177.54,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 177.54,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 177.54,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 177.54,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 177.54,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 177.54,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 177.54,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 177.54,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 177.54,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.6817,
-        "B": 0.6459,
-        "C": 0.6845,
-        "D": 0.4982,
-        "E": 0.0521
+        "A": 0.2229,
+        "B": 0.9907,
+        "C": 0.2069,
+        "D": 0.2068
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2229,
+        "B": 0.9907,
+        "C": 0.2069,
+        "D": 0.2068
+      },
+      "selected_option": "B",
+      "predicted": "B",
+      "confidence": 1.0,
+      "second_score": 0.2229,
+      "fill_ratio_best": 0.9907,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.99074,
+        "second_score": 0.22286,
+        "score_margin": 0.76787,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "B",
+            "score": 0.99074
+          },
+          {
+            "option": "A",
+            "score": 0.22286
+          },
+          {
+            "option": "C",
+            "score": 0.20688
+          },
+          {
+            "option": "D",
+            "score": 0.20685
+          }
+        ],
+        "dynamic_gaps": [
+          0.76787,
+          0.01598,
+          3e-05
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "B",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 10,
       "row": 10,
-      "cy_px": 742.25,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 194.22,
+      "pre_refine_cy_px": 194.22,
+      "expected_cy_px": 194.22,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 194.22,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 194.22,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 194.22,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 194.22,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 194.22,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 194.22,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 194.22,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 194.22,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 194.22,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.1503,
-        "B": 0.7319,
-        "C": 0.7807,
-        "D": 0.2806,
-        "E": 0.1157
+        "A": 0.2341,
+        "B": 0.9506,
+        "C": 0.207,
+        "D": 0.2068
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2341,
+        "B": 0.9506,
+        "C": 0.207,
+        "D": 0.2068
+      },
+      "selected_option": "B",
+      "predicted": "B",
+      "confidence": 1.0,
+      "second_score": 0.2341,
+      "fill_ratio_best": 0.9506,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.9506,
+        "second_score": 0.23409,
+        "score_margin": 0.71651,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "B",
+            "score": 0.9506
+          },
+          {
+            "option": "A",
+            "score": 0.23409
+          },
+          {
+            "option": "C",
+            "score": 0.20702
+          },
+          {
+            "option": "D",
+            "score": 0.20685
+          }
+        ],
+        "dynamic_gaps": [
+          0.71651,
+          0.02707,
+          0.00017
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "B",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 11,
       "row": 11,
-      "cy_px": 791.39,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 210.89,
+      "pre_refine_cy_px": 210.89,
+      "expected_cy_px": 210.89,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 210.89,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 210.89,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 210.89,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 210.89,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 210.89,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 210.89,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 210.89,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 210.89,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 210.89,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.1131,
-        "B": 0.2211,
-        "C": 0.7992,
-        "D": 0.7675,
-        "E": 0.176
+        "A": 0.2213,
+        "B": 0.1696,
+        "C": 0.9815,
+        "D": 0.1729
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2213,
+        "B": 0.1696,
+        "C": 0.9815,
+        "D": 0.1729
+      },
+      "selected_option": "C",
+      "predicted": "C",
+      "confidence": 1.0,
+      "second_score": 0.2213,
+      "fill_ratio_best": 0.9815,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.98148,
+        "second_score": 0.22126,
+        "score_margin": 0.76021,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "C",
+            "score": 0.98148
+          },
+          {
+            "option": "A",
+            "score": 0.22126
+          },
+          {
+            "option": "D",
+            "score": 0.17289
+          },
+          {
+            "option": "B",
+            "score": 0.16958
+          }
+        ],
+        "dynamic_gaps": [
+          0.76021,
+          0.04838,
+          0.0033
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "C",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 12,
       "row": 12,
-      "cy_px": 861.53,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 227.57,
+      "pre_refine_cy_px": 227.57,
+      "expected_cy_px": 227.57,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 227.57,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 227.57,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 227.57,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 227.57,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 227.57,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 227.57,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 227.57,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 227.57,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 227.57,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.0898,
-        "B": 0.2068,
-        "C": 0.2044,
-        "D": 0.8431,
-        "E": 0.2159
+        "A": 0.2174,
+        "B": 0.1729,
+        "C": 0.9691,
+        "D": 0.1741
       },
-      "predicted": "D"
+      "raw_scores": {
+        "A": 0.2174,
+        "B": 0.1729,
+        "C": 0.9691,
+        "D": 0.1741
+      },
+      "selected_option": "C",
+      "predicted": "C",
+      "confidence": 1.0,
+      "second_score": 0.2174,
+      "fill_ratio_best": 0.9691,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.96913,
+        "second_score": 0.2174,
+        "score_margin": 0.75172,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "C",
+            "score": 0.96913
+          },
+          {
+            "option": "A",
+            "score": 0.2174
+          },
+          {
+            "option": "D",
+            "score": 0.17414
+          },
+          {
+            "option": "B",
+            "score": 0.17289
+          }
+        ],
+        "dynamic_gaps": [
+          0.75172,
+          0.04326,
+          0.00126
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "C",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 13,
       "row": 13,
-      "cy_px": 917.67,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 244.25,
+      "pre_refine_cy_px": 244.25,
+      "expected_cy_px": 244.25,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 244.25,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 244.25,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 244.25,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 244.25,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 244.25,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 244.25,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 244.25,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 244.25,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 244.25,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.0863,
-        "B": 0.4301,
-        "C": 0.7155,
-        "D": 0.6993,
-        "E": 0.5409
+        "A": 0.233,
+        "B": 0.2038,
+        "C": 0.1997,
+        "D": 1.0
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.233,
+        "B": 0.2038,
+        "C": 0.1997,
+        "D": 1.0
+      },
+      "selected_option": "D",
+      "predicted": "D",
+      "confidence": 1.0,
+      "second_score": 0.233,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.23298,
+        "score_margin": 0.76702,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 1.0
+          },
+          {
+            "option": "A",
+            "score": 0.23298
+          },
+          {
+            "option": "B",
+            "score": 0.20376
+          },
+          {
+            "option": "C",
+            "score": 0.19975
+          }
+        ],
+        "dynamic_gaps": [
+          0.76702,
+          0.02922,
+          0.00401
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "D",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 14,
       "row": 14,
-      "cy_px": 991.02,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 259.93,
+      "pre_refine_cy_px": 259.93,
+      "expected_cy_px": 259.93,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 259.93,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 259.93,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 259.93,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 259.93,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 259.93,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 259.93,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 259.93,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 259.93,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 259.93,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.1133,
-        "B": 0.6885,
-        "C": 0.7225,
-        "D": 0.4586,
-        "E": 0.4799
+        "A": 0.2439,
+        "B": 0.2502,
+        "C": 0.2261,
+        "D": 1.0
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2439,
+        "B": 0.2502,
+        "C": 0.2261,
+        "D": 1.0
+      },
+      "selected_option": "D",
+      "predicted": "D",
+      "confidence": 1.0,
+      "second_score": 0.2502,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.25023,
+        "score_margin": 0.74977,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 1.0
+          },
+          {
+            "option": "B",
+            "score": 0.25023
+          },
+          {
+            "option": "A",
+            "score": 0.24389
+          },
+          {
+            "option": "C",
+            "score": 0.22608
+          }
+        ],
+        "dynamic_gaps": [
+          0.74977,
+          0.00634,
+          0.01781
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "D",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 15,
       "row": 15,
-      "cy_px": 1038.27,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 276.11,
+      "pre_refine_cy_px": 276.11,
+      "expected_cy_px": 276.11,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 276.11,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 276.11,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 276.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 276.11,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 276.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 276.11,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 276.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 276.11,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 276.11,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.0936,
-        "B": 0.8203,
-        "C": 0.3454,
-        "D": 0.3086,
-        "E": 0.305
+        "A": 0.7712,
+        "B": 0.7549,
+        "C": 0.6877,
+        "D": 0.8055
       },
-      "predicted": "B"
+      "raw_scores": {
+        "A": 0.7712,
+        "B": 0.7549,
+        "C": 0.6877,
+        "D": 0.8055
+      },
+      "selected_option": "",
+      "predicted": "",
+      "confidence": 0.7884,
+      "second_score": 0.7712,
+      "fill_ratio_best": 0.8055,
+      "is_ambiguous": true,
+      "status": "ambiguous",
+      "decision_detail": {
+        "decision_code": "ambiguous_two_strong",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.80548,
+        "second_score": 0.77124,
+        "score_margin": 0.03425,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ambiguous_two_strong",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 0.80548
+          },
+          {
+            "option": "A",
+            "score": 0.77124
+          },
+          {
+            "option": "B",
+            "score": 0.75489
+          },
+          {
+            "option": "C",
+            "score": 0.68768
+          }
+        ],
+        "dynamic_gaps": [
+          0.03425,
+          0.01635,
+          0.06721
+        ],
+        "dynamic_gap_argmax": 2,
+        "dynamic_suggested_answer": "",
+        "dynamic_suggested_decision_code": "ambiguous_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 16,
       "row": 16,
-      "cy_px": 1113.51,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 292.29,
+      "pre_refine_cy_px": 292.29,
+      "expected_cy_px": 292.29,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 292.29,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 292.29,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 292.29,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 292.29,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 292.29,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 292.29,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 292.29,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 292.29,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 292.29,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.0898,
-        "B": 0.7947,
-        "C": 0.3392,
-        "D": 0.703,
-        "E": 0.3309
+        "A": 0.7263,
+        "B": 0.7585,
+        "C": 0.7221,
+        "D": 0.7869
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.7263,
+        "B": 0.7585,
+        "C": 0.7221,
+        "D": 0.7869
+      },
+      "selected_option": "",
+      "predicted": "",
+      "confidence": 0.7727,
+      "second_score": 0.7585,
+      "fill_ratio_best": 0.7869,
+      "is_ambiguous": true,
+      "status": "ambiguous",
+      "decision_detail": {
+        "decision_code": "ambiguous_two_strong",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 0.78694,
+        "second_score": 0.75851,
+        "score_margin": 0.02843,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ambiguous_two_strong",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 0.78694
+          },
+          {
+            "option": "B",
+            "score": 0.75851
+          },
+          {
+            "option": "A",
+            "score": 0.72633
+          },
+          {
+            "option": "C",
+            "score": 0.72207
+          }
+        ],
+        "dynamic_gaps": [
+          0.02843,
+          0.03219,
+          0.00426
+        ],
+        "dynamic_gap_argmax": 1,
+        "dynamic_suggested_answer": "",
+        "dynamic_suggested_decision_code": "ambiguous_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 17,
       "row": 17,
-      "cy_px": 1164.26,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 308.46,
+      "pre_refine_cy_px": 308.46,
+      "expected_cy_px": 308.46,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 308.46,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 308.46,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 308.46,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 308.46,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 308.46,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 308.46,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 308.46,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 308.46,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 308.46,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": false,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.0633,
-        "B": 0.3588,
-        "C": 0.7307,
-        "D": 0.707,
-        "E": 0.2766
+        "A": 1.0,
+        "B": 0.2595,
+        "C": 0.2192,
+        "D": 0.2635
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 1.0,
+        "B": 0.2595,
+        "C": 0.2192,
+        "D": 0.2635
+      },
+      "selected_option": "A",
+      "predicted": "A",
+      "confidence": 1.0,
+      "second_score": 0.2635,
+      "fill_ratio_best": 1.0,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": false,
+        "min_best_threshold": 0.079,
+        "dominance_ratio_effective": 1.145,
+        "dominance_gap_abs_effective": 0.02,
+        "best_score": 1.0,
+        "second_score": 0.26346,
+        "score_margin": 0.73654,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "A",
+            "score": 1.0
+          },
+          {
+            "option": "D",
+            "score": 0.26346
+          },
+          {
+            "option": "B",
+            "score": 0.25951
+          },
+          {
+            "option": "C",
+            "score": 0.21919
+          }
+        ],
+        "dynamic_gaps": [
+          0.73654,
+          0.00394,
+          0.04032
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "A",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 18,
       "row": 18,
-      "cy_px": 1236.01,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 324.64,
+      "pre_refine_cy_px": 324.64,
+      "expected_cy_px": 324.64,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 324.64,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 324.64,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 324.64,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 324.64,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 324.64,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 324.64,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 324.64,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 324.64,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 324.64,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": true,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.3686,
-        "B": 0.6894,
-        "C": 0.718,
-        "D": 0.5624,
-        "E": 0.0685
+        "A": 0.6095,
+        "B": 0.9938,
+        "C": 0.2408,
+        "D": 0.2935
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.6095,
+        "B": 0.9938,
+        "C": 0.2408,
+        "D": 0.2935
+      },
+      "selected_option": "B",
+      "predicted": "B",
+      "confidence": 1.0,
+      "second_score": 0.6095,
+      "fill_ratio_best": 0.9938,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": true,
+        "min_best_threshold": 0.07387,
+        "dominance_ratio_effective": 1.13126,
+        "dominance_gap_abs_effective": 0.015,
+        "best_score": 0.99382,
+        "second_score": 0.60953,
+        "score_margin": 0.38429,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "B",
+            "score": 0.99382
+          },
+          {
+            "option": "A",
+            "score": 0.60953
+          },
+          {
+            "option": "D",
+            "score": 0.29352
+          },
+          {
+            "option": "C",
+            "score": 0.24081
+          }
+        ],
+        "dynamic_gaps": [
+          0.38429,
+          0.31601,
+          0.05271
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "B",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     },
     {
+      "question_index": 19,
       "row": 19,
-      "cy_px": 1297.25,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 340.82,
+      "pre_refine_cy_px": 340.82,
+      "expected_cy_px": 340.82,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 340.82,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 340.82,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 340.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 340.82,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 340.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 340.82,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 340.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 340.82,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 340.82,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": true,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.54,
-        "B": 0.6104,
-        "C": 0.0919,
-        "D": 0.377,
-        "E": 0.6218
+        "A": 0.2686,
+        "B": 0.7508,
+        "C": 0.9691,
+        "D": 0.3006
       },
-      "predicted": ""
+      "raw_scores": {
+        "A": 0.2686,
+        "B": 0.7508,
+        "C": 0.9691,
+        "D": 0.3006
+      },
+      "selected_option": "C",
+      "predicted": "C",
+      "confidence": 1.0,
+      "second_score": 0.7508,
+      "fill_ratio_best": 0.9691,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": true,
+        "min_best_threshold": 0.07387,
+        "dominance_ratio_effective": 1.13126,
+        "dominance_gap_abs_effective": 0.015,
+        "best_score": 0.96913,
+        "second_score": 0.75081,
+        "score_margin": 0.21832,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "C",
+            "score": 0.96913
+          },
+          {
+            "option": "B",
+            "score": 0.75081
+          },
+          {
+            "option": "D",
+            "score": 0.30059
+          },
+          {
+            "option": "A",
+            "score": 0.26859
+          }
+        ],
+        "dynamic_gaps": [
+          0.21832,
+          0.45022,
+          0.032
+        ],
+        "dynamic_gap_argmax": 1,
+        "dynamic_suggested_answer": "",
+        "dynamic_suggested_decision_code": "ambiguous_shadow",
+        "dynamic_would_change": true
+      }
     },
     {
+      "question_index": 20,
       "row": 20,
-      "cy_px": 1352.0,
-      "centers_x_px": [
-        87.46,
-        157.64,
-        227.82,
-        298.01,
-        368.19
+      "cy_px": 357.0,
+      "pre_refine_cy_px": 357.0,
+      "expected_cy_px": 357.0,
+      "expected_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
       ],
-      "radius_px": 25,
+      "centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_centers_x_px": [
+        22.02,
+        39.7,
+        57.37,
+        75.04
+      ],
+      "aligned_center_y_px": 357.0,
+      "delta_y_px": 0.0,
+      "per_option_geometry": [
+        {
+          "option": "A",
+          "expected_center_x_px": 22.02,
+          "expected_center_y_px": 357.0,
+          "aligned_center_x_px": 22.02,
+          "aligned_center_y_px": 357.0,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "B",
+          "expected_center_x_px": 39.7,
+          "expected_center_y_px": 357.0,
+          "aligned_center_x_px": 39.7,
+          "aligned_center_y_px": 357.0,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "C",
+          "expected_center_x_px": 57.37,
+          "expected_center_y_px": 357.0,
+          "aligned_center_x_px": 57.37,
+          "aligned_center_y_px": 357.0,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        },
+        {
+          "option": "D",
+          "expected_center_x_px": 75.04,
+          "expected_center_y_px": 357.0,
+          "aligned_center_x_px": 75.04,
+          "aligned_center_y_px": 357.0,
+          "delta_x_px": 0.0,
+          "delta_y_px_row": 0.0
+        }
+      ],
+      "radius_px": 7,
+      "tail_row_band": true,
       "options": [
         "A",
         "B",
         "C",
-        "D",
-        "E"
+        "D"
       ],
       "scores": {
-        "A": 0.5038,
-        "B": 0.6847,
-        "C": 0.1409,
-        "D": 0.1004,
-        "E": 0.0577
+        "A": 0.2673,
+        "B": 0.2656,
+        "C": 0.3913,
+        "D": 0.9005
       },
-      "predicted": "B"
+      "raw_scores": {
+        "A": 0.2673,
+        "B": 0.2656,
+        "C": 0.3913,
+        "D": 0.9005
+      },
+      "selected_option": "D",
+      "predicted": "D",
+      "confidence": 1.0,
+      "second_score": 0.3913,
+      "fill_ratio_best": 0.9005,
+      "is_ambiguous": false,
+      "status": "ok",
+      "decision_detail": {
+        "decision_code": "ok",
+        "tail_row_band": true,
+        "min_best_threshold": 0.07387,
+        "dominance_ratio_effective": 1.13126,
+        "dominance_gap_abs_effective": 0.015,
+        "best_score": 0.90054,
+        "second_score": 0.39128,
+        "score_margin": 0.50926,
+        "dynamic_thresh_mode": "shadow",
+        "baseline_decision_code": "ok",
+        "dynamic_score_sorted": [
+          {
+            "option": "D",
+            "score": 0.90054
+          },
+          {
+            "option": "C",
+            "score": 0.39128
+          },
+          {
+            "option": "A",
+            "score": 0.2673
+          },
+          {
+            "option": "B",
+            "score": 0.26561
+          }
+        ],
+        "dynamic_gaps": [
+          0.50926,
+          0.12398,
+          0.00168
+        ],
+        "dynamic_gap_argmax": 0,
+        "dynamic_suggested_answer": "D",
+        "dynamic_suggested_decision_code": "ok_shadow",
+        "dynamic_would_change": false
+      }
     }
   ],
   "scan_metadata": {
-    "deskew_applied": true,
-    "deskew_angle_deg": 3.897,
+    "deskew_applied": false,
+    "deskew_angle_deg": 0.0,
     "deskew_ang_otsu_deg": 0.0,
     "deskew_ang_canny_deg": 0.0,
-    "deskew_ang_morph_deg": 3.897,
-    "deskew_ang_hough_deg": 0.0
+    "deskew_ang_morph_deg": 0.0,
+    "deskew_ang_hough_deg": 0.0,
+    "turkish_column": {
+      "alignment": {
+        "dx_px": 0.0,
+        "dy_px": 0.0,
+        "alignment_score": 0.94,
+        "grid_objective_best": 9.4496,
+        "grid_objective_second": 10.0265,
+        "snap_to_origin_applied": true,
+        "probe_row_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "probe_row_count": 18
+      },
+      "confidence_mean": 1.0,
+      "ambiguous_count": 3,
+      "reader": "opencv_grid_align",
+      "row_step_px_nominal": 16.679,
+      "row_debug_align": [
+        {
+          "question_index": 1,
+          "row": 1,
+          "cy_px": 44.11,
+          "pre_refine_cy_px": 44.11,
+          "expected_cy_px": 44.11,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 44.11,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 44.11,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 44.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 44.11,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 44.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 44.11,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 44.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 44.11,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 44.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 1.0,
+            "B": 0.1567,
+            "C": 0.2184,
+            "D": 0.1605
+          },
+          "raw_scores": {
+            "A": 1.0,
+            "B": 0.1567,
+            "C": 0.2184,
+            "D": 0.1605
+          },
+          "selected_option": "A",
+          "predicted": "A",
+          "confidence": 1.0,
+          "second_score": 0.2184,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.2184,
+            "score_margin": 0.7816,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 1.0
+              },
+              {
+                "option": "C",
+                "score": 0.2184
+              },
+              {
+                "option": "D",
+                "score": 0.16054
+              },
+              {
+                "option": "B",
+                "score": 0.15671
+              }
+            ],
+            "dynamic_gaps": [
+              0.7816,
+              0.05786,
+              0.00383
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "A",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 2,
+          "row": 2,
+          "cy_px": 60.79,
+          "pre_refine_cy_px": 60.79,
+          "expected_cy_px": 60.79,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 60.79,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 60.79,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 60.79,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 60.79,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 60.79,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 60.79,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 60.79,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 60.79,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 60.79,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2216,
+            "B": 1.0,
+            "C": 0.2028,
+            "D": 0.142
+          },
+          "raw_scores": {
+            "A": 0.2216,
+            "B": 1.0,
+            "C": 0.2028,
+            "D": 0.142
+          },
+          "selected_option": "B",
+          "predicted": "B",
+          "confidence": 1.0,
+          "second_score": 0.2216,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.22158,
+            "score_margin": 0.77842,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "B",
+                "score": 1.0
+              },
+              {
+                "option": "A",
+                "score": 0.22158
+              },
+              {
+                "option": "C",
+                "score": 0.20279
+              },
+              {
+                "option": "D",
+                "score": 0.14201
+              }
+            ],
+            "dynamic_gaps": [
+              0.77842,
+              0.01879,
+              0.06078
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "B",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 3,
+          "row": 3,
+          "cy_px": 77.47,
+          "pre_refine_cy_px": 77.47,
+          "expected_cy_px": 77.47,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 77.47,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 77.47,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 77.47,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 77.47,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 77.47,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 77.47,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 77.47,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 77.47,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 77.47,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2162,
+            "B": 0.1667,
+            "C": 1.0,
+            "D": 0.1738
+          },
+          "raw_scores": {
+            "A": 0.2162,
+            "B": 0.1667,
+            "C": 1.0,
+            "D": 0.1738
+          },
+          "selected_option": "C",
+          "predicted": "C",
+          "confidence": 1.0,
+          "second_score": 0.2162,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.21623,
+            "score_margin": 0.78377,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "C",
+                "score": 1.0
+              },
+              {
+                "option": "A",
+                "score": 0.21623
+              },
+              {
+                "option": "D",
+                "score": 0.17376
+              },
+              {
+                "option": "B",
+                "score": 0.16671
+              }
+            ],
+            "dynamic_gaps": [
+              0.78377,
+              0.04247,
+              0.00705
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "C",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 4,
+          "row": 4,
+          "cy_px": 94.14,
+          "pre_refine_cy_px": 94.14,
+          "expected_cy_px": 94.14,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 94.14,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 94.14,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 94.14,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 94.14,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 94.14,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 94.14,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 94.14,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 94.14,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 94.14,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2246,
+            "B": 0.1729,
+            "C": 0.2056,
+            "D": 1.0
+          },
+          "raw_scores": {
+            "A": 0.2246,
+            "B": 0.1729,
+            "C": 0.2056,
+            "D": 1.0
+          },
+          "selected_option": "D",
+          "predicted": "D",
+          "confidence": 1.0,
+          "second_score": 0.2246,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.22459,
+            "score_margin": 0.77541,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 1.0
+              },
+              {
+                "option": "A",
+                "score": 0.22459
+              },
+              {
+                "option": "C",
+                "score": 0.20562
+              },
+              {
+                "option": "B",
+                "score": 0.17289
+              }
+            ],
+            "dynamic_gaps": [
+              0.77541,
+              0.01897,
+              0.03274
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "D",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 5,
+          "row": 5,
+          "cy_px": 110.82,
+          "pre_refine_cy_px": 110.82,
+          "expected_cy_px": 110.82,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 110.82,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 110.82,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 110.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 110.82,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 110.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 110.82,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 110.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 110.82,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 110.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.719,
+            "B": 0.1389,
+            "C": 0.6928,
+            "D": 0.1465
+          },
+          "raw_scores": {
+            "A": 0.719,
+            "B": 0.1389,
+            "C": 0.6928,
+            "D": 0.1465
+          },
+          "selected_option": "",
+          "predicted": "",
+          "confidence": 0.7059,
+          "second_score": 0.6928,
+          "fill_ratio_best": 0.719,
+          "is_ambiguous": true,
+          "status": "ambiguous",
+          "decision_detail": {
+            "decision_code": "ambiguous_two_strong",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.71905,
+            "second_score": 0.69279,
+            "score_margin": 0.02625,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ambiguous_two_strong",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 0.71905
+              },
+              {
+                "option": "C",
+                "score": 0.69279
+              },
+              {
+                "option": "D",
+                "score": 0.14653
+              },
+              {
+                "option": "B",
+                "score": 0.13893
+              }
+            ],
+            "dynamic_gaps": [
+              0.02625,
+              0.54626,
+              0.00761
+            ],
+            "dynamic_gap_argmax": 1,
+            "dynamic_suggested_answer": "",
+            "dynamic_suggested_decision_code": "ambiguous_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 6,
+          "row": 6,
+          "cy_px": 127.5,
+          "pre_refine_cy_px": 127.5,
+          "expected_cy_px": 127.5,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 127.5,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 127.5,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 127.5,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 127.5,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 127.5,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 127.5,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 127.5,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 127.5,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 127.5,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2011,
+            "D": 0.1764
+          },
+          "raw_scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2011,
+            "D": 0.1764
+          },
+          "selected_option": "A",
+          "predicted": "A",
+          "confidence": 1.0,
+          "second_score": 0.2011,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.20107,
+            "score_margin": 0.79893,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 1.0
+              },
+              {
+                "option": "C",
+                "score": 0.20107
+              },
+              {
+                "option": "D",
+                "score": 0.17644
+              },
+              {
+                "option": "B",
+                "score": 0.1698
+              }
+            ],
+            "dynamic_gaps": [
+              0.79893,
+              0.02462,
+              0.00665
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "A",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 7,
+          "row": 7,
+          "cy_px": 144.18,
+          "pre_refine_cy_px": 144.18,
+          "expected_cy_px": 144.18,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 144.18,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 144.18,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 144.18,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 144.18,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 144.18,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 144.18,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 144.18,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 144.18,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 144.18,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2009,
+            "D": 0.1767
+          },
+          "raw_scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2009,
+            "D": 0.1767
+          },
+          "selected_option": "A",
+          "predicted": "A",
+          "confidence": 1.0,
+          "second_score": 0.2009,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.2009,
+            "score_margin": 0.79909,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 1.0
+              },
+              {
+                "option": "C",
+                "score": 0.2009
+              },
+              {
+                "option": "D",
+                "score": 0.1767
+              },
+              {
+                "option": "B",
+                "score": 0.1698
+              }
+            ],
+            "dynamic_gaps": [
+              0.79909,
+              0.02421,
+              0.0069
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "A",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 8,
+          "row": 8,
+          "cy_px": 160.86,
+          "pre_refine_cy_px": 160.86,
+          "expected_cy_px": 160.86,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 160.86,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 160.86,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 160.86,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 160.86,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 160.86,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 160.86,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 160.86,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 160.86,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 160.86,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2013,
+            "D": 0.1771
+          },
+          "raw_scores": {
+            "A": 1.0,
+            "B": 0.1698,
+            "C": 0.2013,
+            "D": 0.1771
+          },
+          "selected_option": "A",
+          "predicted": "A",
+          "confidence": 1.0,
+          "second_score": 0.2013,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.2013,
+            "score_margin": 0.7987,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 1.0
+              },
+              {
+                "option": "C",
+                "score": 0.2013
+              },
+              {
+                "option": "D",
+                "score": 0.1771
+              },
+              {
+                "option": "B",
+                "score": 0.1698
+              }
+            ],
+            "dynamic_gaps": [
+              0.7987,
+              0.02419,
+              0.0073
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "A",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 9,
+          "row": 9,
+          "cy_px": 177.54,
+          "pre_refine_cy_px": 177.54,
+          "expected_cy_px": 177.54,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 177.54,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 177.54,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 177.54,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 177.54,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 177.54,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 177.54,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 177.54,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 177.54,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 177.54,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2229,
+            "B": 0.9907,
+            "C": 0.2069,
+            "D": 0.2068
+          },
+          "raw_scores": {
+            "A": 0.2229,
+            "B": 0.9907,
+            "C": 0.2069,
+            "D": 0.2068
+          },
+          "selected_option": "B",
+          "predicted": "B",
+          "confidence": 1.0,
+          "second_score": 0.2229,
+          "fill_ratio_best": 0.9907,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.99074,
+            "second_score": 0.22286,
+            "score_margin": 0.76787,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "B",
+                "score": 0.99074
+              },
+              {
+                "option": "A",
+                "score": 0.22286
+              },
+              {
+                "option": "C",
+                "score": 0.20688
+              },
+              {
+                "option": "D",
+                "score": 0.20685
+              }
+            ],
+            "dynamic_gaps": [
+              0.76787,
+              0.01598,
+              3e-05
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "B",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 10,
+          "row": 10,
+          "cy_px": 194.22,
+          "pre_refine_cy_px": 194.22,
+          "expected_cy_px": 194.22,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 194.22,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 194.22,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 194.22,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 194.22,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 194.22,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 194.22,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 194.22,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 194.22,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 194.22,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2341,
+            "B": 0.9506,
+            "C": 0.207,
+            "D": 0.2068
+          },
+          "raw_scores": {
+            "A": 0.2341,
+            "B": 0.9506,
+            "C": 0.207,
+            "D": 0.2068
+          },
+          "selected_option": "B",
+          "predicted": "B",
+          "confidence": 1.0,
+          "second_score": 0.2341,
+          "fill_ratio_best": 0.9506,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.9506,
+            "second_score": 0.23409,
+            "score_margin": 0.71651,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "B",
+                "score": 0.9506
+              },
+              {
+                "option": "A",
+                "score": 0.23409
+              },
+              {
+                "option": "C",
+                "score": 0.20702
+              },
+              {
+                "option": "D",
+                "score": 0.20685
+              }
+            ],
+            "dynamic_gaps": [
+              0.71651,
+              0.02707,
+              0.00017
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "B",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 11,
+          "row": 11,
+          "cy_px": 210.89,
+          "pre_refine_cy_px": 210.89,
+          "expected_cy_px": 210.89,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 210.89,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 210.89,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 210.89,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 210.89,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 210.89,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 210.89,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 210.89,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 210.89,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 210.89,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2213,
+            "B": 0.1696,
+            "C": 0.9815,
+            "D": 0.1729
+          },
+          "raw_scores": {
+            "A": 0.2213,
+            "B": 0.1696,
+            "C": 0.9815,
+            "D": 0.1729
+          },
+          "selected_option": "C",
+          "predicted": "C",
+          "confidence": 1.0,
+          "second_score": 0.2213,
+          "fill_ratio_best": 0.9815,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.98148,
+            "second_score": 0.22126,
+            "score_margin": 0.76021,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "C",
+                "score": 0.98148
+              },
+              {
+                "option": "A",
+                "score": 0.22126
+              },
+              {
+                "option": "D",
+                "score": 0.17289
+              },
+              {
+                "option": "B",
+                "score": 0.16958
+              }
+            ],
+            "dynamic_gaps": [
+              0.76021,
+              0.04838,
+              0.0033
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "C",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 12,
+          "row": 12,
+          "cy_px": 227.57,
+          "pre_refine_cy_px": 227.57,
+          "expected_cy_px": 227.57,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 227.57,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 227.57,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 227.57,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 227.57,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 227.57,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 227.57,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 227.57,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 227.57,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 227.57,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2174,
+            "B": 0.1729,
+            "C": 0.9691,
+            "D": 0.1741
+          },
+          "raw_scores": {
+            "A": 0.2174,
+            "B": 0.1729,
+            "C": 0.9691,
+            "D": 0.1741
+          },
+          "selected_option": "C",
+          "predicted": "C",
+          "confidence": 1.0,
+          "second_score": 0.2174,
+          "fill_ratio_best": 0.9691,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.96913,
+            "second_score": 0.2174,
+            "score_margin": 0.75172,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "C",
+                "score": 0.96913
+              },
+              {
+                "option": "A",
+                "score": 0.2174
+              },
+              {
+                "option": "D",
+                "score": 0.17414
+              },
+              {
+                "option": "B",
+                "score": 0.17289
+              }
+            ],
+            "dynamic_gaps": [
+              0.75172,
+              0.04326,
+              0.00126
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "C",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 13,
+          "row": 13,
+          "cy_px": 244.25,
+          "pre_refine_cy_px": 244.25,
+          "expected_cy_px": 244.25,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 244.25,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 244.25,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 244.25,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 244.25,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 244.25,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 244.25,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 244.25,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 244.25,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 244.25,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.233,
+            "B": 0.2038,
+            "C": 0.1997,
+            "D": 1.0
+          },
+          "raw_scores": {
+            "A": 0.233,
+            "B": 0.2038,
+            "C": 0.1997,
+            "D": 1.0
+          },
+          "selected_option": "D",
+          "predicted": "D",
+          "confidence": 1.0,
+          "second_score": 0.233,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.23298,
+            "score_margin": 0.76702,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 1.0
+              },
+              {
+                "option": "A",
+                "score": 0.23298
+              },
+              {
+                "option": "B",
+                "score": 0.20376
+              },
+              {
+                "option": "C",
+                "score": 0.19975
+              }
+            ],
+            "dynamic_gaps": [
+              0.76702,
+              0.02922,
+              0.00401
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "D",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 14,
+          "row": 14,
+          "cy_px": 259.93,
+          "pre_refine_cy_px": 259.93,
+          "expected_cy_px": 259.93,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 259.93,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 259.93,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 259.93,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 259.93,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 259.93,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 259.93,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 259.93,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 259.93,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 259.93,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2439,
+            "B": 0.2502,
+            "C": 0.2261,
+            "D": 1.0
+          },
+          "raw_scores": {
+            "A": 0.2439,
+            "B": 0.2502,
+            "C": 0.2261,
+            "D": 1.0
+          },
+          "selected_option": "D",
+          "predicted": "D",
+          "confidence": 1.0,
+          "second_score": 0.2502,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.25023,
+            "score_margin": 0.74977,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 1.0
+              },
+              {
+                "option": "B",
+                "score": 0.25023
+              },
+              {
+                "option": "A",
+                "score": 0.24389
+              },
+              {
+                "option": "C",
+                "score": 0.22608
+              }
+            ],
+            "dynamic_gaps": [
+              0.74977,
+              0.00634,
+              0.01781
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "D",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 15,
+          "row": 15,
+          "cy_px": 276.11,
+          "pre_refine_cy_px": 276.11,
+          "expected_cy_px": 276.11,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 276.11,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 276.11,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 276.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 276.11,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 276.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 276.11,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 276.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 276.11,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 276.11,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.7712,
+            "B": 0.7549,
+            "C": 0.6877,
+            "D": 0.8055
+          },
+          "raw_scores": {
+            "A": 0.7712,
+            "B": 0.7549,
+            "C": 0.6877,
+            "D": 0.8055
+          },
+          "selected_option": "",
+          "predicted": "",
+          "confidence": 0.7884,
+          "second_score": 0.7712,
+          "fill_ratio_best": 0.8055,
+          "is_ambiguous": true,
+          "status": "ambiguous",
+          "decision_detail": {
+            "decision_code": "ambiguous_two_strong",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.80548,
+            "second_score": 0.77124,
+            "score_margin": 0.03425,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ambiguous_two_strong",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 0.80548
+              },
+              {
+                "option": "A",
+                "score": 0.77124
+              },
+              {
+                "option": "B",
+                "score": 0.75489
+              },
+              {
+                "option": "C",
+                "score": 0.68768
+              }
+            ],
+            "dynamic_gaps": [
+              0.03425,
+              0.01635,
+              0.06721
+            ],
+            "dynamic_gap_argmax": 2,
+            "dynamic_suggested_answer": "",
+            "dynamic_suggested_decision_code": "ambiguous_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 16,
+          "row": 16,
+          "cy_px": 292.29,
+          "pre_refine_cy_px": 292.29,
+          "expected_cy_px": 292.29,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 292.29,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 292.29,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 292.29,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 292.29,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 292.29,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 292.29,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 292.29,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 292.29,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 292.29,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.7263,
+            "B": 0.7585,
+            "C": 0.7221,
+            "D": 0.7869
+          },
+          "raw_scores": {
+            "A": 0.7263,
+            "B": 0.7585,
+            "C": 0.7221,
+            "D": 0.7869
+          },
+          "selected_option": "",
+          "predicted": "",
+          "confidence": 0.7727,
+          "second_score": 0.7585,
+          "fill_ratio_best": 0.7869,
+          "is_ambiguous": true,
+          "status": "ambiguous",
+          "decision_detail": {
+            "decision_code": "ambiguous_two_strong",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 0.78694,
+            "second_score": 0.75851,
+            "score_margin": 0.02843,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ambiguous_two_strong",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 0.78694
+              },
+              {
+                "option": "B",
+                "score": 0.75851
+              },
+              {
+                "option": "A",
+                "score": 0.72633
+              },
+              {
+                "option": "C",
+                "score": 0.72207
+              }
+            ],
+            "dynamic_gaps": [
+              0.02843,
+              0.03219,
+              0.00426
+            ],
+            "dynamic_gap_argmax": 1,
+            "dynamic_suggested_answer": "",
+            "dynamic_suggested_decision_code": "ambiguous_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 17,
+          "row": 17,
+          "cy_px": 308.46,
+          "pre_refine_cy_px": 308.46,
+          "expected_cy_px": 308.46,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 308.46,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 308.46,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 308.46,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 308.46,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 308.46,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 308.46,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 308.46,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 308.46,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 308.46,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": false,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 1.0,
+            "B": 0.2595,
+            "C": 0.2192,
+            "D": 0.2635
+          },
+          "raw_scores": {
+            "A": 1.0,
+            "B": 0.2595,
+            "C": 0.2192,
+            "D": 0.2635
+          },
+          "selected_option": "A",
+          "predicted": "A",
+          "confidence": 1.0,
+          "second_score": 0.2635,
+          "fill_ratio_best": 1.0,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": false,
+            "min_best_threshold": 0.079,
+            "dominance_ratio_effective": 1.145,
+            "dominance_gap_abs_effective": 0.02,
+            "best_score": 1.0,
+            "second_score": 0.26346,
+            "score_margin": 0.73654,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "A",
+                "score": 1.0
+              },
+              {
+                "option": "D",
+                "score": 0.26346
+              },
+              {
+                "option": "B",
+                "score": 0.25951
+              },
+              {
+                "option": "C",
+                "score": 0.21919
+              }
+            ],
+            "dynamic_gaps": [
+              0.73654,
+              0.00394,
+              0.04032
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "A",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 18,
+          "row": 18,
+          "cy_px": 324.64,
+          "pre_refine_cy_px": 324.64,
+          "expected_cy_px": 324.64,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 324.64,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 324.64,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 324.64,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 324.64,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 324.64,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 324.64,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 324.64,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 324.64,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 324.64,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": true,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.6095,
+            "B": 0.9938,
+            "C": 0.2408,
+            "D": 0.2935
+          },
+          "raw_scores": {
+            "A": 0.6095,
+            "B": 0.9938,
+            "C": 0.2408,
+            "D": 0.2935
+          },
+          "selected_option": "B",
+          "predicted": "B",
+          "confidence": 1.0,
+          "second_score": 0.6095,
+          "fill_ratio_best": 0.9938,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": true,
+            "min_best_threshold": 0.07387,
+            "dominance_ratio_effective": 1.13126,
+            "dominance_gap_abs_effective": 0.015,
+            "best_score": 0.99382,
+            "second_score": 0.60953,
+            "score_margin": 0.38429,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "B",
+                "score": 0.99382
+              },
+              {
+                "option": "A",
+                "score": 0.60953
+              },
+              {
+                "option": "D",
+                "score": 0.29352
+              },
+              {
+                "option": "C",
+                "score": 0.24081
+              }
+            ],
+            "dynamic_gaps": [
+              0.38429,
+              0.31601,
+              0.05271
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "B",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        },
+        {
+          "question_index": 19,
+          "row": 19,
+          "cy_px": 340.82,
+          "pre_refine_cy_px": 340.82,
+          "expected_cy_px": 340.82,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 340.82,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 340.82,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 340.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 340.82,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 340.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 340.82,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 340.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 340.82,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 340.82,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": true,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2686,
+            "B": 0.7508,
+            "C": 0.9691,
+            "D": 0.3006
+          },
+          "raw_scores": {
+            "A": 0.2686,
+            "B": 0.7508,
+            "C": 0.9691,
+            "D": 0.3006
+          },
+          "selected_option": "C",
+          "predicted": "C",
+          "confidence": 1.0,
+          "second_score": 0.7508,
+          "fill_ratio_best": 0.9691,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": true,
+            "min_best_threshold": 0.07387,
+            "dominance_ratio_effective": 1.13126,
+            "dominance_gap_abs_effective": 0.015,
+            "best_score": 0.96913,
+            "second_score": 0.75081,
+            "score_margin": 0.21832,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "C",
+                "score": 0.96913
+              },
+              {
+                "option": "B",
+                "score": 0.75081
+              },
+              {
+                "option": "D",
+                "score": 0.30059
+              },
+              {
+                "option": "A",
+                "score": 0.26859
+              }
+            ],
+            "dynamic_gaps": [
+              0.21832,
+              0.45022,
+              0.032
+            ],
+            "dynamic_gap_argmax": 1,
+            "dynamic_suggested_answer": "",
+            "dynamic_suggested_decision_code": "ambiguous_shadow",
+            "dynamic_would_change": true
+          }
+        },
+        {
+          "question_index": 20,
+          "row": 20,
+          "cy_px": 357.0,
+          "pre_refine_cy_px": 357.0,
+          "expected_cy_px": 357.0,
+          "expected_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_centers_x_px": [
+            22.02,
+            39.7,
+            57.37,
+            75.04
+          ],
+          "aligned_center_y_px": 357.0,
+          "delta_y_px": 0.0,
+          "per_option_geometry": [
+            {
+              "option": "A",
+              "expected_center_x_px": 22.02,
+              "expected_center_y_px": 357.0,
+              "aligned_center_x_px": 22.02,
+              "aligned_center_y_px": 357.0,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "B",
+              "expected_center_x_px": 39.7,
+              "expected_center_y_px": 357.0,
+              "aligned_center_x_px": 39.7,
+              "aligned_center_y_px": 357.0,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "C",
+              "expected_center_x_px": 57.37,
+              "expected_center_y_px": 357.0,
+              "aligned_center_x_px": 57.37,
+              "aligned_center_y_px": 357.0,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            },
+            {
+              "option": "D",
+              "expected_center_x_px": 75.04,
+              "expected_center_y_px": 357.0,
+              "aligned_center_x_px": 75.04,
+              "aligned_center_y_px": 357.0,
+              "delta_x_px": 0.0,
+              "delta_y_px_row": 0.0
+            }
+          ],
+          "radius_px": 7,
+          "tail_row_band": true,
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "scores": {
+            "A": 0.2673,
+            "B": 0.2656,
+            "C": 0.3913,
+            "D": 0.9005
+          },
+          "raw_scores": {
+            "A": 0.2673,
+            "B": 0.2656,
+            "C": 0.3913,
+            "D": 0.9005
+          },
+          "selected_option": "D",
+          "predicted": "D",
+          "confidence": 1.0,
+          "second_score": 0.3913,
+          "fill_ratio_best": 0.9005,
+          "is_ambiguous": false,
+          "status": "ok",
+          "decision_detail": {
+            "decision_code": "ok",
+            "tail_row_band": true,
+            "min_best_threshold": 0.07387,
+            "dominance_ratio_effective": 1.13126,
+            "dominance_gap_abs_effective": 0.015,
+            "best_score": 0.90054,
+            "second_score": 0.39128,
+            "score_margin": 0.50926,
+            "dynamic_thresh_mode": "shadow",
+            "baseline_decision_code": "ok",
+            "dynamic_score_sorted": [
+              {
+                "option": "D",
+                "score": 0.90054
+              },
+              {
+                "option": "C",
+                "score": 0.39128
+              },
+              {
+                "option": "A",
+                "score": 0.2673
+              },
+              {
+                "option": "B",
+                "score": 0.26561
+              }
+            ],
+            "dynamic_gaps": [
+              0.50926,
+              0.12398,
+              0.00168
+            ],
+            "dynamic_gap_argmax": 0,
+            "dynamic_suggested_answer": "D",
+            "dynamic_suggested_decision_code": "ok_shadow",
+            "dynamic_would_change": false
+          }
+        }
+      ],
+      "drift_summary": {
+        "delta_y_per_row_px": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "delta_y_linear_drift_px_per_row": 0.0,
+        "delta_y_mean_px": 0.0,
+        "delta_y_std_px": 0.0,
+        "margin_best_minus_second_mean": 0.5983,
+        "margin_best_minus_second_min": 0.0262,
+        "rows_with_low_margin": [
+          5,
+          15,
+          16
+        ],
+        "interpretation_hints": {
+          "uniform_offset": true,
+          "vertical_drift_suspected": false,
+          "ambiguous_margin_suspected": false
+        }
+      },
+      "reliability": {
+        "confidence_mean": 1.0,
+        "empty_count": 0,
+        "ambiguous_count": 3,
+        "ok_count": 17,
+        "unstable_question_count": 3,
+        "quality_hint": "mixed",
+        "recommend_rescan": false,
+        "recommend_rescan_reason": "none"
+      },
+      "multi_variant_read_enabled": false
+    }
   }
 }

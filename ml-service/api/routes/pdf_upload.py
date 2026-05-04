@@ -21,6 +21,19 @@ from ml_service.utils.logger import logger
 
 router = APIRouter()
 
+# pdf_extractor.question_parser ile aynı sayfa sınırı işareti (senkron tutulmalı)
+_PAGE_BREAK_MARK = "__EDU_PAGE_BREAK__"
+
+
+def _strip_internal_pdf_sentinel(fragment: str) -> str:
+    """Dahili sayfa sentinel'i panel / classifier metnine sızmamalı (pdf_extractor ile aynı sabit)."""
+    if not fragment:
+        return fragment
+    if _PAGE_BREAK_MARK not in fragment:
+        return fragment
+    t = fragment.replace(_PAGE_BREAK_MARK, " ")
+    return re.sub(r"\s+", " ", t).strip()
+
 
 @router.post("/pdf-debug")
 async def pdf_debug(file: UploadFile = File(..., description="PDF to diagnose")):
@@ -75,12 +88,12 @@ def _extract_questions_minimal(pdf_path: Path) -> List:
         all_dict = ""
         for i in range(len(doc)):
             page = doc[i]
-            all_text += page.get_text() + "\n\n"
+            all_text += page.get_text() + "\n" + _PAGE_BREAK_MARK + "\n"
             blocks = page.get_text("blocks")
             for b in blocks:
                 if len(b) >= 5 and b[4].strip():
                     all_blocks += b[4].strip() + "\n"
-            all_blocks += "\n"
+            all_blocks += _PAGE_BREAK_MARK + "\n"
             try:
                 d = page.get_text("dict")
                 for block in d.get("blocks", []):
@@ -91,6 +104,7 @@ def _extract_questions_minimal(pdf_path: Path) -> List:
                     all_dict += "\n"
             except Exception:
                 pass
+            all_dict += _PAGE_BREAK_MARK + "\n"
         doc.close()
         texts_to_try = [all_text.strip(), all_blocks.strip(), all_dict.strip()]
     except Exception:
@@ -120,7 +134,7 @@ def _parse_minimal_text(text: str, pdf_name: str) -> List:
     num_only_re = re.compile(r'^\s*(\d+)\s*[\)\.]\s*$')
 
     def save_question(num: int, qtext: str) -> bool:
-        qtext = re.sub(r'\s+', ' ', qtext).strip()
+        qtext = _strip_internal_pdf_sentinel(re.sub(r'\s+', ' ', qtext).strip())
         # Çok kısa veya sadece başlık (ünite, sınıf, sayfa) - atla
         if len(qtext) < 15:
             return False
@@ -134,10 +148,14 @@ def _parse_minimal_text(text: str, pdf_name: str) -> List:
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped == _PAGE_BREAK_MARK:
+            continue
 
         opt_m = option_re.match(stripped)
         if opt_m and current_num is not None:
-            current_text.append(stripped)
+            part = _strip_internal_pdf_sentinel(stripped)
+            if part:
+                current_text.append(part)
             continue
 
         num_m = num_re.match(stripped) or soru_re.match(stripped)
@@ -149,13 +167,13 @@ def _parse_minimal_text(text: str, pdf_name: str) -> List:
                 if save_question(current_num, qtext):
                     questions.append(_MinimalQuestion(
                         question_id=f"{pdf_name}_q{current_num}",
-                        question_text=re.sub(r'\s+', ' ', qtext).strip(),
+                        question_text=_strip_internal_pdf_sentinel(re.sub(r'\s+', ' ', qtext).strip()),
                         options=[],
                         has_visual=False,
                     ))
 
             current_num = int(num_m.group(1))
-            rest = (num_m.group(2) or '').strip()
+            rest = _strip_internal_pdf_sentinel((num_m.group(2) or '').strip())
             current_text = [rest] if rest else []
             continue
 
@@ -165,7 +183,7 @@ def _parse_minimal_text(text: str, pdf_name: str) -> List:
                 if save_question(current_num, qtext):
                     questions.append(_MinimalQuestion(
                         question_id=f"{pdf_name}_q{current_num}",
-                        question_text=re.sub(r'\s+', ' ', qtext).strip(),
+                        question_text=_strip_internal_pdf_sentinel(re.sub(r'\s+', ' ', qtext).strip()),
                         options=[],
                         has_visual=False,
                     ))
@@ -174,14 +192,16 @@ def _parse_minimal_text(text: str, pdf_name: str) -> List:
             continue
 
         if current_num is not None:
-            current_text.append(stripped)
+            part = _strip_internal_pdf_sentinel(stripped)
+            if part:
+                current_text.append(part)
 
     if current_num is not None and current_text:
         qtext = ' '.join(current_text)
         if save_question(current_num, qtext):
             questions.append(_MinimalQuestion(
                 question_id=f"{pdf_name}_q{current_num}",
-                question_text=re.sub(r'\s+', ' ', qtext).strip(),
+                question_text=_strip_internal_pdf_sentinel(re.sub(r'\s+', ' ', qtext).strip()),
                 options=[],
                 has_visual=False,
             ))

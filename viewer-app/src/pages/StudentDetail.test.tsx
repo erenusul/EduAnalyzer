@@ -91,7 +91,7 @@ describe('StudentDetail', () => {
     });
     render(
       <ToastProvider>
-        <MemoryRouter initialEntries={['/dashboard/ogrenci/1']}>
+        <MemoryRouter initialEntries={['/dashboard/ogrenci/1?sekme=bilgiler']}>
           <Routes>
             <Route path="/dashboard/ogrenci/:id" element={<StudentDetail />} />
           </Routes>

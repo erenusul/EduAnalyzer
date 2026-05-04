@@ -291,6 +291,12 @@ export function TeacherDataProvider({ children }: { children: ReactNode }) {
       id: string,
       updates: Partial<Pick<Exam, 'title' | 'weekLabel' | 'status' | 'answerKey'>>
     ) => {
+      const patchBody: { title?: string; weekLabel?: string } = {};
+      if (updates.title !== undefined) patchBody.title = updates.title;
+      if (updates.weekLabel !== undefined) patchBody.weekLabel = updates.weekLabel;
+      if (Object.keys(patchBody).length > 0) {
+        await examsApi.updateMeta(id, patchBody);
+      }
       if (updates.status === 'ready') {
         await analysesApi.markExamReady(id);
       }

@@ -1,0 +1,46 @@
+{
+  "drift_analysis": {
+    "delta_y_per_row_px": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "delta_y_linear_drift_px_per_row": 0.0,
+    "delta_y_mean_px": 0.0,
+    "delta_y_std_px": 0.0,
+    "margin_best_minus_second_mean": 0.5983,
+    "margin_best_minus_second_min": 0.0262,
+    "rows_with_low_margin": [
+      5,
+      15,
+      16
+    ],
+    "interpretation_hints": {
+      "uniform_offset": true,
+      "vertical_drift_suspected": false,
+      "ambiguous_margin_suspected": false
+    }
+  },
+  "root_cause_candidate_1": "Hizalama amacı (satır marj toplamı) bazen yanlış (dx,dy) tepesini seçiyor; plato (OPTICAL_TR_COL_ALIGN_PLATEAU_TAU) içinde en küçük kayma normu tercih ediliyor (probe satır sayısı=18).",
+  "root_cause_candidate_2": "Dikey slack komşu satır mürekkebini karıştırıyor; marj düşük satırlarda yanlış şık seçiliyor (düşük marj satırları: 3).",
+  "root_cause_candidate_3": "Alt satırlar için _turkish_narrow_lower_rows_y_correction_px ile mm modeli gerçek baskıdan sapıyor; delta_y eğilimi: 0.0000 px/soru.",
+  "most_likely_reason": "(0,0) snap gerçek fotoğrafta küçük ama gerekli (dx,dy) kaymasını sıfırlamış olabilir.",
+  "recommended_minimum_fix": "Plato tau / SNAP_EPS ile dengeleyin; son satırda kenar etkisinde OPTICAL_TR_COL_LAST_ROW_SLACK_HALF_MAX veya mm env ince ayarı."
+}

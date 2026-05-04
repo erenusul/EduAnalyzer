@@ -97,6 +97,8 @@ export interface ScanExamResponse {
   correctCount: number;
   wrongCount: number;
   totalCount: number;
+  /** Optik sonuç satırı (öğrenci / mobil düzeltme uç noktaları). */
+  examResultId?: string;
   correctQuestions?: {
     questionIndex: number;
     studentAnswer: string;
@@ -336,6 +338,18 @@ export const studentsApi = {
   getById: (id: string) => apiGet<BackendStudent>(`/api/students/${id}`),
   getByClass: (classId: string) => apiGet<BackendStudent[]>(`/api/students/class/${classId}`),
   getParentCandidates: () => apiGet<ParentCandidate[]>('/api/students/parent-candidates'),
+  createParentAccount: (data: {
+    email: string;
+    password: string;
+    displayName: string;
+    phone?: string | null;
+  }) =>
+    apiPost<ParentCandidate>('/api/students/parents', {
+      email: data.email.trim(),
+      password: data.password,
+      displayName: data.displayName.trim(),
+      phone: data.phone?.trim() ? data.phone.trim() : null,
+    }),
   getStudentParents: (studentId: string) =>
     apiGet<StudentParentLink[]>(`/api/students/${studentId}/parents`),
   linkStudentParent: (studentId: string, parentId: string) =>
@@ -450,6 +464,9 @@ export const examsApi = {
   },
   updateAnswerKey: (id: string, answerKey: string[]) =>
     apiPut<BackendExam>(`/api/exams/${id}/answer-key`, answerKey),
+  /** Başlık ve/veya hafta; gönderilen alanlar güncellenir (PUT — cevap anahtarı endpoint’i ile aynı aile). */
+  updateMeta: (id: string, body: { title?: string; weekLabel?: string }) =>
+    apiPut<BackendExam>(`/api/exams/${id}/meta`, body),
   getAllResults: () => apiGet<BackendExamResult[]>('/api/exams/results'),
   getResults: (id: string) => apiGet<BackendExamResult[]>(`/api/exams/${id}/results`),
   scan: (examId: string, studentId: string, studentAnswers: string[]) =>

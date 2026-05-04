@@ -84,6 +84,12 @@ start_ml_service() {
     source "$ROOT/ml-service/venv/bin/activate"
     cd "$ROOT"
     release_port 8000 "ML API"
+    # Optik: kalıcı stabil env — sadece henüz set edilmemiş OPTICAL_TR_COL_* anahtarlarını
+    # ml-service/.env.optical_stable dosyasından doldur (mevcut process env değerlerine dokunmaz).
+    # shellcheck source=ml-service/scripts/load-optical-stable-env.sh
+    # shellcheck disable=SC1090
+    source "$ROOT/ml-service/scripts/load-optical-stable-env.sh"
+    ml_optical_apply_stable_env_file "$ROOT/ml-service/.env.optical_stable"
     # Optik okuma: start-all ML servisini de başlatır. Tam sayfa ve Türkçe sütunu için
     # varsayılan OMRChecker şablonlarını yükle; yoksa ML dahili okuyucuya düşer.
     if [ -z "${OMR_CHECKER_TEMPLATE_JSON:-}" ] && [ -f "$ROOT/ml-service/omr_templates/lgs_turkish_user_measured_993x1319.json" ]; then
@@ -94,7 +100,7 @@ start_ml_service() {
     fi
     # Türkçe dar sütun: yamuk çekimde deskew (OPTICAL_TR_COL_DESKEW=0 ile kapatılır)
     export OPTICAL_TR_COL_DESKEW="${OPTICAL_TR_COL_DESKEW:-1}"
-    "$PYTHON_CMD" -m uvicorn ml_service.api.main:app --host 0.0.0.0 --port 8000 &
+    ( ml_optical_log_startup_banner; exec "$PYTHON_CMD" -m uvicorn ml_service.api.main:app --host 0.0.0.0 --port 8000 ) &
     ML_PID=$!
     if [ -z "$ML_PID" ] || ! kill -0 "$ML_PID" 2>/dev/null; then
       cd "$ROOT"

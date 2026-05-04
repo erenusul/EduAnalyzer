@@ -14,7 +14,15 @@ public record ExamDto(
     DateTime CreatedAt
 );
 
+/// <summary>Öğretmen panelinde sınav başlığı / hafta güncellemesi. Alan null ise değiştirilmez.</summary>
+public record PatchExamRequest(string? Title = null, string? WeekLabel = null);
+
 public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswers);
+
+/// <summary>Optik taramada &quot;Belirsiz veya boş okuma&quot; maddeleri için öğrenci elle cevap düzeltmesi.</summary>
+public record ApplyOpticalReadingCorrectionsRequest(IReadOnlyList<OpticalReadingCorrectionItemDto> Corrections);
+
+public record OpticalReadingCorrectionItemDto(int QuestionIndex, string? Answer);
 
 /// <summary>ML optical-scan yanıtındaki tek soru satırı.</summary>
 public record OpticalPerQuestionReadDto(string Answer, string Status, double Confidence);
@@ -41,7 +49,8 @@ public record ScanExamResponse(
     IReadOnlyList<WrongQuestionDto> CorrectQuestions,
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
     IReadOnlyList<WrongTopicDto> WrongTopics,
-    IReadOnlyList<SuspiciousQuestionHintDto> SuspiciousQuestions
+    IReadOnlyList<SuspiciousQuestionHintDto> SuspiciousQuestions,
+    Guid ExamResultId
 );
 
 public record StudentWithResultsDto(StudentDto Student, IReadOnlyList<ExamResultDto> Results);

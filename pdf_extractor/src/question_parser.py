@@ -3,9 +3,10 @@
 """
 import fitz  # PyMuPDF
 import re
+import statistics
 import unicodedata
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 
 
@@ -275,6 +276,9 @@ def extract_topic_from_text(text: str) -> Optional[str]:
     return None
 
 
+# PDF sayfaları birleştirilirken parser'a görünen sınır (metinde doğal olarak bulunmaz)
+PAGE_BREAK_MARK = "__EDU_PAGE_BREAK__"
+
 # Soru olarak ALINMAYACAK satır kalıpları (ünite, sınıf, test başlıkları vb.)
 EXCLUDED_QUESTION_PATTERNS = [
     r'^\d*\.?\s*ünite\b',           # "5. ünite", "ünite"
@@ -290,6 +294,9 @@ EXCLUDED_QUESTION_PATTERNS = [
     r'^konu\s*:',                    # "Konu:"
     r'^türkçe\s*\d*',                # "Türkçe 8"
     r'indirilebilir\s+test',         # "indirilebilir testler"
+    r'^(örnek|örnekler|değerlendirme|özet|konu\s*tespit|başarı\s*test)\b',
+    r'^\d+\.\s*deneme\b',
+    r'^\d+\.\s*yazılı\b',
 ]
 
 # Geçerli soru metninde bulunması gereken kalıplar (en az biri)
@@ -342,6 +349,68 @@ def _is_excluded_question_line(text: str) -> bool:
     for pattern in EXCLUDED_QUESTION_PATTERNS:
         if re.search(pattern, t, re.IGNORECASE):
             return True
+    return False
+
+
+def _is_page_break_line(line: str) -> bool:
+    return line.strip() == PAGE_BREAK_MARK
+
+
+def _strip_internal_parser_sentinels(fragment: str) -> str:
+    """
+    PAGE_BREAK_MARK yalnızca birleştirilmiş PDF metninde dahili satır olarak kullanılır;
+    panelde görünen soru kökü, şıklar veya dışarı aktarılan metne asla sızmamalı.
+    """
+    if not fragment:
+        return fragment
+    if PAGE_BREAK_MARK not in fragment:
+        return fragment
+    t = fragment.replace(PAGE_BREAK_MARK, " ")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _append_option_continuation(current_options: List[str], continuation: str) -> None:
+    """Seçenek başladıktan sonra gelen ve yeni şık olmayan satırları son şıka ekler."""
+    if not current_options or not continuation.strip():
+        return
+    tail = _strip_internal_parser_sentinels(continuation.strip())
+    if not tail:
+        return
+    last = _strip_internal_parser_sentinels(current_options[-1].rstrip())
+    current_options[-1] = f"{last} {tail}".strip()
+
+
+def _following_looks_like_question_stem_start(following: str) -> bool:
+    """
+    '12. ...' biçimindeki satırda noktadan sonra gerçekten soru gövdesi var mı?
+    Boş bırakılırsa (numara tek satırda) True — sonraki satırlar gövdeye eklenir.
+    """
+    s = (following or "").strip()
+    if not s:
+        return True
+    sl = s.lower()
+    if any(re.search(p, sl) for p in QUESTION_INDICATOR_PATTERNS):
+        return True
+    if "?" in s:
+        return True
+    if re.search(r"\(I{1,3}\)|\(IV\)|\(V\)|\(II\)|\(III\)", s):
+        return True
+    prefixes = (
+        "aşağıdaki",
+        "yukarıdaki",
+        "verilen",
+        "parça",
+        "numaralanmış",
+        "bu ",
+        "numaralanmış cümle",
+        "metindeki",
+        "cümlelerin",
+        "cümlelerde",
+    )
+    if any(sl.startswith(p) for p in prefixes):
+        return True
+    if len(s) >= 22:
+        return True
     return False
 
 
@@ -413,27 +482,32 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
 
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if not stripped:
+        if not stripped or _is_page_break_line(stripped):
             continue
 
-        # Seçenek mi?
-        opt_match = option_pattern.match(stripped)
-        if opt_match and current_num is not None:
-            current_options.append(f"{opt_match.group(1).upper()}) {opt_match.group(2).strip()}")
-            continue
-
-        # Soru numarası + metin aynı satırda mı?
+        # Önce soru numarası (şık satırıyla karışmasın)
         q_match = split_pattern.match(stripped)
         if not q_match:
             q_match = split_soru.match(stripped)
 
-        # Sadece "1)" veya "1." (metin sonraki satırlarda)
         num_only_match = num_only.match(stripped) if not q_match else None
 
         if q_match:
-            following = q_match.group(2).strip()
+            following = _strip_internal_parser_sentinels(q_match.group(2).strip())
             # "5. ünite", "8. sınıf" gibi saçma satırları atla
             if following and _is_excluded_question_line(following):
+                continue
+            # "3. özet" gibi kısa bölüm başlığı — soru değil
+            if re.match(r'^\s*\d+\.\s', stripped) and following and not _following_looks_like_question_stem_start(
+                following
+            ):
+                if current_num is not None:
+                    if current_options:
+                        _append_option_continuation(current_options, stripped)
+                    else:
+                        sp = _strip_internal_parser_sentinels(stripped)
+                        if sp:
+                            current_text.append(sp)
                 continue
             if current_num is not None and current_text:
                 qtext = clean_question_text(' '.join(current_text))
@@ -445,11 +519,14 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                         from visual_detector import VisualDetector
                     detector = VisualDetector()
                     visual_info = detector.detect_visual_content(qtext)
-                    enhanced = detector.add_visual_description(qtext, visual_info)
+                    enhanced = _strip_internal_parser_sentinels(
+                        detector.add_visual_description(qtext, visual_info)
+                    )
+                    opts_out = [_strip_internal_parser_sentinels(o) for o in current_options]
                     questions.append(Question(
                         question_id=f"{pdf_name}_q{current_num}",
                         question_text=enhanced,
-                        options=current_options.copy(),
+                        options=opts_out,
                         topic=topic,
                         exam_info=None,
                         question_number=current_num,
@@ -476,11 +553,14 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                         from visual_detector import VisualDetector
                     detector = VisualDetector()
                     visual_info = detector.detect_visual_content(qtext)
-                    enhanced = detector.add_visual_description(qtext, visual_info)
+                    enhanced = _strip_internal_parser_sentinels(
+                        detector.add_visual_description(qtext, visual_info)
+                    )
+                    opts_out = [_strip_internal_parser_sentinels(o) for o in current_options]
                     questions.append(Question(
                         question_id=f"{pdf_name}_q{current_num}",
                         question_text=enhanced,
-                        options=current_options.copy(),
+                        options=opts_out,
                         topic=topic,
                         exam_info=None,
                         question_number=current_num,
@@ -495,8 +575,19 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
             current_options = []
             continue
 
+        opt_match = option_pattern.match(stripped)
         if current_num is not None:
-            current_text.append(stripped)
+            if opt_match:
+                ot = _strip_internal_parser_sentinels(opt_match.group(2).strip())
+                if ot:
+                    current_options.append(f"{opt_match.group(1).upper()}) {ot}")
+                continue
+            if current_options:
+                _append_option_continuation(current_options, stripped)
+                continue
+            sp = _strip_internal_parser_sentinels(stripped)
+            if sp:
+                current_text.append(sp)
 
     # Son soru
     if current_num is not None and current_text:
@@ -508,11 +599,14 @@ def _parse_questions_lenient(text: str, topic: str, pdf_name: str) -> List[Quest
                 from visual_detector import VisualDetector
             detector = VisualDetector()
             visual_info = detector.detect_visual_content(qtext)
-            enhanced = detector.add_visual_description(qtext, visual_info)
+            enhanced = _strip_internal_parser_sentinels(
+                detector.add_visual_description(qtext, visual_info)
+            )
+            opts_out = [_strip_internal_parser_sentinels(o) for o in current_options]
             questions.append(Question(
                 question_id=f"{pdf_name}_q{current_num}",
                 question_text=enhanced,
-                options=current_options.copy(),
+                options=opts_out,
                 topic=topic,
                 exam_info=None,
                 question_number=current_num,
@@ -606,11 +700,16 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
     in_question = False
     
     while i < len(lines):
-        line = lines[i].strip()
-        original_line = lines[i]  # Orijinal satırı koru (tab karakterleri için)
+        raw_line = lines[i]
+        line = raw_line.strip()
+        original_line = raw_line  # Orijinal satırı koru (tab karakterleri için)
         
         # Boş satırları atla
         if not line:
+            i += 1
+            continue
+
+        if _is_page_break_line(line):
             i += 1
             continue
         
@@ -630,7 +729,17 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
         if not q_match:
             q_match = question_num_dash.match(line)  # "1-"
         if q_match:
-            following_text = q_match.group(2).strip()
+            following_text = _strip_internal_parser_sentinels(q_match.group(2).strip())
+            # "12. örnek" / "3. deneme" / kısa bölüm başlığı — yeni soru açma
+            if question_num_dot.match(line) and following_text and not _following_looks_like_question_stem_start(
+                following_text
+            ):
+                if in_question and not current_options:
+                    merged = _strip_internal_parser_sentinels(line)
+                    if merged:
+                        current_question_text.append(merged)
+                i += 1
+                continue
             # "5. ünite", "8. sınıf", "test06" gibi saçma satırları atla
             if _is_excluded_question_line(following_text):
                 i += 1
@@ -639,11 +748,15 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             # Sadece zaten bir soru içindeysek mevcut soruya ekle; yoksa yeni soru başlat
             if _is_word_pair_or_non_question(following_text):
                 if in_question and not current_options:
-                    current_question_text.append(line)
+                    merged = _strip_internal_parser_sentinels(line)
+                    if merged:
+                        current_question_text.append(merged)
                 i += 1
                 continue
             if _is_list_item_not_question(following_text) and in_question and not current_options:
-                current_question_text.append(line)
+                merged = _strip_internal_parser_sentinels(line)
+                if merged:
+                    current_question_text.append(merged)
                 i += 1
                 continue
 
@@ -659,12 +772,14 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
                         from visual_detector import VisualDetector
                     detector = VisualDetector()
                     visual_info = detector.detect_visual_content(question_text)
-                    enhanced_text = detector.add_visual_description(question_text, visual_info)
+                    enhanced_text = _strip_internal_parser_sentinels(
+                        detector.add_visual_description(question_text, visual_info)
+                    )
 
                     question = Question(
                         question_id=f"{pdf_name}_q{current_question_num}",
                         question_text=enhanced_text,
-                        options=current_options.copy(),
+                        options=[_strip_internal_parser_sentinels(o) for o in current_options],
                         topic=topic,
                         exam_info=current_exam,
                         question_number=current_question_num,
@@ -689,7 +804,7 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             multi_option_match = re.findall(r'([ABCD])[\)\.]\s*([^\t\n]+?)(?=\s+[ABCD][\)\.]|$)', original_line)
             if multi_option_match:
                 for opt_letter, opt_text in multi_option_match:
-                    opt_text_clean = re.sub(r'\s+', ' ', opt_text).strip()
+                    opt_text_clean = _strip_internal_parser_sentinels(re.sub(r'\s+', ' ', opt_text).strip())
                     if opt_text_clean:  # Boş seçenekleri atla
                         current_options.append(f"{opt_letter}) {opt_text_clean}")
                 i += 1
@@ -699,20 +814,25 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             opt_match = option_pattern.match(line)
             if opt_match:
                 option_letter = opt_match.group(1)
-                option_text = opt_match.group(2).strip()
+                option_text = _strip_internal_parser_sentinels(opt_match.group(2).strip())
                 # Eğer seçenek metni çok kısaysa, sonraki satırı da kontrol et
                 if len(option_text) < 10 and i + 1 < len(lines):
                     next_line = lines[i + 1].strip()
                     if next_line and not option_pattern.match(next_line):
-                        option_text += " " + next_line
+                        option_text = _strip_internal_parser_sentinels(f"{option_text} {next_line}")
                         i += 1
-                current_options.append(f"{option_letter}) {option_text}")
+                if option_text:
+                    current_options.append(f"{option_letter}) {option_text}")
                 i += 1
                 continue
             
-            # Soru metninin devamı (seçenekler başlamadıysa)
+            # Soru gövdesi veya seçenek devamı
             if not current_options:
-                current_question_text.append(line)
+                stem_part = _strip_internal_parser_sentinels(line)
+                if stem_part:
+                    current_question_text.append(stem_part)
+            else:
+                _append_option_continuation(current_options, line)
             i += 1
             continue
         
@@ -726,7 +846,7 @@ def parse_questions_from_text(text: str, topic: str, pdf_name: str) -> List[Ques
             question = Question(
                 question_id=f"{pdf_name}_q{current_question_num}",
                 question_text=question_text,
-                options=current_options.copy(),
+                options=[_strip_internal_parser_sentinels(o) for o in current_options],
                 topic=topic,
                 exam_info=current_exam,
                 question_number=current_question_num,
@@ -768,50 +888,160 @@ def clean_question_text(text: str) -> str:
     # Fazla boşlukları temizle
     text = re.sub(r'\s+', ' ', text)
 
-    return text.strip()
+    return _strip_internal_parser_sentinels(text.strip())
+
+
+def _column_words_to_lines(
+    col_words: List[Tuple[float, float, float, float, str]], y_threshold: float
+) -> List[str]:
+    """
+    Tek sütun içinde: kelimeleri (y0, x0) ile sırala; ardışık kelimelerde |y0-last_y|
+    eşiğini aşınca yeni satır. Sütunlar birleştirilmeden işlendiği için sağ/sol karışmaz.
+    """
+    if not col_words:
+        return []
+    sorted_words = sorted(col_words, key=lambda w: (w[1], w[0]))
+    lines_out: List[str] = []
+    current: List[str] = []
+    last_y: Optional[float] = None
+
+    for w in sorted_words:
+        y0, text = w[1], w[4]
+        if last_y is not None and abs(y0 - last_y) > y_threshold:
+            if current:
+                lines_out.append(" ".join(current).strip())
+                current = []
+        current.append(text)
+        last_y = y0
+
+    if current:
+        lines_out.append(" ".join(current).strip())
+    return [ln for ln in lines_out if ln]
 
 
 def _extract_page_text_column_order(page: "fitz.Page") -> str:
     """
-    Sayfa metnini doğal okuma sırasında çıkarır: sol sütun yukarıdan aşağı,
-    sonra sağ sütun yukarıdan aşağı (iki sütunlu PDF'ler için).
-    Kelime bazlı sıralama ile sütun karışması önlenir.
+    İki sütunlu sınav PDF'leri için okuma sırası: sol sütun yukarı→aşağı, ardından sağ sütun.
+
+    PyMuPDF page.get_text("words", sort=False) ile (x0,y0,x1,y1,metin) alınır.
+    Sütun ayrımı: sayfa genişliğinin yarısı (split_x); kelime sol kenarı x0 < split_x ise sol sütun.
+    Her sütunda kelimeler (y0, x0) ile sıralanır; ardışık kelimelerde |y0 - last_y| >
+    y_threshold olunca yeni satır — böylece sütun içi satırlar korunur, iki sütun metni tek
+    akışta karıştırılmaz. y_threshold en az 8 pt, ayrıca medyan kelime yüksekliğine göre üst sınırlı
+    olarak ayarlanır (çok küçük punto için).
     """
     try:
-        width = page.rect.width
-        width2 = width / 2
-        words = page.get_text("words", sort=False)
-        if not words:
+        page_width = page.rect.width
+        raw = page.get_text("words", sort=False)
+        if not raw:
             return page.get_text()
 
-        # (x0, y0, x1, y1, text, block_no, line_no, word_no)
-        def sort_key(w):
-            x0, y0 = w[0], w[1]
-            col = 0 if x0 < width2 else 1
-            return (col, y0, x0)
-
-        sorted_words = sorted(words, key=sort_key)
-        lines = []
-        current_line = []
-        last_y = None
-        y_threshold = 8  # Satır değişimi eşiği (pt)
-
-        for w in sorted_words:
+        words_norm: List[Tuple[float, float, float, float, str]] = []
+        for w in raw:
             if len(w) < 5:
                 continue
-            x0, y0, text = w[0], w[1], w[4]
-            if last_y is not None and abs(y0 - last_y) > y_threshold:
-                if current_line:
-                    lines.append(" ".join(current_line))
-                    current_line = []
-            current_line.append(text)
-            last_y = y0
+            x0, y0, x1, y1, text = float(w[0]), float(w[1]), float(w[2]), float(w[3]), str(w[4])
+            if not text.strip():
+                continue
+            words_norm.append((x0, y0, x1, y1, text))
 
-        if current_line:
-            lines.append(" ".join(current_line))
-        return "\n".join(lines)
+        if not words_norm:
+            return page.get_text()
+
+        split_x = page_width / 2
+        heights = [max(1.0, w[3] - w[1]) for w in words_norm]
+        med_h = statistics.median(heights) if heights else 10.0
+        # Orijinal tek geçişli algoritmada 8 pt; çok küçük punto için font yüksekliğine göre hafif genişlet
+        y_threshold = max(8.0, min(10.5, med_h * 0.38))
+
+        # Sütun: kelimenin sol kenarı (PyMuPDF words tuple) — eski sort_key ile uyumlu
+        left_w = [w for w in words_norm if w[0] < split_x]
+        right_w = [w for w in words_norm if w[0] >= split_x]
+
+        left_lines = _column_words_to_lines(left_w, y_threshold)
+        right_lines = _column_words_to_lines(right_w, y_threshold)
+        return "\n".join(left_lines + right_lines)
     except Exception:
         return page.get_text()
+
+
+def _iter_page_text_blocks_sorted(page: "fitz.Page") -> List[Tuple[float, float, float, float, str]]:
+    """get_text('blocks') satırlarını (y0, x0) ile sıralı liste olarak döndürür."""
+    try:
+        blocks = page.get_text("blocks") or []
+    except Exception:
+        return []
+    rows: List[Tuple[float, float, float, float, str]] = []
+    for b in blocks:
+        if len(b) < 5:
+            continue
+        x0, y0, x1, y1 = float(b[0]), float(b[1]), float(b[2]), float(b[3])
+        t = str(b[4] or "").strip()
+        if not t or not re.search(r"\S", t):
+            continue
+        rows.append((y0, x0, x1, y1, t))
+    rows.sort(key=lambda r: (r[0], r[1]))
+    return rows
+
+
+def _extract_page_text_blocks_ordered(page: "fitz.Page") -> str:
+    """Blok metinlerini (y0, x0) sırasıyla birleştirir; satırlar arası \\n."""
+    try:
+        return "\n".join(r[4] for r in _iter_page_text_blocks_sorted(page))
+    except Exception:
+        return ""
+
+
+def _words_non_whitespace_char_count(page: "fitz.Page") -> int:
+    """Sayfadaki words çıktısındaki boşluksuz karakter sayısı (tamamlık karşılaştırması için)."""
+    try:
+        raw = page.get_text("words", sort=False) or []
+    except Exception:
+        return 0
+    total = 0
+    for w in raw:
+        if len(w) < 5:
+            continue
+        s = str(w[4] or "").strip()
+        if s:
+            total += len(re.sub(r"\s+", "", s))
+    return total
+
+
+def _non_whitespace_len(s: str) -> int:
+    return len(re.sub(r"\s+", "", s))
+
+
+def _repair_pdf_sentence_boundary_glue(s: str) -> str:
+    """Blok birleşiminde sık görülen '...dık.Bu' gibi eksik boşlukları düzeltir."""
+    return re.sub(r"([.!?])([A-ZÇĞİÖŞÜ])", r"\1 \2", s)
+
+
+def _extract_page_text_for_pdf_page(page: "fitz.Page") -> str:
+    """
+    Çıkmış / iki sütunlu deneme PDF'leri için önce blocks + (y0, x0) sıralı metin;
+    çıktı kısa, blok sayısı şüpheli veya kelime kapsamı belirgin düşükse
+    mevcut iki sütun kelime sırasına düşer.
+    """
+    rows = _iter_page_text_blocks_sorted(page)
+    blocks_txt = "\n".join(r[4] for r in rows)
+    col_txt = _extract_page_text_column_order(page)
+    b_strip = blocks_txt.strip()
+    if len(b_strip) < 50:
+        return col_txt
+
+    wc = _words_non_whitespace_char_count(page)
+    bc = _non_whitespace_len(blocks_txt)
+    if wc >= 120 and bc < wc * 0.42:
+        return col_txt
+    if len(rows) < 3 and wc >= 280:
+        return col_txt
+
+    cc = _non_whitespace_len(col_txt)
+    if cc >= 220 and bc < cc * 0.32:
+        return col_txt
+
+    return _repair_pdf_sentence_boundary_glue(blocks_txt)
 
 
 def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Question]:
@@ -862,12 +1092,12 @@ def extract_questions_from_pdf(pdf_path: Path, use_ocr: bool = False) -> List[Qu
         # İki sütunlu PDF'lerde metin sırası: sol sütun yukarıdan aşağı, sonra sağ sütun yukarıdan aşağı.
         for page_num in range(len(doc)):
             page = doc[page_num]
-            page_text = _extract_page_text_column_order(page)
+            page_text = _extract_page_text_for_pdf_page(page)
             # Sütun sıralı çıkarım az metin verirse, basit get_text() dene
             if len(page_text.strip()) < 50:
                 page_text = page.get_text() or page_text
             page_texts[page_num] = page_text
-            all_text += page_text + "\n\n"
+            all_text += page_text.rstrip() + "\n" + PAGE_BREAK_MARK + "\n"
             
             # İlk sayfadan konu bilgisini çıkar
             if page_num == 0:

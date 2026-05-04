@@ -48,6 +48,23 @@ public class StudentsController : ControllerBase
         return Ok(list);
     }
 
+    /// <summary>Yeni veli giriş hesabı oluşturur; öğrenciye bağlamak için ayrıca Veli bağla adımı kullanılır.</summary>
+    [HttpPost("parents")]
+    public async Task<ActionResult<ParentCandidateDto>> CreateParentAccount(
+        [FromBody] CreateParentAccountRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var dto = await _parentLinkService.CreateParentAccountAsync(request, ct);
+            return Ok(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<StudentDto>> GetById(Guid id, CancellationToken ct)
     {

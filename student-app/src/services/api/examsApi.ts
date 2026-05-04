@@ -1,4 +1,4 @@
-import { apiUploadFormData } from './apiClient';
+import { apiPatch, apiUploadFormData } from './apiClient';
 import type { ScanExamResponse } from '../../types/exam';
 import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP as TURKISH_COLUMN_CROP_TEMPLATE_ID } from '../../constants/opticalTurkishColumn';
 
@@ -64,4 +64,28 @@ export function getOpticalSubmitOptionCount(
     return 5;
   }
   return getOptionCountFromAnswerKey(answerKey);
+}
+
+/** Cevap anahtarındaki maksimum şık sayısına göre A… harfleri (A–D veya A–E). */
+export function getOptionLetterChoicesFromAnswerKey(answerKey?: string[] | null): string[] {
+  const n = getOptionCountFromAnswerKey(answerKey);
+  return 'ABCDE'.slice(0, n).split('');
+}
+
+export interface OpticalReadingCorrection {
+  questionIndex: number;
+  /** Boş: öğrenci bilinçli olarak boş bırakıyor. */
+  answer: string;
+}
+
+/**
+ * Sadece sunucudaki "Belirsiz veya boş okuma" maddeleri için; PATCH gövdesi tüm o maddeleri içermelidir.
+ */
+export function applyOpticalReadingCorrections(
+  examResultId: string,
+  corrections: OpticalReadingCorrection[]
+): Promise<ScanExamResponse> {
+  return apiPatch<ScanExamResponse>(`/api/me/results/${examResultId}/optical-corrections`, {
+    corrections: corrections.map((c) => ({ questionIndex: c.questionIndex, answer: c.answer })),
+  });
 }

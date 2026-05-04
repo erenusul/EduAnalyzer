@@ -11,6 +11,7 @@ import { EditablePredictionResults } from '../components/EditablePredictionResul
 import { parseUtcToLocal } from '../utils/dateUtils';
 import { AnswerKeyEditor } from '../components/AnswerKeyEditor';
 import type { PDFAnalysisResponse, QuestionAnalysisResult } from '../types/prediction';
+import type { Exam } from '../types/teacher';
 
 const MAX_SELECTED_QUESTIONS = 20;
 
@@ -29,6 +30,8 @@ export function AnalysisDetail() {
   const { analyses, updateAnalysis, addExam, updateExam, getExamByAnalysisId } = useTeacherData();
   const { showToast } = useToast();
   const [weekLabel, setWeekLabel] = useState(getCurrentWeekLabel());
+  const [examTitleDraft, setExamTitleDraft] = useState('');
+  const [examWeekDraft, setExamWeekDraft] = useState('');
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [answerKey, setAnswerKey] = useState<string[]>([]);
   const [savingExam, setSavingExam] = useState(false);
@@ -113,6 +116,13 @@ export function AnalysisDetail() {
   }, [selectedIndices.size]);
 
   useEffect(() => {
+    if (exam) {
+      setExamTitleDraft(exam.title);
+      setExamWeekDraft(exam.weekLabel);
+    }
+  }, [exam?.id, exam?.title, exam?.weekLabel]);
+
+  useEffect(() => {
     return () => {
       if (saveFeedbackTimeoutRef.current) clearTimeout(saveFeedbackTimeoutRef.current);
     };
@@ -138,12 +148,28 @@ export function AnalysisDetail() {
     setSaveStatus('saving');
     try {
       if (exam) {
+        const titleTrim = examTitleDraft.trim();
+        const weekTrim = examWeekDraft.trim();
+        const metaChanged =
+          titleTrim !== (exam.title ?? '').trim() || weekTrim !== (exam.weekLabel ?? '').trim();
         if (answerKeyDebounceRef.current) {
           clearTimeout(answerKeyDebounceRef.current);
           answerKeyDebounceRef.current = null;
         }
+        const keyEditable = exam.status !== 'ready';
         const toSave = pendingAnswerKeyRef.current ?? exam.answerKey ?? [];
-        await updateExam(exam.id, { answerKey: toSave });
+        const payload: Partial<Pick<Exam, 'title' | 'weekLabel' | 'answerKey'>> = {
+          ...(metaChanged ? { title: titleTrim, weekLabel: weekTrim } : {}),
+        };
+        if (keyEditable) {
+          payload.answerKey = toSave;
+        }
+        if (Object.keys(payload).length === 0) {
+          setSaveStatus('idle');
+          showToast('Kaydedilecek değişiklik yok.', 'info');
+          return;
+        }
+        await updateExam(exam.id, payload);
       }
       setSaveStatus('saved');
       showToast('Değişiklikler kaydedildi.');
@@ -156,7 +182,7 @@ export function AnalysisDetail() {
       setSaveStatus('idle');
       showToast('Kaydederken bir hata oluştu.', 'danger');
     }
-  }, [exam, updateExam, showToast]);
+  }, [exam, examTitleDraft, examWeekDraft, updateExam, showToast]);
 
   if (!analysis) {
     return (
@@ -238,8 +264,15 @@ export function AnalysisDetail() {
             <i className="bi bi-arrow-left me-1" />
             Analiz Geçmişine Dön
           </Button>
-          <h4 className="fw-bold mb-1">{analysis.title}</h4>
+          <h4 className="fw-bold mb-1">
+            {exam ? examTitleDraft || exam.title : analysis.title}
+          </h4>
           <p className="text-muted small mb-0">
+            {exam && (
+              <span className="d-block mb-1">
+                Kaynak analiz: <span className="text-dark fw-medium">{analysis.title}</span>
+              </span>
+            )}
             {parseUtcToLocal(analysis.date).toLocaleString('tr-TR')} · {analysis.analyzedQuestions}{' '}
             / {analysis.totalQuestions} soru
           </p>
@@ -389,6 +422,51 @@ export function AnalysisDetail() {
           )}
         </Card.Body>
       </Card>
+
+      {exam && (
+        <Card className="border-0 shadow-sm mb-3">
+          <Card.Header className="bg-white border-bottom py-3">
+            <h6 className="fw-semibold mb-0">
+              <i className="bi bi-journal-text me-2" />
+              Sınav bilgisi
+            </h6>
+          </Card.Header>
+          <Card.Body className="p-4">
+            <div className="row g-3">
+              <div className="col-md-8">
+                <Form.Group>
+                  <Form.Label>Sınav başlığı</Form.Label>
+                  <Form.Control
+                    value={examTitleDraft}
+                    onChange={(e) => setExamTitleDraft(e.target.value)}
+                    placeholder="Örn. 8. Sınıf Türkçe Deneme 1"
+                    aria-label="Sınav başlığı"
+                  />
+                  <Form.Text className="text-muted">
+                    Öğretmen paneli ve öğrenci uygulamasında listelenen başlıktır.
+                  </Form.Text>
+                </Form.Group>
+              </div>
+              <div className="col-md-4">
+                <Form.Group>
+                  <Form.Label>Hafta etiketi</Form.Label>
+                  <Form.Control
+                    value={examWeekDraft}
+                    onChange={(e) => setExamWeekDraft(e.target.value)}
+                    placeholder="2025-W08"
+                    aria-label="Hafta etiketi"
+                    style={{ maxWidth: 280 }}
+                  />
+                </Form.Group>
+              </div>
+            </div>
+            <p className="text-muted small mb-0 mt-2">
+              <i className="bi bi-info-circle me-1" />
+              Değişiklikleri kaydetmek için üstteki <strong>Kaydet</strong> düğmesini kullanın.
+            </p>
+          </Card.Body>
+        </Card>
+      )}
 
       {exam && (
         <Card className="border-0 shadow-sm mb-3">

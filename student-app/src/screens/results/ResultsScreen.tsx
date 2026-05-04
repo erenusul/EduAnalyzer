@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -273,21 +273,6 @@ export function ResultsScreen({ navigation }: ResultsScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [cacheAgeMs, setCacheAgeMs] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={() => navigation.navigate('ProgressChart')}
-          accessibilityRole="button"
-          accessibilityLabel="Gelişim grafiği"
-          hitSlop={12}
-        >
-          <Ionicons name="trending-up" size={22} color={colors.accent} />
-        </Pressable>
-      ),
-    });
-  }, [navigation, colors.accent]);
 
   const loadResults = useCallback(async (isRefresh: boolean = false) => {
     if (isRefresh) {

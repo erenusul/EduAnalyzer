@@ -12,16 +12,16 @@ export function StudentLayout() {
   return (
     <div className="d-flex flex-column vh-100 bg-body-tertiary">
       <header
-        className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom bg-white"
+        className="d-flex align-items-center justify-content-between px-3 px-lg-4 py-3 border-bottom bg-white"
         style={{ minHeight: 60 }}
       >
-        <div className="d-flex align-items-center gap-2">
-          <span className="text-muted small">Öğrenci Paneli</span>
+        <div className="d-flex align-items-center gap-2 min-w-0">
+          <span className="text-muted small text-truncate">Öğrenci Paneli</span>
         </div>
         <Dropdown align="end">
           <Dropdown.Toggle
             variant="light"
-            className="d-flex align-items-center gap-2 border-0"
+            className="d-flex align-items-center gap-2 border-0 flex-shrink-0"
             id="student-user-dropdown"
           >
             <div
@@ -30,7 +30,9 @@ export function StudentLayout() {
             >
               <i className="bi bi-person-fill small" aria-hidden />
             </div>
-            <span className="text-dark d-none d-sm-inline">{user?.displayName ?? user?.email}</span>
+            <span className="text-dark d-none d-sm-inline text-truncate" style={{ maxWidth: 160 }}>
+              {user?.displayName ?? user?.email}
+            </span>
             <i className="bi bi-chevron-down small text-muted" aria-hidden />
           </Dropdown.Toggle>
           <Dropdown.Menu align="end" className="shadow-sm">
@@ -46,7 +48,7 @@ export function StudentLayout() {
           </Dropdown.Menu>
         </Dropdown>
       </header>
-      <main className="flex-grow-1 overflow-auto p-4 bg-body">
+      <main className="flex-grow-1 overflow-auto p-3 p-lg-4 bg-body min-w-0">
         <div className="container-fluid" style={{ maxWidth: 900 }}>
           <Outlet />
         </div>

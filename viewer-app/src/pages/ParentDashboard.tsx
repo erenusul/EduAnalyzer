@@ -50,7 +50,7 @@ export function ParentDashboard() {
   return (
     <Container fluid className="px-0">
       <div className="mb-5">
-        <h3 className="fw-bold text-dark mb-2">Öğrencilerim</h3>
+        <h3 className="fw-bold text-dark mb-2 text-break">Öğrencilerim</h3>
         <p className="text-muted fs-6 mb-0">
           Çocuklarınızın güncel eğitim durumunu ve gelişim trendlerini buradan takip edebilirsiniz.
         </p>

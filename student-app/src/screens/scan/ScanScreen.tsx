@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP } from '../../constants/opticalTurkishColumn';
 import {
   getOpticalSubmitOptionCount,
+  getOptionLetterChoicesFromAnswerKey,
   OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
   submitScan,
 } from '../../services/api/examsApi';
@@ -34,6 +35,8 @@ import {
 } from '../../services/debug/opticalTestCapture';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
+import { OpticalBelirsizCorrectionModal } from './OpticalBelirsizCorrectionModal';
+import { getBelirsizSuspicious } from './belirsizSuspicious';
 import { useAppTheme } from '../../theme/AppThemeContext';
 import type { AppThemeColors } from '../../theme/colors';
 import { cropTurkishColumnPhoto, getImageSizeAsync, type ViewportSize } from '../../utils/turkishColumnPhotoCrop';
@@ -434,6 +437,36 @@ function buildStyles(colors: AppThemeColors) {
       lineHeight: 22,
       fontSize: 14,
     },
+    belirsizBanner: {
+      marginTop: 4,
+      marginBottom: 12,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: colors.accentMuted,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      gap: 10,
+    },
+    belirsizBannerText: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      lineHeight: 21,
+    },
+    belirsizOpenButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'flex-start',
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      backgroundColor: colors.accent,
+    },
+    belirsizOpenButtonText: {
+      color: '#ffffff',
+      fontWeight: '800',
+      fontSize: 14,
+    },
     modeSwitchLabel: {
       color: colors.textPrimary,
       fontWeight: '800',
@@ -549,9 +582,25 @@ export function ScanScreen({ route }: ScanScreenProps) {
   const [lastSavedOpticalRunPath, setLastSavedOpticalRunPath] = useState<string | null>(null);
   /** Yalnızca saveOpticalTestCapture gerçekten çağrıldığında güncellenir (null = bu oturumda henüz deneme yok). */
   const [lastOpticalSaveSucceeded, setLastOpticalSaveSucceeded] = useState<boolean | null>(null);
+  const [belirsizModalOpen, setBelirsizModalOpen] = useState(false);
   const [cameraViewportSize, setCameraViewportSize] = useState<ViewportSize>({ width: 0, height: 440 });
   const cameraViewportWidth = cameraViewportSize.width > 0 ? cameraViewportSize.width : Math.max(200, windowWidth - 64);
   const cameraViewportHeight = cameraViewportSize.height > 0 ? cameraViewportSize.height : 440;
+
+  const optionLetterChoices = useMemo(
+    () => getOptionLetterChoicesFromAnswerKey(exam.answerKey),
+    [exam.answerKey]
+  );
+  const belirsizItems = useMemo(
+    () => (scanResult ? getBelirsizSuspicious(scanResult) : []),
+    [scanResult]
+  );
+
+  useEffect(() => {
+    if (belirsizItems.length === 0 && belirsizModalOpen) {
+      setBelirsizModalOpen(false);
+    }
+  }, [belirsizItems.length, belirsizModalOpen]);
 
   const handleCameraViewportLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -605,6 +654,7 @@ export function ScanScreen({ route }: ScanScreenProps) {
     setScanMode(mode);
     setPhotoUri(null);
     setScanResult(null);
+    setBelirsizModalOpen(false);
   };
 
   const handleCapture = async () => {
@@ -719,7 +769,12 @@ export function ScanScreen({ route }: ScanScreenProps) {
           scanResult: result,
         });
       }
-      Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
+      const needBelirsiz = getBelirsizSuspicious(result).length > 0;
+      if (needBelirsiz) {
+        setBelirsizModalOpen(true);
+      } else {
+        Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
+      }
     } catch (err) {
       if (shouldPersistOpticalTest) {
         await runOpticalCapture({
@@ -1095,6 +1150,28 @@ export function ScanScreen({ route }: ScanScreenProps) {
             <Text style={styles.resultTitle}>Tarama Özeti</Text>
           </View>
 
+          {belirsizItems.length > 0 ? (
+            <View style={styles.belirsizBanner} accessibilityLabel="Emin olunamayan optik maddeler">
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Ionicons name="alert-circle-outline" size={22} color={colors.accent} style={{ marginTop: 1 }} />
+                <Text style={styles.belirsizBannerText}>
+                  {belirsizItems.length} soruda okuyucu net şık tespit edemedi. Yalnızca bu maddeler için A–E veya
+                  &quot;Boş&quot; seçebilirsiniz. Sınırda güven ile işaretlenen (şüpheli okunmuş) sorular bu ekrana
+                  dahil edilmez.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setBelirsizModalOpen(true)}
+                style={styles.belirsizOpenButton}
+                accessibilityRole="button"
+                accessibilityLabel="Emin olunamayan soruları gir"
+              >
+                <Ionicons name="create-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.belirsizOpenButtonText}>Emin olunamayanları gir</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.resultRow}>
             <View style={styles.resultIconBoxSuccess}>
               <Ionicons name="checkmark" size={16} color={colors.success} />
@@ -1166,6 +1243,20 @@ export function ScanScreen({ route }: ScanScreenProps) {
         </View>
       ) : null}
       </ScrollView>
+
+      {scanResult ? (
+        <OpticalBelirsizCorrectionModal
+          visible={belirsizModalOpen}
+          onClose={() => setBelirsizModalOpen(false)}
+          onSaved={(res) => {
+            setScanResult(res);
+            Alert.alert('Kaydedildi', 'Girdiğiniz cevaplar notunuza yansıtıldı.');
+          }}
+          lastScan={scanResult}
+          optionLetters={optionLetterChoices}
+          colors={colors}
+        />
+      ) : null}
 
       <Modal
         visible={isImagePreviewVisible && !!photoUri}

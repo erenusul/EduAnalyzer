@@ -27,17 +27,17 @@ export function StudentSummaryCard({ data: { student, results: rawResults } }: P
 
   return (
     <Card className="border-0 shadow-sm h-100 position-relative overflow-hidden">
-      <Card.Body className="p-4 p-lg-5 d-flex flex-column">
+      <Card.Body className="p-3 p-lg-5 d-flex flex-column">
         {/* Header: Avatar and Name */}
-        <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
+        <div className="d-flex align-items-center flex-wrap gap-2 gap-md-3 mb-4 pb-3 border-bottom">
           <div
-            className="d-flex align-items-center justify-content-center rounded-circle bg-light text-primary fw-bold fs-4 me-3"
-            style={{ width: '56px', height: '56px', flexShrink: 0 }}
+            className="d-flex align-items-center justify-content-center rounded-circle bg-light text-primary fw-bold fs-4 me-md-3 flex-shrink-0"
+            style={{ width: '56px', height: '56px' }}
           >
             {initial.toUpperCase()}
           </div>
-          <div className="flex-grow-1">
-            <h5 className="mb-1 fw-bold text-dark">
+          <div className="flex-grow-1 min-w-0">
+            <h5 className="mb-1 fw-bold text-dark text-break">
               {student.firstName} {student.lastName}
             </h5>
             <div className="text-muted small">
@@ -45,7 +45,7 @@ export function StudentSummaryCard({ data: { student, results: rawResults } }: P
             </div>
           </div>
           {mapped.length > 0 && (
-            <Badge bg="light" text="secondary" className="fw-normal border">
+            <Badge bg="light" text="secondary" className="fw-normal border ms-md-auto flex-shrink-0">
               {mapped.length} Sınav
             </Badge>
           )}
@@ -54,12 +54,12 @@ export function StudentSummaryCard({ data: { student, results: rawResults } }: P
         {/* Content */}
         {latest ? (
           <div className="flex-grow-1 d-flex flex-column">
-            <div className="text-center mb-4">
+            <div className="text-center mb-4 px-1">
               <div className="text-muted small fw-medium text-uppercase mb-2" style={{ letterSpacing: '0.05em' }}>
                 Son Sınav Neti
               </div>
-              <div className="d-flex justify-content-center align-items-end gap-2">
-                <span className="display-4 fw-bolder text-dark lh-1">{netLatest}</span>
+              <div className="d-flex justify-content-center align-items-end gap-2 flex-wrap">
+                <span className="display-4 fw-bolder text-dark lh-1 text-nowrap">{netLatest}</span>
                 {mapped.length >= 2 && netPrev != null && netLatest != null && (
                   <span
                     className={`fs-5 fw-bold mb-1 ${
@@ -115,8 +115,8 @@ export function StudentSummaryCard({ data: { student, results: rawResults } }: P
 
               {insights.hardestTopic && (
                 <div className="d-flex align-items-start mb-2 mt-3 p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-25">
-                  <i className="bi bi-exclamation-circle text-danger mt-1 me-2" />
-                  <div className="small text-danger">
+                  <i className="bi bi-exclamation-circle text-danger mt-1 me-2 flex-shrink-0" />
+                  <div className="small text-danger text-break">
                     <span className="fw-semibold">Önerilen Konu:</span> {insights.hardestTopic}
                   </div>
                 </div>

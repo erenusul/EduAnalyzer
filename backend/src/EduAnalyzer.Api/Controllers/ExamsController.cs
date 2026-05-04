@@ -62,6 +62,23 @@ public class ExamsController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpPatch("{id:guid}")]
+    public async Task<ActionResult<ExamDto>> PatchExam(Guid id, [FromBody] PatchExamRequest request, CancellationToken ct)
+    {
+        var dto = await _service.PatchExamAsync(id, TeacherId, request, ct);
+        if (dto == null) return NotFound();
+        return Ok(dto);
+    }
+
+    /// <summary>Başlık / hafta güncellemesi (PUT — PATCH ile sorun yaşayan proxy’ler için).</summary>
+    [HttpPut("{id:guid}/meta")]
+    public async Task<ActionResult<ExamDto>> PutExamMeta(Guid id, [FromBody] PatchExamRequest request, CancellationToken ct)
+    {
+        var dto = await _service.PatchExamAsync(id, TeacherId, request, ct);
+        if (dto == null) return NotFound();
+        return Ok(dto);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteExam(Guid id, CancellationToken ct)
     {

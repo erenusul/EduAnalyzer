@@ -81,7 +81,7 @@ export function ParentAnalysisScreen() {
   return (
     <Container fluid className="px-0">
       <div className="mb-4">
-        <h3 className="fw-bold text-dark mb-2">Gelişim analizi</h3>
+        <h3 className="fw-bold text-dark mb-2 text-break">Gelişim analizi</h3>
         <p className="text-muted mb-0">
           Bağlı çocuklarınızın sınav performansı, net ve başarı eğrisi ile konu bazlı özet.
         </p>
@@ -133,8 +133,8 @@ function ChildAnalysisBlock({
     return (
       <Card className="border-0 shadow-sm">
         <Card.Body className="d-flex flex-wrap align-items-center justify-content-between gap-2 py-4">
-          <div>
-            <h5 className="fw-bold mb-0">{studentName}</h5>
+          <div className="min-w-0">
+            <h5 className="fw-bold mb-0 text-break">{studentName}</h5>
             <span className="text-muted small">Henüz sınav sonucu yok</span>
           </div>
           <Link to={`/parent/student/${studentId}`} className="btn btn-sm btn-outline-primary">
@@ -148,15 +148,18 @@ function ChildAnalysisBlock({
   return (
     <Card className="border-0 shadow-sm">
       <Card.Header className="bg-white border-bottom py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <div>
-          <h5 className="fw-bold mb-0">{studentName}</h5>
+        <div className="min-w-0">
+          <h5 className="fw-bold mb-0 text-break">{studentName}</h5>
           <span className="text-muted small">{results.length} sınav kaydı</span>
         </div>
-        <Link to={`/parent/student/${studentId}`} className="btn btn-sm btn-light-primary border">
+        <Link
+          to={`/parent/student/${studentId}`}
+          className="btn btn-sm btn-light-primary border flex-shrink-0"
+        >
           Çocuk detayı
         </Link>
       </Card.Header>
-      <Card.Body className="p-4">
+      <Card.Body className="p-3 p-lg-4">
         {results.length === 1 && (
           <Alert variant="light" className="border small py-2 mb-4">
             <i className="bi bi-info-circle me-2 text-primary" />
@@ -167,8 +170,8 @@ function ChildAnalysisBlock({
         <Row className="g-4">
           <Col lg={7}>
             <div className="small text-muted fw-semibold text-uppercase mb-2">Net ve başarı yüzdesi</div>
-            <div style={{ height: 260, width: '100%', minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" debounce={32}>
+            <div className="w-100" style={{ minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height={260} debounce={32}>
                 <LineChart data={chartRows} margin={{ top: 12, left: 0, right: 8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E6EF" />
                   <XAxis

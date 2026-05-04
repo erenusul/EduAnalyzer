@@ -59,6 +59,11 @@ public class StudentService : IStudentService
 
     public async Task<StudentDto> CreateAsync(Guid teacherId, CreateStudentRequest request, CancellationToken ct = default)
     {
+        var studentNo = request.StudentNo.Trim();
+        if (await _repo.ExistsByTeacherAndStudentNoAsync(teacherId, studentNo, null, ct))
+            throw new InvalidOperationException(
+                $"Bu öğrenci numarası ({studentNo}) sizin listenizde zaten kayıtlı. Her öğrenci için farklı bir numara kullanın.");
+
         var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
         var wantsAccount = !string.IsNullOrWhiteSpace(request.Password);
 
@@ -90,7 +95,7 @@ public class StudentService : IStudentService
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 TeacherId = teacherId,
-                StudentNo = request.StudentNo,
+                StudentNo = studentNo,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 ClassId = request.ClassId,
@@ -108,7 +113,7 @@ public class StudentService : IStudentService
         {
             Id = Guid.NewGuid(),
             TeacherId = teacherId,
-            StudentNo = request.StudentNo,
+            StudentNo = studentNo,
             FirstName = request.FirstName,
             LastName = request.LastName,
             ClassId = request.ClassId,
@@ -126,7 +131,14 @@ public class StudentService : IStudentService
         var s = await _repo.GetByIdAsync(id, ct);
         if (s == null || s.TeacherId != teacherId) return null;
 
-        if (request.StudentNo != null) s.StudentNo = request.StudentNo;
+        if (request.StudentNo != null)
+        {
+            var newNo = request.StudentNo.Trim();
+            if (await _repo.ExistsByTeacherAndStudentNoAsync(teacherId, newNo, id, ct))
+                throw new InvalidOperationException(
+                    $"Bu öğrenci numarası ({newNo}) sizin listenizde başka bir öğrenciye ait. Farklı bir numara seçin.");
+            s.StudentNo = newNo;
+        }
         if (request.FirstName != null) s.FirstName = request.FirstName;
         if (request.LastName != null) s.LastName = request.LastName;
         if (request.ClassId != null) s.ClassId = request.ClassId;

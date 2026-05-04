@@ -3,11 +3,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Card, Form, Button, Badge, Row, Col, Table, Modal, Alert, Spinner } from 'react-bootstrap';
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,10 +19,90 @@ import { useTeacherData } from '../contexts/TeacherDataContext';
 import { useToast } from '../contexts/ToastContext';
 import type { ApiError } from '../services/apiClient';
 import { studentsApi, type ParentCandidate, type StudentParentLink } from '../services/backendApi';
-import type { ExamResult } from '../types/teacher';
+import type { AnalysisRecord, Exam, ExamResult } from '../types/teacher';
+import {
+  buildExamQuestionTopicMap,
+  resolveWrongQuestionTopicLabel,
+} from '../utils/examQuestionTopics';
+import { sortResultsByDateDesc } from '../utils/parentResultUtils';
+import { StudentPerformanceInsightsPanel } from '../components/student/StudentPerformanceInsightsPanel';
+
+interface TopicSummaryRow {
+  topic: string;
+  wrongCount: number;
+  examOccurrences: number;
+  lastExamSummary: string;
+}
+
+function aggregateTopicSummaryForResults(
+  results: ExamResult[],
+  exams: Exam[],
+  analyses: AnalysisRecord[]
+): TopicSummaryRow[] {
+  type Acc = { count: number; examIds: Set<string>; lastSort: number; lastSummary: string };
+  const map = new Map<string, Acc>();
+
+  const bump = (
+    topicKey: string,
+    examId: string,
+    examSort: number,
+    summary: string,
+    delta: number
+  ) => {
+    if (delta <= 0) return;
+    let acc = map.get(topicKey);
+    if (!acc) {
+      acc = { count: 0, examIds: new Set(), lastSort: -1, lastSummary: '' };
+      map.set(topicKey, acc);
+    }
+    acc.count += delta;
+    acc.examIds.add(examId);
+    if (examSort >= acc.lastSort) {
+      acc.lastSort = examSort;
+      acc.lastSummary = summary;
+    }
+  };
+
+  for (const result of results) {
+    const exam = exams.find((e) => e.id === result.examId);
+    if (!exam) continue;
+    const analysis = analyses.find((a) => a.id === exam.analysisId);
+    const qTopicMap = buildExamQuestionTopicMap(analysis, exam);
+    const examSort = Date.parse(`${exam.date}T12:00:00`);
+    const sortKey = Number.isFinite(examSort) ? examSort : 0;
+    const summary = `${exam.title} · ${exam.weekLabel}`;
+
+    const wq = result.wrongQuestions ?? [];
+    if (wq.length > 0) {
+      for (const w of wq) {
+        const label = resolveWrongQuestionTopicLabel(w.questionIndex, w.topic, qTopicMap);
+        bump(label, exam.id, sortKey, summary, 1);
+      }
+    } else {
+      for (const wt of result.wrongTopics ?? []) {
+        const label =
+          wt?.topic != null && String(wt.topic).trim() !== ''
+            ? String(wt.topic).trim()
+            : 'Bilinmiyor';
+        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+        bump(label, exam.id, sortKey, summary, n);
+      }
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([topic, acc]) => ({
+      topic,
+      wrongCount: acc.count,
+      examOccurrences: acc.examIds.size,
+      lastExamSummary: acc.lastSummary || '—',
+    }))
+    .sort((a, b) => b.wrongCount - a.wrongCount);
+}
 
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     getStudentById,
     getClassById,
@@ -30,6 +110,7 @@ export function StudentDetail() {
     updateStudent,
     assignStudentToClass,
     exams,
+    analyses,
     getResultsByStudent,
     updateExamResult,
     deleteExamResult,
@@ -51,6 +132,12 @@ export function StudentDetail() {
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState('');
   const [parentActionLoading, setParentActionLoading] = useState(false);
+  const [newParentEmail, setNewParentEmail] = useState('');
+  const [newParentPassword, setNewParentPassword] = useState('');
+  const [newParentDisplayName, setNewParentDisplayName] = useState('');
+  const [newParentPhone, setNewParentPhone] = useState('');
+  const [createParentLoading, setCreateParentLoading] = useState(false);
+  const [topicSummaryExamFilter, setTopicSummaryExamFilter] = useState<string>('');
 
   const student = id ? getStudentById(id) : null;
 
@@ -59,47 +146,108 @@ export function StudentDetail() {
     [student, getResultsByStudent]
   );
 
-  const topicSummary = useMemo(() => {
-    const map = new Map<string, { count: number; lastExamWeek: string }>();
-    for (const result of studentResults) {
-      const exam = exams.find((e) => e.id === result.examId);
-      const week = exam?.weekLabel ?? '';
-      for (const wt of result.wrongTopics ?? []) {
-        const label =
-          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
-        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
-        const existing = map.get(label);
-        if (existing) {
-          existing.count += n;
-          if (week && (!existing.lastExamWeek || week > existing.lastExamWeek)) {
-            existing.lastExamWeek = week;
-          }
-        } else {
-          map.set(label, { count: n, lastExamWeek: week });
-        }
-      }
+  /** Veli paneliyle uyumlu özet bileşeni için sınav başlıkları doldurulur. */
+  const performanceInsightsResults = useMemo(() => {
+    const list = student ? sortResultsByDateDesc(getResultsByStudent(student.id)) : [];
+    return list.map((r) => ({
+      ...r,
+      examTitle: r.examTitle?.trim() || exams.find((e) => e.id === r.examId)?.title || undefined,
+    }));
+  }, [student, getResultsByStudent, exams]);
+
+  const examOptionsForStudent = useMemo(() => {
+    const byId = new Map<string, { examId: string; label: string; sortKey: number }>();
+    for (const r of studentResults) {
+      const exam = exams.find((e) => e.id === r.examId);
+      if (!exam) continue;
+      const sortKey = Date.parse(`${exam.date}T12:00:00`);
+      const sk = Number.isFinite(sortKey) ? sortKey : 0;
+      const titleShort = exam.title.length > 42 ? `${exam.title.slice(0, 40)}…` : exam.title;
+      byId.set(exam.id, {
+        examId: exam.id,
+        label: `${titleShort} (${exam.weekLabel})`,
+        sortKey: sk,
+      });
     }
-    return Array.from(map.entries())
-      .map(([topic, { count, lastExamWeek }]) => ({ topic, count, lastExamWeek }))
-      .sort((a, b) => b.count - a.count);
+    return Array.from(byId.values()).sort((a, b) => a.sortKey - b.sortKey);
   }, [studentResults, exams]);
 
+  useEffect(() => {
+    if (
+      topicSummaryExamFilter &&
+      !examOptionsForStudent.some((o) => o.examId === topicSummaryExamFilter)
+    ) {
+      setTopicSummaryExamFilter('');
+    }
+  }, [topicSummaryExamFilter, examOptionsForStudent]);
+
+  const resultsForTopicSummary = useMemo(() => {
+    if (!topicSummaryExamFilter) return studentResults;
+    return studentResults.filter((r) => r.examId === topicSummaryExamFilter);
+  }, [studentResults, topicSummaryExamFilter]);
+
+  const topicSummary = useMemo(
+    () => aggregateTopicSummaryForResults(resultsForTopicSummary, exams, analyses),
+    [resultsForTopicSummary, exams, analyses]
+  );
+
+  const topicSummaryExamLabel = useMemo(() => {
+    if (!topicSummaryExamFilter) return null;
+    return examOptionsForStudent.find((o) => o.examId === topicSummaryExamFilter)?.label ?? null;
+  }, [topicSummaryExamFilter, examOptionsForStudent]);
+
   const weeklyChartData = useMemo(() => {
-    return studentResults
+    type Row = {
+      sortKey: number;
+      week: string;
+      examTitle: string;
+      barAxisLabel: string;
+      dogru: number;
+      yanlis: number;
+      net: number;
+      basariPct: number;
+      toplamSoru: number;
+    };
+    const raw = studentResults
       .map((r) => {
         const exam = exams.find((e) => e.id === r.examId);
-        return exam
-          ? {
-              week: exam.weekLabel,
-              dogru: r.correctCount,
-              yanlis: r.wrongCount,
-              net: r.correctCount - r.wrongCount / 4,
-            }
-          : null;
+        if (!exam) return null;
+        const sortKey = Date.parse(`${exam.date}T12:00:00`);
+        const total = r.correctCount + r.wrongCount;
+        const pct = total > 0 ? Math.round((r.correctCount / total) * 1000) / 10 : 0;
+        const titleShort =
+          exam.title.length > 18 ? `${exam.title.slice(0, 16)}…` : exam.title;
+        const barAxisLabel = `${titleShort} · ${exam.weekLabel}`;
+        return {
+          sortKey: Number.isFinite(sortKey) ? sortKey : 0,
+          week: exam.weekLabel,
+          examTitle: exam.title,
+          barAxisLabel,
+          dogru: r.correctCount,
+          yanlis: r.wrongCount,
+          net: Math.round((r.correctCount - r.wrongCount / 4) * 10) / 10,
+          basariPct: pct,
+          toplamSoru: total,
+        } satisfies Row;
       })
-      .filter(Boolean)
-      .sort((a, b) => a!.week.localeCompare(b!.week));
+      .filter(Boolean) as Row[];
+
+    raw.sort((a, b) => a.sortKey - b.sortKey);
+
+    const dupWeek = new Map<string, number>();
+    return raw.map((r) => {
+      const n = (dupWeek.get(r.week) ?? 0) + 1;
+      dupWeek.set(r.week, n);
+      const barAxisLabel =
+        n > 1 ? `${r.barAxisLabel} (${n})` : r.barAxisLabel;
+      return { ...r, barAxisLabel };
+    });
   }, [studentResults, exams]);
+
+  const examPerformanceChartHeight = useMemo(
+    () => Math.min(420, Math.max(260, weeklyChartData.length * 56 + 120)),
+    [weeklyChartData.length]
+  );
 
   const loadLinkedParents = useCallback(async () => {
     if (!student?.id) return;
@@ -124,10 +272,8 @@ export function StudentDetail() {
     void loadLinkedParents();
   }, [loadLinkedParents]);
 
-  const openAddParentModal = async () => {
+  const refreshParentCandidatesInModal = useCallback(async () => {
     if (!student?.id) return;
-    setAddParentModalOpen(true);
-    setSelectedParentId('');
     setCandidatesLoading(true);
     try {
       const [all, linked] = await Promise.all([
@@ -147,6 +293,17 @@ export function StudentDetail() {
     } finally {
       setCandidatesLoading(false);
     }
+  }, [student?.id, showToast]);
+
+  const openAddParentModal = async () => {
+    if (!student?.id) return;
+    setAddParentModalOpen(true);
+    setSelectedParentId('');
+    setNewParentEmail('');
+    setNewParentPassword('');
+    setNewParentDisplayName('');
+    setNewParentPhone('');
+    await refreshParentCandidatesInModal();
   };
 
   if (!student) {
@@ -162,34 +319,288 @@ export function StudentDetail() {
   }
 
   const cls = student.classId ? getClassById(student.classId) : null;
+  const detailTab = searchParams.get('sekme') === 'bilgiler' ? 'bilgiler' : 'performans';
+
+  const setDetailTab = (tab: 'performans' | 'bilgiler') => {
+    setSearchParams({ sekme: tab }, { replace: true });
+  };
 
   return (
-    <div>
-      <div className="mb-4">
-        <Link
-          to="/dashboard/ogrenci-takibi"
-          className="text-decoration-none text-muted small mb-2 d-inline-block"
-        >
-          <i className="bi bi-arrow-left me-1" /> Öğrenci listesine dön
-        </Link>
-        <div className="d-flex flex-wrap justify-content-between align-items-start gap-3">
-          <div>
-            <h4 className="fw-bold mb-1">
-              {student.firstName} {student.lastName}
-            </h4>
-            <p className="text-muted mb-0">
-              No: {student.studentNo}
+    <div className="pb-5">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 mb-lg-5 gap-3">
+        <div className="min-w-0 w-100">
+          <Link
+            to="/dashboard/ogrenci-takibi"
+            className="text-decoration-none text-muted small d-inline-flex align-items-center mb-2"
+          >
+            <i className="bi bi-arrow-left me-1" aria-hidden /> Öğrenci Takibine Dön
+          </Link>
+          <div className="d-flex align-items-center">
+            <div
+              className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold fs-3 me-3 shadow-sm flex-shrink-0"
+              style={{ width: '50px', height: '50px' }}
+              aria-hidden
+            >
+              {(student.firstName?.[0] || '').toUpperCase()}
+              {(student.lastName?.[0] || '').toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h2 className="fw-bold mb-0 text-dark text-break">
+                {student.firstName} {student.lastName}
+              </h2>
+              <div className="text-muted fs-6 mb-1">No: {student.studentNo}</div>
               {cls && (
-                <Badge bg="primary" className="ms-2">
+                <Badge bg="primary" className="fw-normal">
                   {cls.name}
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
         </div>
       </div>
 
-      <Row className="g-4">
+      <div
+        className="d-flex flex-wrap gap-2 mb-4 mb-lg-5"
+        role="tablist"
+        aria-label="Öğrenci görünümü"
+      >
+        <Button
+          type="button"
+          variant={detailTab === 'performans' ? 'primary' : 'outline-primary'}
+          className="d-inline-flex align-items-center"
+          onClick={() => setDetailTab('performans')}
+          aria-pressed={detailTab === 'performans'}
+          id="student-tab-performans"
+          aria-controls="student-panel-performans"
+        >
+          <i className="bi bi-speedometer2 me-2" aria-hidden />
+          Performans
+        </Button>
+        <Button
+          type="button"
+          variant={detailTab === 'bilgiler' ? 'primary' : 'outline-primary'}
+          className="d-inline-flex align-items-center"
+          onClick={() => setDetailTab('bilgiler')}
+          aria-pressed={detailTab === 'bilgiler'}
+          id="student-tab-bilgiler"
+          aria-controls="student-panel-bilgiler"
+        >
+          <i className="bi bi-person-vcard me-2" aria-hidden />
+          Bilgiler
+        </Button>
+      </div>
+
+      {detailTab === 'performans' ? (
+        <div
+          id="student-panel-performans"
+          role="tabpanel"
+          aria-labelledby="student-tab-performans"
+        >
+          <StudentPerformanceInsightsPanel results={performanceInsightsResults} className="mb-5" />
+
+          <Row className="g-4">
+            {examOptionsForStudent.length > 0 && (
+              <Col xs={12}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white border-bottom py-3">
+                    <div className="d-flex flex-column flex-lg-row flex-lg-wrap align-items-lg-start justify-content-lg-between gap-3">
+                      <div className="flex-grow-1">
+                        <h6 className="fw-semibold mb-0">
+                          <i className="bi bi-exclamation-triangle me-2" />
+                          Konu bazlı hata özeti
+                        </h6>
+                        <p className="text-muted small mb-0 mt-2">
+                          {topicSummaryExamFilter ? (
+                            <>
+                              Yalnızca seçtiğiniz sınavdaki yanlışlar listelenir. Farklı denemeleri tek
+                              tek incelemek için sınavı değiştirin veya &quot;Tüm sınavlar&quot; ile birleşik
+                              görünüme dönün.
+                            </>
+                          ) : (
+                            <>
+                              Tüm sınavlar birleştirilmiştir. &quot;Kaç sınavda&quot;, ilgili konuda hata
+                              görülen farklı sınav sayısıdır. Tek deneme görmek için sınav seçin.
+                            </>
+                          )}
+                        </p>
+                        {topicSummaryExamLabel && (
+                          <Badge bg="info" className="mt-2 fw-normal">
+                            Seçili: {topicSummaryExamLabel}
+                          </Badge>
+                        )}
+                      </div>
+                      <Form.Group className="mb-0" style={{ minWidth: 'min(100%, 280px)' }}>
+                        <Form.Label htmlFor="topic-summary-exam-filter" className="small fw-medium">
+                          Sınav filtresi
+                        </Form.Label>
+                        <Form.Select
+                          id="topic-summary-exam-filter"
+                          value={topicSummaryExamFilter}
+                          onChange={(e) => setTopicSummaryExamFilter(e.target.value)}
+                          aria-label="Konu özetinde gösterilecek sınav"
+                        >
+                          <option value="">Tüm sınavlar (birleşik)</option>
+                          {examOptionsForStudent.map((o) => (
+                            <option key={o.examId} value={o.examId}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </div>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    {topicSummary.length === 0 ? (
+                      <Alert variant="light" className="border-0 rounded-0 mb-0 small text-muted">
+                        {topicSummaryExamFilter
+                          ? 'Bu sınavda konu bazlı yanlış kaydı yok (tümü doğru olabilir veya özet veri eksik).'
+                          : 'Henüz konu bazlı yanlış özeti oluşmadı.'}
+                      </Alert>
+                    ) : (
+                      <Table responsive hover className="mb-0">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Konu</th>
+                            <th className="text-end">Toplam yanlış</th>
+                            {!topicSummaryExamFilter && (
+                              <>
+                                <th className="text-end">Kaç sınavda</th>
+                                <th>Son kayıt</th>
+                              </>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topicSummary.map((t) => (
+                            <tr key={t.topic}>
+                              <td className="fw-medium">{t.topic}</td>
+                              <td className="text-end">
+                                <Badge bg="danger" className="fw-normal">
+                                  {t.wrongCount}
+                                </Badge>
+                              </td>
+                              {!topicSummaryExamFilter && (
+                                <>
+                                  <td className="text-end text-muted">{t.examOccurrences}</td>
+                                  <td className="small text-muted">{t.lastExamSummary}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Col>
+            )}
+
+            {weeklyChartData.length > 0 && (
+              <Col xs={12}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white border-bottom py-3">
+                    <h6 className="fw-semibold mb-0">
+                      <i className="bi bi-bar-chart-line me-2" />
+                      Sınav bazında doğru ve yanlış
+                    </h6>
+                    <p className="text-muted small mb-0 mt-2">
+                      Her sütun grubu bir sınavı temsil eder (tarih sırasıyla). Yeşil çubuk doğru, kırmızı
+                      çubuk yanlış soru sayısıdır; sınavlar arası karşılaştırma çizgi grafikten daha
+                      okunaklıdır.
+                    </p>
+                    {weeklyChartData.length === 1 && (
+                      <Alert variant="light" className="border mt-3 mb-0 py-2 small text-muted">
+                        Tek sınav sonucu görünüyor; yeni denemeler eklendikçe sütunlar çoğalır.
+                      </Alert>
+                    )}
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="w-100" style={{ minWidth: 0 }}>
+                      <ResponsiveContainer
+                        width="100%"
+                        height={examPerformanceChartHeight}
+                        debounce={32}
+                      >
+                        <BarChart
+                          data={weeklyChartData}
+                          margin={{ top: 8, right: 12, left: 4, bottom: 64 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis
+                            dataKey="barAxisLabel"
+                            tick={{ fontSize: 10 }}
+                            tickMargin={6}
+                            interval={0}
+                            angle={-32}
+                            textAnchor="end"
+                            height={78}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11 }}
+                            allowDecimals={false}
+                            width={40}
+                            label={{
+                              value: 'Soru sayısı',
+                              angle: -90,
+                              position: 'insideLeft',
+                              style: { fontSize: 11, fill: 'var(--bs-secondary-color)' },
+                            }}
+                          />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.length) return null;
+                              const p = payload[0]?.payload as (typeof weeklyChartData)[number];
+                              return (
+                                <div className="rounded border bg-body p-2 shadow-sm small">
+                                  <div className="fw-semibold">{p.examTitle}</div>
+                                  <div className="text-muted mb-1">{p.week}</div>
+                                  <div>
+                                    Doğru: <strong className="text-success">{p.dogru}</strong> ·
+                                    Yanlış: <strong className="text-danger">{p.yanlis}</strong> · Toplam:{' '}
+                                    {p.toplamSoru}
+                                  </div>
+                                  <div className="text-muted">
+                                    Başarı: %{p.basariPct} · Net (LGS): {p.net}
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Legend
+                            verticalAlign="top"
+                            align="center"
+                            wrapperStyle={{ fontSize: 12, paddingBottom: 4 }}
+                          />
+                          <Bar
+                            dataKey="dogru"
+                            name="Doğru"
+                            fill="var(--bs-success)"
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={36}
+                          />
+                          <Bar
+                            dataKey="yanlis"
+                            name="Yanlış"
+                            fill="var(--bs-danger)"
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={36}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            )}
+          </Row>
+        </div>
+      ) : (
+        <div
+          id="student-panel-bilgiler"
+          role="tabpanel"
+          aria-labelledby="student-tab-bilgiler"
+        >
+          <Row className="g-4">
         <Col lg={6}>
           <Card className="border-0 shadow-sm h-100" key={student.id}>
             <Card.Header className="bg-white border-bottom py-3">
@@ -514,80 +925,9 @@ export function StudentDetail() {
             </Card.Body>
           </Card>
         </Col>
-
-        {topicSummary.length > 0 && (
-          <Col xs={12}>
-            <Card className="border-0 shadow-sm">
-              <Card.Header className="bg-white border-bottom py-3">
-                <h6 className="fw-semibold mb-0">
-                  <i className="bi bi-exclamation-triangle me-2" />
-                  Konu Bazlı Hata Özeti
-                </h6>
-              </Card.Header>
-              <Card.Body className="p-0">
-                <Table responsive hover className="mb-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Konu</th>
-                      <th>Yanlış Sayısı</th>
-                      <th>Son Sınav</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topicSummary.map((t) => (
-                      <tr key={t.topic}>
-                        <td className="fw-medium">{t.topic}</td>
-                        <td>{t.count}</td>
-                        <td className="text-muted small">{t.lastExamWeek || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </Col>
-        )}
-
-        {weeklyChartData.length > 0 && (
-          <Col xs={12}>
-            <Card className="border-0 shadow-sm">
-              <Card.Header className="bg-white border-bottom py-3">
-                <h6 className="fw-semibold mb-0">
-                  <i className="bi bi-graph-up me-2" />
-                  Haftalık Gelişim
-                </h6>
-              </Card.Header>
-              <Card.Body>
-                <div className="w-100" style={{ minWidth: 0 }}>
-                  <ResponsiveContainer width="100%" height={250} debounce={32}>
-                    <LineChart data={weeklyChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="dogru"
-                        stroke="var(--bs-success)"
-                        name="Doğru"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="yanlis"
-                        stroke="var(--bs-danger)"
-                        name="Yanlış"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        )}
       </Row>
+        </div>
+      )}
 
       <Modal
         show={addParentModalOpen}
@@ -599,16 +939,125 @@ export function StudentDetail() {
         </Modal.Header>
         <Modal.Body>
           <p className="small text-muted mb-3">
-            Yalnızca sistemde kayıtlı veli (Parent) hesapları listelenir. Yeni veli oluşturma bu
-            sürümde yoktur.
+            Önce gerekirse yeni veli girişi oluşturun; ardından listeden seçip öğrenciye bağlayın.
+            Veli, aynı e-posta ve şifre ile veli paneline giriş yapar.
           </p>
+
+          <div className="border rounded p-3 mb-4 bg-body-secondary bg-opacity-25">
+            <h6 className="small fw-semibold mb-3">
+              <i className="bi bi-person-plus me-1" />
+              Yeni veli hesabı
+            </h6>
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="new-parent-email" className="small">
+                E-posta
+              </Form.Label>
+              <Form.Control
+                id="new-parent-email"
+                type="email"
+                autoComplete="off"
+                value={newParentEmail}
+                onChange={(e) => setNewParentEmail(e.target.value)}
+                placeholder="veli@ornek.com"
+                disabled={createParentLoading || parentActionLoading}
+              />
+            </Form.Group>
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="new-parent-password" className="small">
+                Şifre (en az 6 karakter)
+              </Form.Label>
+              <Form.Control
+                id="new-parent-password"
+                type="password"
+                autoComplete="new-password"
+                value={newParentPassword}
+                onChange={(e) => setNewParentPassword(e.target.value)}
+                disabled={createParentLoading || parentActionLoading}
+              />
+            </Form.Group>
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="new-parent-name" className="small">
+                Görünen ad
+              </Form.Label>
+              <Form.Control
+                id="new-parent-name"
+                type="text"
+                value={newParentDisplayName}
+                onChange={(e) => setNewParentDisplayName(e.target.value)}
+                placeholder="Ayşe Yılmaz"
+                disabled={createParentLoading || parentActionLoading}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="new-parent-phone" className="small">
+                Telefon (isteğe bağlı)
+              </Form.Label>
+              <Form.Control
+                id="new-parent-phone"
+                type="tel"
+                value={newParentPhone}
+                onChange={(e) => setNewParentPhone(e.target.value)}
+                disabled={createParentLoading || parentActionLoading}
+              />
+            </Form.Group>
+            <Button
+              variant="outline-primary"
+              size="sm"
+              disabled={
+                createParentLoading ||
+                parentActionLoading ||
+                !newParentEmail.trim() ||
+                newParentPassword.length < 6 ||
+                !newParentDisplayName.trim()
+              }
+              onClick={() => {
+                setCreateParentLoading(true);
+                studentsApi
+                  .createParentAccount({
+                    email: newParentEmail,
+                    password: newParentPassword,
+                    displayName: newParentDisplayName,
+                    phone: newParentPhone.trim() || null,
+                  })
+                  .then(async (created) => {
+                    showToast('Veli hesabı oluşturuldu; listeden bağlayabilirsiniz.');
+                    setSelectedParentId(created.parentId);
+                    setNewParentPassword('');
+                    await refreshParentCandidatesInModal();
+                  })
+                  .catch((err: unknown) => {
+                    const msg =
+                      err && typeof err === 'object' && 'message' in err
+                        ? String((err as ApiError).message)
+                        : 'Hesap oluşturulamadı.';
+                    showToast(msg, 'danger');
+                  })
+                  .finally(() => setCreateParentLoading(false));
+              }}
+            >
+              {createParentLoading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-1" />
+                  Oluşturuluyor…
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check2-circle me-1" />
+                  Veli hesabı oluştur
+                </>
+              )}
+            </Button>
+          </div>
+
+          <h6 className="small fw-semibold mb-2">Mevcut veli seç</h6>
           {candidatesLoading ? (
             <div className="d-flex justify-content-center py-3">
               <Spinner animation="border" size="sm" />
             </div>
           ) : parentCandidates.length === 0 ? (
             <p className="small text-muted mb-0">
-              Eklenebilecek veli kalmadı veya Parent rolünde kullanıcı bulunmuyor.
+              Bağlanabilecek başka veli yok. Yukarıdan yeni hesap oluşturun veya tüm veliler zaten
+              bu öğrenciye eklenmiş olabilir.
             </p>
           ) : (
             <Form.Group>
@@ -640,7 +1089,10 @@ export function StudentDetail() {
           <Button
             variant="primary"
             disabled={
-              !selectedParentId || parentActionLoading || candidatesLoading || parentCandidates.length === 0
+              !selectedParentId ||
+              parentActionLoading ||
+              candidatesLoading ||
+              createParentLoading
             }
             onClick={() => {
               if (!student || !selectedParentId) return;

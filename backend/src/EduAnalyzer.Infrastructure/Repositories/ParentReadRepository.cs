@@ -23,4 +23,11 @@ public class ParentReadRepository : IParentReadRepository
             .Where(p => p.User.Role == UserRole.Parent)
             .OrderBy(p => p.User.Email)
             .ToListAsync(ct);
+
+    public async Task<Parent> AddAsync(Parent entity, CancellationToken ct = default)
+    {
+        _context.Parents.Add(entity);
+        await _context.SaveChangesAsync(ct);
+        return entity;
+    }
 }

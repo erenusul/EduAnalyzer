@@ -316,6 +316,18 @@ export function apiPost<T>(path: string, body?: unknown, apiOpts?: ApiRequestOpt
   );
 }
 
+export function apiPatch<T>(path: string, body?: unknown, apiOpts?: ApiRequestOptions): Promise<T> {
+  return apiRequest<T>(
+    path,
+    {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    },
+    true,
+    apiOpts
+  );
+}
+
 export function apiDelete(path: string): Promise<void> {
   return apiRequest<void>(path, { method: 'DELETE' });
 }

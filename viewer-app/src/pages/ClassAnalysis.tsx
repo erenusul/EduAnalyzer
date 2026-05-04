@@ -2,10 +2,15 @@
  * Sınıf analiz ekranı - konu bazlı yanlış sayıları
  */
 
-import { useMemo, useState } from 'react';
-import { Card, Form, Table, Badge } from 'react-bootstrap';
+import { useEffect, useMemo, useState } from 'react';
+import { Card, Form, Table, Badge, Button, Alert, Accordion } from 'react-bootstrap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTeacherData } from '../contexts/TeacherDataContext';
+import type { ExamResult } from '../types/teacher';
+import {
+  buildExamQuestionTopicMap,
+  resolveWrongQuestionTopicLabel,
+} from '../utils/examQuestionTopics';
 
 interface TopicStats {
   topic: string;
@@ -24,11 +29,188 @@ interface StudentRankRow {
   net: number;
 }
 
+interface WrongAnswerDetailRow {
+  questionIndex: number;
+  studentId: string;
+  studentName: string;
+  studentAnswer: string;
+  expectedAnswer: string;
+  topic: string;
+}
+
+interface WrongAnswersQuestionGroup {
+  questionIndex: number;
+  topic: string;
+  expectedAnswer: string;
+  rows: WrongAnswerDetailRow[];
+  choiceSummary: string;
+}
+
+function buildWrongChoiceSummary(rows: WrongAnswerDetailRow[]): string {
+  const tallies = new Map<string, number>();
+  for (const r of rows) {
+    const k = r.studentAnswer === '—' ? '?' : r.studentAnswer;
+    tallies.set(k, (tallies.get(k) ?? 0) + 1);
+  }
+  return Array.from(tallies.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], 'tr'))
+    .map(([k, n]) => `${k}×${n}`)
+    .join(', ');
+}
+
+function groupWrongAnswersByQuestion(details: WrongAnswerDetailRow[]): WrongAnswersQuestionGroup[] {
+  const byQuestion = new Map<number, WrongAnswerDetailRow[]>();
+  for (const r of details) {
+    const list = byQuestion.get(r.questionIndex) ?? [];
+    list.push(r);
+    byQuestion.set(r.questionIndex, list);
+  }
+  return Array.from(byQuestion.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([questionIndex, rows]) => {
+      const sortedRows = [...rows].sort((a, b) =>
+        a.studentName.localeCompare(b.studentName, 'tr')
+      );
+      const topic = sortedRows[0]?.topic ?? '—';
+      const expectedAnswer = sortedRows[0]?.expectedAnswer ?? '—';
+      return {
+        questionIndex,
+        topic,
+        expectedAnswer,
+        rows: sortedRows,
+        choiceSummary: buildWrongChoiceSummary(sortedRows),
+      };
+    });
+}
+
+function aggregateTopicStatsFromResults(
+  results: ExamResult[],
+  examTopicByQuestion: Map<number, string>,
+  getStudentById: (id: string) => { firstName: string; lastName: string } | undefined
+): TopicStats[] {
+  const topicMap = new Map<string, { count: number; studentIds: Set<string> }>();
+
+  for (const result of results) {
+    const wqList = result.wrongQuestions ?? [];
+
+    if (wqList.length > 0) {
+      for (const w of wqList) {
+        const label = resolveWrongQuestionTopicLabel(w.questionIndex, w.topic, examTopicByQuestion);
+        const existing = topicMap.get(label);
+        if (existing) {
+          existing.count += 1;
+          existing.studentIds.add(result.studentId);
+        } else {
+          topicMap.set(label, {
+            count: 1,
+            studentIds: new Set([result.studentId]),
+          });
+        }
+      }
+      continue;
+    }
+
+    for (const wt of result.wrongTopics ?? []) {
+      const label =
+        wt?.topic != null && String(wt.topic).trim() !== ''
+          ? String(wt.topic).trim()
+          : 'Bilinmiyor';
+      const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
+      const existing = topicMap.get(label);
+      if (existing) {
+        existing.count += n;
+        existing.studentIds.add(result.studentId);
+      } else {
+        topicMap.set(label, {
+          count: n,
+          studentIds: new Set([result.studentId]),
+        });
+      }
+    }
+  }
+
+  return Array.from(topicMap.entries())
+    .map(([topic, { count, studentIds }]) => ({
+      topic,
+      studentCount: studentIds.size,
+      totalWrong: count,
+      studentNames: Array.from(studentIds)
+        .map((sid) => getStudentById(sid))
+        .filter(Boolean)
+        .map((s) => `${s!.firstName} ${s!.lastName}`),
+    }))
+    .sort((a, b) => b.totalWrong - a.totalWrong);
+}
+
+function buildWrongAnswerDetails(
+  results: ExamResult[],
+  examTopicByQuestion: Map<number, string>,
+  getStudentById: (id: string) => { firstName: string; lastName: string } | undefined
+): WrongAnswerDetailRow[] {
+  const rows: WrongAnswerDetailRow[] = [];
+  for (const result of results) {
+    const name =
+      (() => {
+        const s = getStudentById(result.studentId);
+        return s ? `${s.firstName} ${s.lastName}` : '—';
+      })();
+    for (const w of result.wrongQuestions ?? []) {
+      const topic = resolveWrongQuestionTopicLabel(w.questionIndex, w.topic, examTopicByQuestion);
+      const ans = (w.studentAnswer ?? '').trim().toUpperCase();
+      const letter = ans.length > 0 ? ans.charAt(0) : '—';
+      rows.push({
+        questionIndex: w.questionIndex,
+        studentId: result.studentId,
+        studentName: name,
+        studentAnswer: letter,
+        expectedAnswer: w.expectedAnswer?.trim().toUpperCase() ?? '—',
+        topic,
+      });
+    }
+  }
+  return rows.sort(
+    (a, b) =>
+      a.questionIndex - b.questionIndex ||
+      a.studentName.localeCompare(b.studentName, 'tr')
+  );
+}
+
 export function ClassAnalysis() {
-  const { classes, exams, examResults, getStudentsByClass, getStudentById } = useTeacherData();
+  const {
+    classes,
+    exams,
+    analyses,
+    examResults,
+    getStudentsByClass,
+    getStudentById,
+    refresh,
+    loading,
+  } = useTeacherData();
   const readyExams = useMemo(() => exams.filter((e) => e.status === 'ready'), [exams]);
   const [selectedClassId, setSelectedClassId] = useState<string>(classes[0]?.id ?? '');
   const [selectedExamId, setSelectedExamId] = useState<string>(readyExams[0]?.id ?? '');
+
+  useEffect(() => {
+    if (classes.length === 0) {
+      setSelectedClassId('');
+      return;
+    }
+    setSelectedClassId((prev) => {
+      if (prev && classes.some((c) => c.id === prev)) return prev;
+      return classes[0]!.id;
+    });
+  }, [classes]);
+
+  useEffect(() => {
+    if (readyExams.length === 0) {
+      setSelectedExamId('');
+      return;
+    }
+    setSelectedExamId((prev) => {
+      if (prev && readyExams.some((e) => e.id === prev)) return prev;
+      return readyExams[0]!.id;
+    });
+  }, [readyExams]);
 
   const classResults = useMemo(() => {
     if (!selectedClassId || !selectedExamId) return [];
@@ -39,41 +221,40 @@ export function ClassAnalysis() {
     );
   }, [selectedClassId, selectedExamId, examResults, getStudentsByClass]);
 
+  const selectedExam = exams.find((e) => e.id === selectedExamId);
+  const analysisForExam = useMemo(
+    () => analyses.find((a) => a.id === selectedExam?.analysisId),
+    [analyses, selectedExam?.analysisId]
+  );
+
+  const examTopicByQuestion = useMemo(
+    () => buildExamQuestionTopicMap(analysisForExam, selectedExam),
+    [analysisForExam, selectedExam]
+  );
+
   const topicStats = useMemo((): TopicStats[] => {
     if (classResults.length === 0) return [];
+    return aggregateTopicStatsFromResults(classResults, examTopicByQuestion, getStudentById);
+  }, [classResults, examTopicByQuestion, getStudentById]);
 
-    const topicMap = new Map<string, { count: number; studentIds: Set<string> }>();
+  const wrongAnswerDetails = useMemo(
+    () => buildWrongAnswerDetails(classResults, examTopicByQuestion, getStudentById),
+    [classResults, examTopicByQuestion, getStudentById]
+  );
 
-    for (const result of classResults) {
-      for (const wt of result.wrongTopics ?? []) {
-        const label =
-          wt?.topic != null && String(wt.topic).trim() !== '' ? String(wt.topic).trim() : 'Bilinmiyor';
-        const n = typeof wt?.count === 'number' && Number.isFinite(wt.count) ? wt.count : 0;
-        const existing = topicMap.get(label);
-        if (existing) {
-          existing.count += n;
-          existing.studentIds.add(result.studentId);
-        } else {
-          topicMap.set(label, {
-            count: n,
-            studentIds: new Set([result.studentId]),
-          });
-        }
-      }
+  const wrongAnswerGroups = useMemo(
+    () => groupWrongAnswersByQuestion(wrongAnswerDetails),
+    [wrongAnswerDetails]
+  );
+
+  const defaultWrongAnswersAccordionKey = useMemo(() => {
+    if (wrongAnswerGroups.length === 0) return undefined;
+    let top = wrongAnswerGroups[0]!;
+    for (const g of wrongAnswerGroups) {
+      if (g.rows.length > top.rows.length) top = g;
     }
-
-    return Array.from(topicMap.entries())
-      .map(([topic, { count, studentIds }]) => ({
-        topic,
-        studentCount: studentIds.size,
-        totalWrong: count,
-        studentNames: Array.from(studentIds)
-          .map((sid) => getStudentById(sid))
-          .filter(Boolean)
-          .map((s) => `${s!.firstName} ${s!.lastName}`),
-      }))
-      .sort((a, b) => b.totalWrong - a.totalWrong);
-  }, [classResults, getStudentById]);
+    return String(top.questionIndex);
+  }, [wrongAnswerGroups]);
 
   const studentRanking = useMemo((): StudentRankRow[] => {
     return classResults
@@ -119,14 +300,22 @@ export function ClassAnalysis() {
       .slice(0, 18);
   }, [classResults]);
 
-  const maxWrong = useMemo(
-    () => (topicStats.length > 0 ? Math.max(...topicStats.map((t) => t.totalWrong)) : 0),
+  const topicStatsPositive = useMemo(
+    () => topicStats.filter((t) => t.totalWrong > 0),
     [topicStats]
+  );
+
+  const maxWrong = useMemo(
+    () =>
+      topicStatsPositive.length > 0
+        ? Math.max(...topicStatsPositive.map((t) => t.totalWrong))
+        : 0,
+    [topicStatsPositive]
   );
 
   const chartData = useMemo(
     () =>
-      topicStats.slice(0, 10).map((t) => {
+      topicStatsPositive.slice(0, 10).map((t) => {
         const topic = t.topic || 'Bilinmiyor';
         return {
           name: topic.length > 20 ? topic.substring(0, 20) + '...' : topic,
@@ -134,28 +323,48 @@ export function ClassAnalysis() {
           yanlis: t.totalWrong,
         };
       }),
-    [topicStats]
+    [topicStatsPositive]
+  );
+
+  const hasWrongQuestionBreakdown = useMemo(
+    () => classResults.some((r) => (r.wrongQuestions?.length ?? 0) > 0),
+    [classResults]
   );
 
   const wrongQChartData = useMemo(
     () =>
-      wrongQuestionFreq.map((w) => ({
-        name: w.soruLabel.length > 6 ? w.soruLabel.slice(0, 6) + '…' : w.soruLabel,
-        fullLabel: `Soru ${w.soruNo}`,
-        adet: w.adet,
-      })),
-    [wrongQuestionFreq]
+      wrongQuestionFreq.map((w) => {
+        const topicLine = examTopicByQuestion.get(w.soruNo) ?? 'Bilinmiyor';
+        return {
+          name: w.soruLabel.length > 6 ? w.soruLabel.slice(0, 6) + '…' : w.soruLabel,
+          fullLabel: `Soru ${w.soruNo}`,
+          adet: w.adet,
+          topicLine,
+        };
+      }),
+    [wrongQuestionFreq, examTopicByQuestion]
   );
-
-  const selectedExam = exams.find((e) => e.id === selectedExamId);
 
   return (
     <div>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">Sınıf Analizi</h4>
-        <p className="text-muted mb-0">
-          Sınıf ve sınav seçerek konu bazlı yanlış analizlerini görüntüleyin.
-        </p>
+      <div className="mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
+        <div>
+          <h4 className="fw-bold mb-1">Sınıf Analizi</h4>
+          <p className="text-muted mb-0">
+            Sınıf ve sınav seçerek konu bazlı yanlış analizlerini görüntüleyin.
+          </p>
+        </div>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          className="flex-shrink-0"
+          onClick={() => void refresh()}
+          disabled={loading}
+          aria-label="Sınıf ve sınav listesini sunucudan yenile"
+        >
+          <i className="bi bi-arrow-clockwise me-1" aria-hidden />
+          Yenile
+        </Button>
       </div>
 
       <Card className="border-0 shadow-sm mb-4">
@@ -280,6 +489,100 @@ export function ClassAnalysis() {
             </Card.Body>
           </Card>
 
+          <Card className="border-0 shadow-sm mb-4">
+            <Card.Header className="bg-white border-bottom py-3">
+              <h6 className="fw-semibold mb-0">
+                <i className="bi bi-ui-checks-grid me-2" />
+                Yanlış sorularda işaretlenen şıklar
+              </h6>
+              <p className="text-muted small mb-0 mt-1">
+                Sorular gruplanır; başlıkta özet, açılan bölümde öğrenci bazlı şıklar yer alır. Çok öğrencide
+                listeyi daraltmak için yalnızca ilgili soruyu açın.
+              </p>
+            </Card.Header>
+            <Card.Body className="p-0">
+              {!hasWrongQuestionBreakdown ? (
+                <Alert variant="light" className="border-0 rounded-0 mb-0 text-muted small">
+                  Bu sonuç kayıtlarında soru bazlı şık listesi yok (ör. yalnızca özet girilmiş olabilir). Mobil
+                  optik tarama veya öğretmen panelinden şık detaylı kayıt açıldığında tablo dolar.
+                </Alert>
+              ) : (
+                <Accordion
+                  defaultActiveKey={defaultWrongAnswersAccordionKey}
+                  className="rounded-0 border-0"
+                  flush
+                >
+                  {wrongAnswerGroups.map((g) => (
+                    <Accordion.Item
+                      eventKey={String(g.questionIndex)}
+                      key={g.questionIndex}
+                      className="border-start-0 border-end-0"
+                    >
+                      <Accordion.Header
+                        aria-label={`Soru ${g.questionIndex}, ${g.rows.length} öğrenci yanlış, ayrıntıyı aç veya kapat`}
+                      >
+                        <div className="d-flex flex-column flex-lg-row flex-lg-wrap align-items-lg-center gap-1 gap-lg-2 w-100 text-start pe-2">
+                          <span className="fw-semibold text-nowrap">Soru {g.questionIndex}</span>
+                          <Badge bg="secondary" className="align-self-start">
+                            {g.rows.length} öğrenci
+                          </Badge>
+                          <span className="text-muted small">
+                            Konu: <span className="text-body">{g.topic}</span>
+                          </span>
+                          <span className="text-muted small">
+                            Yanlış şık: <span className="text-body">{g.choiceSummary}</span>
+                          </span>
+                          <span className="text-muted small ms-lg-auto">
+                            Doğru:{' '}
+                            {g.expectedAnswer === '—' ? (
+                              <span>—</span>
+                            ) : (
+                              <Badge bg="success" className="fw-normal">
+                                {g.expectedAnswer}
+                              </Badge>
+                            )}
+                          </span>
+                        </div>
+                      </Accordion.Header>
+                      <Accordion.Body className="p-0 bg-body-tertiary">
+                        <Table responsive hover size="sm" className="mb-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Öğrenci</th>
+                              <th>İşaretlenen</th>
+                              <th>Doğru şık</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {g.rows.map((row) => (
+                              <tr key={`${row.studentId}-${row.questionIndex}`}>
+                                <td className="fw-medium">{row.studentName}</td>
+                                <td>
+                                  {row.studentAnswer === '—' ? (
+                                    <span className="text-muted">—</span>
+                                  ) : (
+                                    <Badge bg="danger">{row.studentAnswer}</Badge>
+                                  )}
+                                </td>
+                                <td>
+                                  {row.expectedAnswer === '—' ? (
+                                    <span className="text-muted">—</span>
+                                  ) : (
+                                    <Badge bg="success">{row.expectedAnswer}</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </Accordion.Body>
+                    </Accordion.Item>
+                  ))}
+                </Accordion>
+              )}
+            </Card.Body>
+          </Card>
+
           {wrongQChartData.length > 0 && (
             <Card className="border-0 shadow-sm mb-4">
               <Card.Header className="bg-white border-bottom py-3">
@@ -299,10 +602,22 @@ export function ClassAnalysis() {
                       <XAxis dataKey="name" />
                       <YAxis allowDecimals={false} />
                       <Tooltip
-                        formatter={(value: number | undefined) => [value ?? 0, 'Yanlış sayısı']}
-                        labelFormatter={(_, payload) =>
-                          payload?.[0]?.payload?.fullLabel ?? String(payload?.[0]?.payload?.name ?? '')
-                        }
+                        cursor={{ fill: 'rgba(var(--bs-primary-rgb), 0.06)' }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const row = payload[0]?.payload as {
+                            fullLabel?: string;
+                            adet?: number;
+                            topicLine?: string;
+                          };
+                          return (
+                            <div className="rounded border bg-body p-2 shadow-sm small">
+                              <div className="fw-semibold mb-1">{row.fullLabel ?? ''}</div>
+                              <div className="text-muted mb-1">Konu: {row.topicLine ?? '—'}</div>
+                              <div>Yanlış sayısı: {row.adet ?? 0}</div>
+                            </div>
+                          );
+                        }}
                       />
                       <Bar dataKey="adet" fill="var(--bs-danger)" name="Yanlış" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -312,7 +627,7 @@ export function ClassAnalysis() {
             </Card>
           )}
 
-          {topicStats.length > 0 && (
+          {chartData.length > 0 && (
             <Card className="border-0 shadow-sm mb-4">
               <Card.Header className="bg-white border-bottom py-3">
                 <h6 className="fw-semibold mb-0">
@@ -324,6 +639,10 @@ export function ClassAnalysis() {
                     </Badge>
                   )}
                 </h6>
+                <p className="text-muted small mb-0 mt-1">
+                  Konular, bu sınavın bağlı olduğu PDF analizindeki soru tahminleriyle eşleştirilir; veri yoksa
+                  anlamlı dağılım çıkmaz (hata değil, eksik analiz veya indeks uyumsuzluğu olabilir).
+                </p>
               </Card.Header>
               <Card.Body>
                 <div
@@ -354,7 +673,7 @@ export function ClassAnalysis() {
             </Card>
           )}
 
-          {topicStats.length > 0 ? (
+          {topicStatsPositive.length > 0 ? (
             <Card className="border-0 shadow-sm">
               <Card.Header className="bg-white border-bottom py-3">
                 <h6 className="fw-semibold mb-0">
@@ -373,8 +692,8 @@ export function ClassAnalysis() {
                     </tr>
                   </thead>
                   <tbody>
-                    {topicStats.map((t) => (
-                      <tr key={t.topic}>
+                    {topicStatsPositive.map((t, idx) => (
+                      <tr key={`${t.topic}-${idx}`}>
                         <td className="fw-medium">
                           {t.totalWrong === maxWrong && maxWrong > 0 && (
                             <Badge bg="danger" className="me-2">
