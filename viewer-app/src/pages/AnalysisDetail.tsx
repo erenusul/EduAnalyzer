@@ -42,6 +42,9 @@ export function AnalysisDetail() {
   const results = analysis?.results as PDFAnalysisResponse | undefined;
   const items = results?.results ?? [];
   const exam = analysis ? getExamByAnalysisId(analysis.id) : undefined;
+  const examSyncId = exam?.id;
+  const examSyncTitle = exam?.title ?? '';
+  const examSyncWeek = exam?.weekLabel ?? '';
 
   const getQuestionId = (item: QuestionAnalysisResult) =>
     item?.question_id ?? (item as { questionId?: string })?.questionId ?? '';
@@ -116,11 +119,10 @@ export function AnalysisDetail() {
   }, [selectedIndices.size]);
 
   useEffect(() => {
-    if (exam) {
-      setExamTitleDraft(exam.title);
-      setExamWeekDraft(exam.weekLabel);
-    }
-  }, [exam?.id, exam?.title, exam?.weekLabel]);
+    if (!examSyncId) return;
+    setExamTitleDraft(examSyncTitle);
+    setExamWeekDraft(examSyncWeek);
+  }, [examSyncId, examSyncTitle, examSyncWeek]);
 
   useEffect(() => {
     return () => {
