@@ -1,6 +1,22 @@
+import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP as TURKISH_COLUMN_CROP_TEMPLATE_ID } from '../../constants/opticalTurkishColumn';
 import { apiPatch, apiUploadFormData } from './apiClient';
 import type { ScanExamResponse } from '../../types/exam';
-import { OPTICAL_TEMPLATE_LGS_TURKISH_COLUMN_CROP as TURKISH_COLUMN_CROP_TEMPLATE_ID } from '../../constants/opticalTurkishColumn';
+
+type RawScanJson = Record<string, unknown>;
+
+/** Sunucu camelCase / PascalCase veya eksik alan farklarına karşı sonuç kimliğini tekilleştirir. */
+export function normalizeScanExamResponse(data: ScanExamResponse): ScanExamResponse {
+  const raw = data as unknown as RawScanJson;
+  const id = raw.examResultId ?? raw.ExamResultId;
+  if (id === null || id === undefined) {
+    return data;
+  }
+  const examResultId = String(id).trim();
+  if (examResultId.length === 0) {
+    return data;
+  }
+  return { ...data, examResultId };
+}
 
 /** 212×300 mm A4, yalnızca Türkçe 20×4 mm şablonu (ML tarafıyla aynı kimlik). */
 export const OPTICAL_TEMPLATE_LGS_TURKISH_212X300 = 'lgs_turkish_212x300';
@@ -43,7 +59,9 @@ export function submitScan(
     formData.append('opticalTemplate', opticalTemplate);
   }
 
-  return apiUploadFormData<ScanExamResponse>(`/api/me/exams/${examId}/submit-scan`, formData);
+  return apiUploadFormData<ScanExamResponse>(`/api/me/exams/${examId}/submit-scan`, formData).then(
+    normalizeScanExamResponse
+  );
 }
 
 export function getOptionCountFromAnswerKey(answerKey?: string[] | null): number {
@@ -87,5 +105,21 @@ export function applyOpticalReadingCorrections(
 ): Promise<ScanExamResponse> {
   return apiPatch<ScanExamResponse>(`/api/me/results/${examResultId}/optical-corrections`, {
     corrections: corrections.map((c) => ({ questionIndex: c.questionIndex, answer: c.answer })),
-  });
+  }).then(normalizeScanExamResponse);
+}
+
+export interface ExamAnswersReviewItem {
+  questionIndex: number;
+  /** Boş string: bilinçli boş. */
+  answer: string;
+}
+
+/** Optik son onay: tüm sorular için cevaplar; sunucu yeniden puanlar. */
+export function submitExamAnswersReview(
+  examResultId: string,
+  answers: ExamAnswersReviewItem[]
+): Promise<ScanExamResponse> {
+  return apiPatch<ScanExamResponse>(`/api/me/results/${examResultId}/answers-review`, {
+    answers: answers.map((a) => ({ questionIndex: a.questionIndex, answer: a.answer })),
+  }).then(normalizeScanExamResponse);
 }

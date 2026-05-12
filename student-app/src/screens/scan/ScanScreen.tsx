@@ -21,7 +21,9 @@ import {
   getOpticalSubmitOptionCount,
   getOptionLetterChoicesFromAnswerKey,
   OPTICAL_TEMPLATE_LGS_TURKISH_OMRCHECKER,
+  submitExamAnswersReview,
   submitScan,
+  type ExamAnswersReviewItem,
 } from '../../services/api/examsApi';
 import { TurkishColumnScanOverlay } from './TurkishColumnScanOverlay';
 import { TurkishFullPageScanOverlay } from './TurkishFullPageScanOverlay';
@@ -35,6 +37,7 @@ import {
 } from '../../services/debug/opticalTestCapture';
 import type { ScanScreenProps } from '../../app/navigation/types';
 import type { ScanExamResponse } from '../../types/exam';
+import { OpticalAnswersReviewModal } from './OpticalAnswersReviewModal';
 import { OpticalBelirsizCorrectionModal } from './OpticalBelirsizCorrectionModal';
 import { getBelirsizSuspicious } from './belirsizSuspicious';
 import { useAppTheme } from '../../theme/AppThemeContext';
@@ -583,6 +586,10 @@ export function ScanScreen({ route }: ScanScreenProps) {
   /** Yalnızca saveOpticalTestCapture gerçekten çağrıldığında güncellenir (null = bu oturumda henüz deneme yok). */
   const [lastOpticalSaveSucceeded, setLastOpticalSaveSucceeded] = useState<boolean | null>(null);
   const [belirsizModalOpen, setBelirsizModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const pendingReviewAfterBelirsizRef = useRef(false);
+  const reviewConfirmInFlightRef = useRef(false);
   const [cameraViewportSize, setCameraViewportSize] = useState<ViewportSize>({ width: 0, height: 440 });
   const cameraViewportWidth = cameraViewportSize.width > 0 ? cameraViewportSize.width : Math.max(200, windowWidth - 64);
   const cameraViewportHeight = cameraViewportSize.height > 0 ? cameraViewportSize.height : 440;
@@ -595,6 +602,21 @@ export function ScanScreen({ route }: ScanScreenProps) {
     () => (scanResult ? getBelirsizSuspicious(scanResult) : []),
     [scanResult]
   );
+
+  useEffect(() => {
+    setPhotoUri(null);
+    setScanResult(null);
+    setBelirsizModalOpen(false);
+    setReviewModalOpen(false);
+    pendingReviewAfterBelirsizRef.current = false;
+    reviewConfirmInFlightRef.current = false;
+  }, [exam.id]);
+
+  const reviewQuestionCount = useMemo(() => {
+    if (!scanResult) return 0;
+    const fromKey = exam.answerKey?.length ?? 0;
+    return Math.max(scanResult.totalCount, fromKey);
+  }, [exam.answerKey?.length, scanResult]);
 
   useEffect(() => {
     if (belirsizItems.length === 0 && belirsizModalOpen) {
@@ -655,6 +677,9 @@ export function ScanScreen({ route }: ScanScreenProps) {
     setPhotoUri(null);
     setScanResult(null);
     setBelirsizModalOpen(false);
+    setReviewModalOpen(false);
+    pendingReviewAfterBelirsizRef.current = false;
+    reviewConfirmInFlightRef.current = false;
   };
 
   const handleCapture = async () => {
@@ -678,6 +703,9 @@ export function ScanScreen({ route }: ScanScreenProps) {
 
       setPhotoUri(nextUri);
       setScanResult(null);
+      setReviewModalOpen(false);
+      pendingReviewAfterBelirsizRef.current = false;
+      reviewConfirmInFlightRef.current = false;
     }
   };
 
@@ -698,6 +726,9 @@ export function ScanScreen({ route }: ScanScreenProps) {
     if (!result.canceled && result.assets[0]?.uri) {
       setPhotoUri(result.assets[0].uri);
       setScanResult(null);
+      setReviewModalOpen(false);
+      pendingReviewAfterBelirsizRef.current = false;
+      reviewConfirmInFlightRef.current = false;
     }
   };
 
@@ -710,6 +741,43 @@ export function ScanScreen({ route }: ScanScreenProps) {
       }
     } finally {
       setExportingOpticalTests(false);
+    }
+  };
+
+  const handleBelirsizModalClose = () => {
+    if (pendingReviewAfterBelirsizRef.current) {
+      pendingReviewAfterBelirsizRef.current = false;
+      setReviewModalOpen(true);
+    }
+    setBelirsizModalOpen(false);
+  };
+
+  const handleReviewConfirm = async (answers: ExamAnswersReviewItem[]) => {
+    if (reviewConfirmInFlightRef.current) return;
+    const id = scanResult?.examResultId;
+    if (!id) {
+      Alert.alert(
+        'Kayıt bulunamadı',
+        'Bu tarama için sonuç kimliği yok. Uygulamayı güncelleyip taramayı yeniden gönderin.'
+      );
+      return;
+    }
+    reviewConfirmInFlightRef.current = true;
+    setReviewSubmitting(true);
+    try {
+      const out = await submitExamAnswersReview(id, answers);
+      setScanResult(out);
+      setReviewModalOpen(false);
+      Alert.alert('Tamamlandı', 'Cevaplarınız kaydedildi ve sonuç güncellendi.');
+    } catch (e) {
+      const msg =
+        e && typeof e === 'object' && 'message' in e
+          ? String((e as { message?: unknown }).message ?? '')
+          : 'Cevaplar kaydedilemedi.';
+      Alert.alert('Hata', msg);
+    } finally {
+      reviewConfirmInFlightRef.current = false;
+      setReviewSubmitting(false);
     }
   };
 
@@ -771,9 +839,10 @@ export function ScanScreen({ route }: ScanScreenProps) {
       }
       const needBelirsiz = getBelirsizSuspicious(result).length > 0;
       if (needBelirsiz) {
+        pendingReviewAfterBelirsizRef.current = true;
         setBelirsizModalOpen(true);
       } else {
-        Alert.alert('Optik tarama tamamlandı', 'Sonucun başarıyla kaydedildi.');
+        setReviewModalOpen(true);
       }
     } catch (err) {
       if (shouldPersistOpticalTest) {
@@ -1247,14 +1316,26 @@ export function ScanScreen({ route }: ScanScreenProps) {
       {scanResult ? (
         <OpticalBelirsizCorrectionModal
           visible={belirsizModalOpen}
-          onClose={() => setBelirsizModalOpen(false)}
+          onClose={handleBelirsizModalClose}
           onSaved={(res) => {
             setScanResult(res);
-            Alert.alert('Kaydedildi', 'Girdiğiniz cevaplar notunuza yansıtıldı.');
           }}
           lastScan={scanResult}
           optionLetters={optionLetterChoices}
           colors={colors}
+        />
+      ) : null}
+
+      {scanResult && reviewModalOpen && reviewQuestionCount > 0 ? (
+        <OpticalAnswersReviewModal
+          visible={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          lastScan={scanResult}
+          questionCount={reviewQuestionCount}
+          optionLetters={optionLetterChoices}
+          colors={colors}
+          onConfirm={(c) => void handleReviewConfirm(c)}
+          confirming={reviewSubmitting}
         />
       ) : null}
 

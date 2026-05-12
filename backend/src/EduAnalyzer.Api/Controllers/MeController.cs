@@ -133,6 +133,47 @@ public class MeController : ControllerBase
         }
     }
 
+    /// <summary>Öğrenci optik son onayı: tüm soru cevaplarını gönderir; sonuç yeniden puanlanır.</summary>
+    [HttpPatch("results/{id:guid}/answers-review")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ScanExamResponse>> ApplyExamAnswersReview(
+        Guid id,
+        [FromBody] ApplyExamAnswersReviewRequest? request,
+        CancellationToken ct)
+    {
+        var studentId = StudentIdOrNull;
+        if (studentId == null)
+            return Forbid();
+        if (request == null)
+            return BadRequest(new { message = "İstek gövdesi gerekli." });
+
+        try
+        {
+            var response = await _examService.ApplyExamAnswersReviewForStudentAsync(
+                id,
+                studentId.Value,
+                request,
+                ct);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("results/{id:guid}")]
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> DeleteMyResult(Guid id, CancellationToken ct)

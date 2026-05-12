@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace EduAnalyzer.Application.DTOs;
 
@@ -23,6 +24,11 @@ public record ScanExamRequest(Guid StudentId, IReadOnlyList<string> StudentAnswe
 public record ApplyOpticalReadingCorrectionsRequest(IReadOnlyList<OpticalReadingCorrectionItemDto> Corrections);
 
 public record OpticalReadingCorrectionItemDto(int QuestionIndex, string? Answer);
+
+/// <summary>Öğrenci optik son onayı: tüm sorular için seçilen cevaplar.</summary>
+public record ApplyExamAnswersReviewRequest(IReadOnlyList<ExamAnswersReviewItemDto> Answers);
+
+public record ExamAnswersReviewItemDto(int QuestionIndex, string? Answer);
 
 /// <summary>ML optical-scan yanıtındaki tek soru satırı.</summary>
 public record OpticalPerQuestionReadDto(string Answer, string Status, double Confidence);
@@ -50,7 +56,7 @@ public record ScanExamResponse(
     IReadOnlyList<WrongQuestionDto> WrongQuestions,
     IReadOnlyList<WrongTopicDto> WrongTopics,
     IReadOnlyList<SuspiciousQuestionHintDto> SuspiciousQuestions,
-    Guid ExamResultId
+    [property: JsonPropertyName("examResultId")] Guid ExamResultId
 );
 
 public record StudentWithResultsDto(StudentDto Student, IReadOnlyList<ExamResultDto> Results);

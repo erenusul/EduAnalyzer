@@ -46,6 +46,12 @@ public interface IExamService
         Guid studentId,
         ApplyOpticalReadingCorrectionsRequest request,
         CancellationToken ct = default);
+
+    Task<ScanExamResponse> ApplyExamAnswersReviewForStudentAsync(
+        Guid examResultId,
+        Guid studentId,
+        ApplyExamAnswersReviewRequest request,
+        CancellationToken ct = default);
 }
 
 public class ExamService : IExamService
@@ -551,6 +557,105 @@ public class ExamService : IExamService
             grading.WrongQuestions,
             grading.WrongTopics,
             newSuspicious,
+            entity.Id
+        );
+    }
+
+    public async Task<ScanExamResponse> ApplyExamAnswersReviewForStudentAsync(
+        Guid examResultId,
+        Guid studentId,
+        ApplyExamAnswersReviewRequest request,
+        CancellationToken ct = default)
+    {
+        var entity = await _resultRepo.GetByIdAsync(examResultId, ct)
+            ?? throw new KeyNotFoundException("Sınav sonucu bulunamadı.");
+
+        if (entity.StudentId != studentId)
+            throw new UnauthorizedAccessException("Bu sonuca erişim yetkiniz yok.");
+
+        if (!string.Equals(entity.Source, "optical", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Yalnızca optik tarama sonuçları güncellenebilir.");
+
+        var exam = await _examRepo.GetByIdAsync(entity.ExamId, ct)
+            ?? throw new KeyNotFoundException("Sınav bulunamadı.");
+
+        var answerKey = string.IsNullOrEmpty(exam.AnswerKeyJson)
+            ? new List<string>()
+            : JsonSerializer.Deserialize<List<string>>(exam.AnswerKeyJson) ?? new List<string>();
+
+        if (answerKey.Count == 0)
+            throw new InvalidOperationException("Bu sınav için cevap anahtarı tanımlanmamış.");
+
+        if (request.Answers is not { Count: > 0 })
+            throw new ArgumentException("Cevap listesi boş olamaz.");
+
+        if (request.Answers.Count != answerKey.Count)
+            throw new ArgumentException("Tüm sorular için cevap gönderilmelidir.");
+
+        var keyAllowsE = answerKey.Any(k => string.Equals(k?.Trim(), "E", StringComparison.OrdinalIgnoreCase));
+        var byIndex = new Dictionary<int, string>();
+
+        foreach (var item in request.Answers)
+        {
+            if (item.QuestionIndex < 1 || item.QuestionIndex > answerKey.Count)
+                throw new ArgumentException("Geçersiz soru numarası.");
+            if (byIndex.ContainsKey(item.QuestionIndex))
+                throw new ArgumentException("Aynı soru iki kez gönderilemez.");
+
+            var t = (item.Answer ?? "").Trim();
+            if (t.Length == 0)
+            {
+                byIndex[item.QuestionIndex] = "";
+                continue;
+            }
+
+            if (t.Length > 1)
+                throw new ArgumentException($"Soru {item.QuestionIndex}: yalnızca tek harf (A–E) veya boş değer kabul edilir.");
+            var ch = char.ToUpperInvariant(t[0]);
+            if (ch is < 'A' or > 'E')
+                throw new ArgumentException($"Soru {item.QuestionIndex}: yalnızca A, B, C, D, E kabul edilir.");
+            if (!keyAllowsE && ch == 'E')
+                throw new ArgumentException("Bu sınav cevap anahtarı E şıkkını içermiyor; E seçilemez.");
+            byIndex[item.QuestionIndex] = ch.ToString();
+        }
+
+        if (byIndex.Count != answerKey.Count)
+            throw new ArgumentException("Tüm sorular için cevap gönderilmelidir.");
+
+        var rawList = new List<string>(answerKey.Count);
+        for (var i = 1; i <= answerKey.Count; i++)
+        {
+            if (!byIndex.TryGetValue(i, out var slot))
+                throw new ArgumentException("Tüm sorular için cevap gönderilmelidir.");
+            rawList.Add(slot);
+        }
+
+        var normalized = OpticalReadGradingNormalizer.NormalizeAgainstAnswerKey(rawList, answerKey);
+        var grading = GradeStudentAnswersCore(exam, normalized);
+
+        var emptySuspicious = new List<SuspiciousQuestionHintDto>();
+        var suspiciousJson = JsonSerializer.Serialize(emptySuspicious, JsonStoreOptions);
+        var wrongTopicsJson = JsonSerializer.Serialize(grading.WrongTopics.Select(w => new { w.Topic, w.Count }));
+        var wrongQuestionsJson = JsonSerializer.Serialize(grading.WrongQuestions, JsonStoreOptions);
+        var correctQuestionsJson = JsonSerializer.Serialize(grading.CorrectQuestions, JsonStoreOptions);
+
+        entity.CorrectCount = grading.CorrectQuestions.Count;
+        entity.WrongCount = grading.WrongQuestions.Count;
+        entity.WrongTopicsJson = wrongTopicsJson;
+        entity.WrongQuestionsJson = wrongQuestionsJson;
+        entity.CorrectQuestionsJson = correctQuestionsJson;
+        entity.SuspiciousQuestionsJson = suspiciousJson;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _resultRepo.UpdateAsync(entity, ct);
+
+        return new ScanExamResponse(
+            entity.CorrectCount,
+            entity.WrongCount,
+            answerKey.Count,
+            grading.CorrectQuestions,
+            grading.WrongQuestions,
+            grading.WrongTopics,
+            emptySuspicious,
             entity.Id
         );
     }
