@@ -33,7 +33,7 @@ describe('LoginPage', () => {
     expect(screen.getByPlaceholderText('ornek@okul.edu.tr')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /giriş yap/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /öğretmen demo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /öğretmen hızlı giriş/i })).toBeInTheDocument();
   });
 
   it('shows error when login fails', async () => {
@@ -57,7 +57,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLoginPage();
 
-    await user.click(screen.getByRole('button', { name: /öğretmen demo/i }));
+    await user.click(screen.getByRole('button', { name: /öğretmen hızlı giriş/i }));
     expect(authApi.login).toHaveBeenCalledWith('ogretmen@demo.com', 'demo123');
   });
 });

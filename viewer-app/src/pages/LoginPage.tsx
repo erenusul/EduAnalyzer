@@ -161,7 +161,7 @@ export function LoginPage() {
                 disabled={loading}
               >
                 <i className="bi bi-lightning-charge me-2" />
-                Öğretmen Demo
+                Öğretmen Hızlı Giriş
               </Button>
               <Button
                 variant="outline-secondary"
@@ -181,7 +181,7 @@ export function LoginPage() {
                 disabled={loading}
               >
                 <i className="bi bi-people me-2" />
-                Veli Demo
+                Veli Hızlı Giriş
               </Button>
             </div>
           </Card.Body>
