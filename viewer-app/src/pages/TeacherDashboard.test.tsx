@@ -19,7 +19,6 @@ function mockAuth(user: { displayName: string }) {
     isAuthenticated: true,
     login: async () => null,
     loginDemo: async () => null,
-    loginDemoStudent: async () => null,
     loginDemoParent: async () => null,
     logout: () => {},
   } as never);

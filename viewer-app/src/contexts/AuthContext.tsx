@@ -55,10 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return login('ogretmen@demo.com', 'demo123');
   }, [login]);
 
-  const loginDemoStudent = useCallback(async () => {
-    return login('ogrenci@demo.com', 'demo123');
-  }, [login]);
-
   const loginDemoParent = useCallback(async () => {
     return login('veli@demo.com', 'demo123');
   }, [login]);
@@ -80,7 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: user !== null,
     login,
     loginDemo,
-    loginDemoStudent,
     loginDemoParent,
     logout,
   };

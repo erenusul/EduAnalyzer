@@ -15,7 +15,6 @@ function renderWithRouter(authState: { isAuthenticated: boolean; user?: { role?:
     user: authState.user ? { id: '1', email: 'test@test.com', displayName: 'Test', role: authState.user.role as 'Teacher' | 'Student' | 'Parent' } : null,
     login: async () => null,
     loginDemo: async () => null,
-    loginDemoStudent: async () => null,
     loginDemoParent: async () => null,
     logout: () => {},
   } as never);

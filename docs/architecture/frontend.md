@@ -52,7 +52,7 @@ flowchart LR
 
 ## Context'ler
 
-- **AuthContext:** `user`, `isAuthenticated`, `login`, `logout`, `loginDemo`, `loginDemoStudent`, `loginDemoParent`
+- **AuthContext:** `user`, `isAuthenticated`, `login`, `logout`, `loginDemo`, `loginDemoParent`
 - **TeacherDataContext:** `students`, `classes`, `analyses`, `exams`, `examResults`, `loading`, `refresh`, CRUD fonksiyonları
 
 ## Koruma

@@ -12,7 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, loginDemo, loginDemoStudent, loginDemoParent, isAuthenticated, user } = useAuth();
+  const { login, loginDemo, loginDemoParent, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -171,26 +171,6 @@ export function LoginPage() {
                   setError(null);
                   setLoading(true);
                   try {
-                    const userData = await loginDemoStudent();
-                    if (userData) navigate(getPathForRole(userData.role), { replace: true });
-                    else setError('Demo girişi başarısız.');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                <i className="bi bi-person me-2" />
-                Öğrenci Demo
-              </Button>
-              <Button
-                variant="outline-secondary"
-                size="lg"
-                className="w-100"
-                onClick={async () => {
-                  setError(null);
-                  setLoading(true);
-                  try {
                     const userData = await loginDemoParent();
                     if (userData) navigate(getPathForRole(userData.role), { replace: true });
                     else setError('Demo girişi başarısız.');
@@ -204,13 +184,8 @@ export function LoginPage() {
                 Veli Demo
               </Button>
             </div>
-            <p className="text-center text-muted small mt-3 mb-0">Demo hesaplar: demo123 şifresi</p>
           </Card.Body>
         </Card>
-
-        <p className="text-center text-muted small mt-3">
-          Öğretmen: ogretmen@demo.com | Öğrenci: ogrenci@demo.com | Veli: veli@demo.com
-        </p>
       </div>
     </div>
   );
